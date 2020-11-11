@@ -5,7 +5,10 @@ import (
 
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
 )
 
 // Controller is the controller interface that must be implemented by a
@@ -22,42 +25,55 @@ type Controller interface {
 	// error is expected in return.
 	FetchInstance() error
 
+	// Apply default values to the primary object spec. Use this in case a
+	// defaulting webhook has not been deployed.
+	Default()
+
+	// Validate validates the primary object spec before it's created. It
+	// ensures that all required fields are present and valid. Use this in case
+	// a validating webhook has not been deployed.
+	Validate() error
+
+	// SaveClone clones and saves the original request instance after
+	// defaulting and validating. This is later used in StatusUpdate() to check
+	// if there's a change in the status and patches the status if required.
+	SaveClone()
+
 	// IsUninitialized checks the primary object instance fetched in
 	// FetchInstance() and determines if the object has not been initialized.
 	// This is usually done by checking the status of the object. This is
 	// checked before running Initialize().
 	IsUninitialized() bool
 
-	// Initialize runs the initialization operation for the primary object and
-	// updates the object status with the given condition to mark the object as
-	// initialized. Depending on the controller, initialize can internally call
-	// RunOperation() or have an entirely different set of operations to
-	// initialize the primary object.
+	// Initialize sets the provided initialization condition on the object
+	// status. This helps some operations in Operation() know about the
+	// creation phase and run initialization specific operations.
 	Initialize(conditionsv1.Condition) error
 
-	// EmitEvent emits event on the primary object.
-	EmitEvent(eventType, reason, message string)
+	// FetchStatus queries the status of the child objects and based on them,
+	// sets the status of the primary object instance. It doesn't save the
+	// updated object in the API. API update is done in StatusUpdate() after
+	// collecting and comparing all the status updates.
+	FetchStatus() error
 
-	// RunOperation runs the core operation of the controller that ensures that
+	// Operate runs the core operation of the controller that ensures that
 	// the child objects or the other objects and configurations in the
 	// environment are in the desired state. It should be able to update any
-	// existing resources if there's a configuration drift appropriately, based
-	// on the type of objects. It should also be able to perform the operations
-	// that took place ini Initialize() to create resources, in case they don't
-	// exist anymore but the desired state expects them to exist.
-	RunOperation() error
+	// existing resources or create one, if there's a configuration drift,
+	// based on the type of objects.
+	// The returned result is the returned reconcile result. eventMessage is a
+	// message that's emitted to the primary object. It's related to the change
+	// done in the operation. A controller can use this to emit event of one
+	// change performed by the reconciler and return the result with requeue
+	// set to true.
+	Operate() (result ctrl.Result, event eventv1.ReconcilerEvent, err error)
 
-	// StatusUpdate checks the child objects or the other objects and
-	// configurations in the environment to determine the status of the primary
-	// object and updates its status. This usually sets the status conditions
-	// and phase, depending on the situation.
-	StatusUpdate() error
+	// EmitEvent emits event on the primary object.
+	EmitEvent(record.EventRecorder)
 
-	// CheckForDrift looks for any drift in the configuration of child objects
-	// or the environment compared to the desired state expressed in the
-	// primary object's configuration. This is usually run before
-	// RunOperation().
-	CheckForDrift() (bool, error)
+	// UpdateStatus compares the original primary object instance with the
+	// reconciled primary object and patches the API object if required.
+	UpdateStatus() error
 
 	// GetObjectMetadata returns the resource metadata of the primary object.
 	// This is usually used to check if a resource is marked for deletion.
