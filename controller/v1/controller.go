@@ -5,7 +5,6 @@ import (
 
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
@@ -68,9 +67,6 @@ type Controller interface {
 	// set to true.
 	Operate() (result ctrl.Result, event eventv1.ReconcilerEvent, err error)
 
-	// EmitEvent emits event on the primary object.
-	EmitEvent(record.EventRecorder)
-
 	// UpdateStatus compares the original primary object instance with the
 	// reconciled primary object and patches the API object if required.
 	UpdateStatus() error
@@ -90,7 +86,9 @@ type Controller interface {
 	// custom cleanup requirement, the cleanup logic can be defined here.
 	Cleanup() error
 
-	// UpdateConditions updates the status condition of the primary object with
-	// the given conditions.
-	UpdateConditions([]conditionsv1.Condition) error
+	// UpdateConditions updates the status condition of local instance of the
+	// primary object with the given conditions. It doesn't update the API
+	// object in the API server. Use UpdateStatus() to update the actual status
+	// of the object.
+	UpdateConditions([]conditionsv1.Condition)
 }
