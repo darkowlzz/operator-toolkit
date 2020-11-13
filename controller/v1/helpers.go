@@ -8,10 +8,7 @@ import (
 // DefaultIsUninitialized performs uninitialized check on an object based on
 // the status conditions.
 func DefaultIsUninitialized(conditions []conditionsv1.Condition) bool {
-	if conditions == nil {
-		return true
-	}
-	return false
+	return conditions == nil
 }
 
 // DeletionCheck checks if the main resource has been marked for deletion and
