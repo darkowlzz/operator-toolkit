@@ -10,23 +10,28 @@ import (
 )
 
 // Reconcile implements the composite controller reconciliation.
-func (c CompositeReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
+func (c CompositeReconciler) Reconcile(req ctrl.Request) (result ctrl.Result, reterr error) {
+	result = ctrl.Result{}
+	reterr = nil
+
 	ctx := context.Background()
 	controller := c.C
 
 	// Initialize the reconciler.
 	controller.InitReconcile(ctx, req)
-	if err := controller.FetchInstance(); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+	if fetchErr := controller.FetchInstance(); fetchErr != nil {
+		reterr = client.IgnoreNotFound(fetchErr)
+		return
 	}
 
 	// Add defaults to the primary object instance.
 	controller.Default()
 
 	// Validate the instance spec.
-	if err := controller.Validate(); err != nil {
-		c.Log.Info("object validation failed", "error", err)
-		return ctrl.Result{}, err
+	if valErr := controller.Validate(); valErr != nil {
+		reterr = valErr
+		c.Log.Info("object validation failed", "error", valErr)
+		return
 	}
 
 	// Save the instance before operating on it in memory.
@@ -36,15 +41,20 @@ func (c CompositeReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr 
 	init := controller.IsUninitialized()
 	if init {
 		c.Log.Info("initializing", "instance", controller.GetObjectMetadata().Name)
-		if err := controller.Initialize(c.InitCondition); err != nil {
-			c.Log.Info("initialization failed", "error", err)
-			return ctrl.Result{}, err
+		if initErr := controller.Initialize(c.InitCondition); initErr != nil {
+			c.Log.Info("initialization failed", "error", initErr)
+			reterr = initErr
+			return
 		}
 	}
 
-	// Check finalizers for cleanup.
-	if err := DeletionCheck(controller, c.FinalizerName); err != nil {
-		return ctrl.Result{}, err
+	// If finalizer is set, check for deletion.
+	if c.FinalizerName != "" {
+		if delErr := DeletionCheck(controller, c.FinalizerName); delErr != nil {
+			result = ctrl.Result{Requeue: true}
+			reterr = delErr
+			return
+		}
 	}
 
 	// Attempt to patch the status after each reconciliation.
@@ -55,13 +65,16 @@ func (c CompositeReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr 
 	}()
 
 	if fetchErr := controller.FetchStatus(); fetchErr != nil {
-		return ctrl.Result{}, fetchErr
+		result = ctrl.Result{Requeue: true}
+		reterr = fetchErr
+		return
 	}
 
 	// Run the operation.
-	result, event, err := controller.Operate()
-	if err != nil {
-		c.Log.Info("failed to finish Operation", "error", err)
+	result, event, opErr := controller.Operate()
+	if opErr != nil {
+		c.Log.Info("failed to finish Operation", "error", opErr)
+		reterr = opErr
 	}
 
 	// Record an event if the operation returned one.
@@ -69,5 +82,5 @@ func (c CompositeReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr 
 		event.Record(c.Recorder)
 	}
 
-	return result, err
+	return
 }
