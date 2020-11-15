@@ -110,8 +110,8 @@ func TestReconcile(t *testing.T) {
 				m.EXPECT().IsUninitialized().Return(true)
 				m.EXPECT().GetObjectMetadata()
 				m.EXPECT().Initialize(conditionsv1.Condition{})
-				m.EXPECT().FetchStatus().Return(errors.New("failed to get status"))
-				m.EXPECT().UpdateStatus()
+				m.EXPECT().UpdateStatus().Return(errors.New("failed to get status"))
+				m.EXPECT().PatchStatus()
 			},
 			wantResult: ctrl.Result{Requeue: true},
 			wantErr:    true,
@@ -133,8 +133,8 @@ func TestReconcile(t *testing.T) {
 				m.EXPECT().IsUninitialized().Return(true)
 				m.EXPECT().GetObjectMetadata()
 				m.EXPECT().Initialize(conditionsv1.Condition{})
-				m.EXPECT().FetchStatus()
 				m.EXPECT().UpdateStatus()
+				m.EXPECT().PatchStatus()
 				m.EXPECT().Operate().Return(ctrl.Result{Requeue: true}, nil, errors.New("operate error"))
 			},
 			wantResult: ctrl.Result{Requeue: true},
@@ -157,8 +157,8 @@ func TestReconcile(t *testing.T) {
 				m.EXPECT().IsUninitialized().Return(true)
 				m.EXPECT().GetObjectMetadata()
 				m.EXPECT().Initialize(conditionsv1.Condition{})
-				m.EXPECT().FetchStatus()
 				m.EXPECT().UpdateStatus()
+				m.EXPECT().PatchStatus()
 				m.EXPECT().Operate().Return(ctrl.Result{Requeue: true}, nil, nil)
 			},
 			wantResult: ctrl.Result{Requeue: true},
@@ -180,8 +180,8 @@ func TestReconcile(t *testing.T) {
 				m.EXPECT().IsUninitialized().Return(true)
 				m.EXPECT().GetObjectMetadata()
 				m.EXPECT().Initialize(conditionsv1.Condition{})
-				m.EXPECT().FetchStatus()
-				m.EXPECT().UpdateStatus().Return(errors.New("failed to update status"))
+				m.EXPECT().UpdateStatus()
+				m.EXPECT().PatchStatus().Return(errors.New("failed to update status"))
 				m.EXPECT().Operate().Return(ctrl.Result{}, nil, nil)
 			},
 			wantResult: ctrl.Result{},
@@ -204,8 +204,8 @@ func TestReconcile(t *testing.T) {
 				m.EXPECT().IsUninitialized().Return(true)
 				m.EXPECT().GetObjectMetadata()
 				m.EXPECT().Initialize(conditionsv1.Condition{})
-				m.EXPECT().FetchStatus()
 				m.EXPECT().UpdateStatus()
+				m.EXPECT().PatchStatus()
 				m.EXPECT().Operate().Return(ctrl.Result{}, nil, nil)
 			},
 			wantResult: ctrl.Result{},
@@ -254,8 +254,8 @@ func TestReconcile(t *testing.T) {
 				m.EXPECT().Initialize(conditionsv1.Condition{})
 				m.EXPECT().GetObjectMetadata()
 				m.EXPECT().AddFinalizer(gomock.Any())
-				m.EXPECT().FetchStatus()
 				m.EXPECT().UpdateStatus()
+				m.EXPECT().PatchStatus()
 				m.EXPECT().Operate().Return(ctrl.Result{}, nil, nil)
 			},
 			wantResult: ctrl.Result{},
@@ -316,8 +316,8 @@ func TestReconcile(t *testing.T) {
 				}
 				m.EXPECT().GetObjectMetadata().Return(metadata)
 				m.EXPECT().Cleanup()
-				m.EXPECT().FetchStatus()
 				m.EXPECT().UpdateStatus()
+				m.EXPECT().PatchStatus()
 				m.EXPECT().Operate().Return(ctrl.Result{}, nil, nil)
 			},
 			wantResult: ctrl.Result{},

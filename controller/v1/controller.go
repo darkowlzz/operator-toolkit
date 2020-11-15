@@ -36,7 +36,7 @@ type Controller interface {
 	Validate() error
 
 	// SaveClone clones and saves the original request instance after
-	// defaulting and validating. This is later used in StatusUpdate() to check
+	// defaulting and validating. This is later used in PatchStatus() to check
 	// if there's a change in the status and patches the status if required.
 	SaveClone()
 
@@ -51,11 +51,11 @@ type Controller interface {
 	// creation phase and run initialization specific operations.
 	Initialize(conditionsv1.Condition) error
 
-	// FetchStatus queries the status of the child objects and based on them,
+	// UpdateStatus queries the status of the child objects and based on them,
 	// sets the status of the primary object instance. It doesn't save the
-	// updated object in the API. API update is done in StatusUpdate() after
+	// updated object in the API. API update is done in PatchStatus() after
 	// collecting and comparing all the status updates.
-	FetchStatus() error
+	UpdateStatus() error
 
 	// Operate runs the core operation of the controller that ensures that
 	// the child objects or the other objects and configurations in the
@@ -69,9 +69,10 @@ type Controller interface {
 	// set to true.
 	Operate() (result ctrl.Result, event eventv1.ReconcilerEvent, err error)
 
-	// UpdateStatus compares the original primary object instance with the
-	// reconciled primary object and patches the API object if required.
-	UpdateStatus() error
+	// PatchStatus compares the original primary object instance status with
+	// the reconciled primary object status and patches the API object if
+	// required.
+	PatchStatus() error
 
 	// GetObjectMetadata returns the resource metadata of the primary object.
 	// This is usually used to check if a resource is marked for deletion.

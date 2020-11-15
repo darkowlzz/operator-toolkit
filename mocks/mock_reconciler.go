@@ -91,20 +91,6 @@ func (mr *MockControllerMockRecorder) FetchInstance() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchInstance", reflect.TypeOf((*MockController)(nil).FetchInstance))
 }
 
-// FetchStatus mocks base method
-func (m *MockController) FetchStatus() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FetchStatus")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// FetchStatus indicates an expected call of FetchStatus
-func (mr *MockControllerMockRecorder) FetchStatus() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchStatus", reflect.TypeOf((*MockController)(nil).FetchStatus))
-}
-
 // GetObjectMetadata mocks base method
 func (m *MockController) GetObjectMetadata() v11.ObjectMeta {
 	m.ctrl.T.Helper()
@@ -173,6 +159,20 @@ func (m *MockController) Operate() (reconcile.Result, v1.ReconcilerEvent, error)
 func (mr *MockControllerMockRecorder) Operate() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Operate", reflect.TypeOf((*MockController)(nil).Operate))
+}
+
+// PatchStatus mocks base method
+func (m *MockController) PatchStatus() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PatchStatus")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PatchStatus indicates an expected call of PatchStatus
+func (mr *MockControllerMockRecorder) PatchStatus() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PatchStatus", reflect.TypeOf((*MockController)(nil).PatchStatus))
 }
 
 // SaveClone mocks base method

@@ -59,14 +59,14 @@ func (c CompositeReconciler) Reconcile(req ctrl.Request) (result ctrl.Result, re
 
 	// Attempt to patch the status after each reconciliation.
 	defer func() {
-		if err := controller.UpdateStatus(); err != nil {
+		if err := controller.PatchStatus(); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, fmt.Errorf("error while patching status: %s", err)})
 		}
 	}()
 
-	if fetchErr := controller.FetchStatus(); fetchErr != nil {
+	if updateErr := controller.UpdateStatus(); updateErr != nil {
 		result = ctrl.Result{Requeue: true}
-		reterr = fetchErr
+		reterr = updateErr
 		return
 	}
 
