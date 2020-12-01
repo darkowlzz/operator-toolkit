@@ -13,7 +13,7 @@ type OperandDAG struct {
 	*dag.DAG
 
 	// ExecOrder is the execution order of the operands.
-	ExecOrder OperandOrder
+	// ExecOrder operand.OperandOrder
 }
 
 // func NewOperandDAG(operands map[string]*operand.Operand) (*OperandDAG, error) {
@@ -47,10 +47,10 @@ func NewOperandDAG(operands []*operand.Operand) (*OperandDAG, error) {
 	return od, nil
 }
 
-func (od *OperandDAG) Order() (OperandOrder, error) {
-	if od.ExecOrder != nil {
-		return od.ExecOrder, nil
-	}
+func (od *OperandDAG) Order() (operand.OperandOrder, error) {
+	// if od.ExecOrder != nil {
+	//     return od.ExecOrder, nil
+	// }
 
 	soln, steps, err := od.solve()
 	if err != nil {
@@ -68,7 +68,7 @@ func (od *OperandDAG) Order() (OperandOrder, error) {
 	}
 
 	// Save the result for use as a cached.
-	od.ExecOrder = result
+	// od.ExecOrder = result
 
 	return result, nil
 }

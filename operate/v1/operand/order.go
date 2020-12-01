@@ -1,17 +1,15 @@
-package dag
+package operand
 
 import (
 	"fmt"
 	"sort"
 	"strings"
-
-	"github.com/darkowlzz/composite-reconciler/operate/v1/operand"
 )
 
 // OperandOrder stores the operands in order of their execution. The first
 // dimension of the slice depicts the execution step and the second dimention
 // contains the operands that can be run in parallel.
-type OperandOrder [][]*operand.Operand
+type OperandOrder [][]*Operand
 
 // String implements the Stringer interface for OperandOrder.
 // Example string result:

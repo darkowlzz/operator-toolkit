@@ -23,6 +23,7 @@ type Operand struct {
 	// DependsOn []runtime.Object
 
 	// DependsOn defines the relationship between the operands of an operator.
+	// "Requires"
 	DependsOn []string
 
 	// Ensure creates, or updates a target object with the wanted
