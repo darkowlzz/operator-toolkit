@@ -6,6 +6,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// Operand defines a single operation that's part of an composite operator. It
+// contains implementation details about how an action is performed, maybe for
+// creating a resource, and how to reverse/undo the action, maybe for cleanup
+// purposes. It also contains relationship information about the operand with
+// other operands and details about checking the ready status of target
+// objects.
 type Operand struct {
 	// Name of the operand.
 	Name string
@@ -17,14 +23,8 @@ type Operand struct {
 	// These objects are checked for readiness based on the ReadyConditions.
 	Resources []runtime.Object
 
-	// DependsOn defines the relationship between the operands of an
-	// operator. This is used to create an order of the operation
-	// based on the operands it depends on.
-	// DependsOn []runtime.Object
-
-	// DependsOn defines the relationship between the operands of an operator.
-	// "Requires"
-	DependsOn []string
+	// Requires defines the relationship between the operands of an operator.
+	Requires []string
 
 	// Ensure creates, or updates a target object with the wanted
 	// configurations.
@@ -47,4 +47,21 @@ func (c *Operand) Ready() (bool, error) {
 	// Fetch dependent objects and check ReadyConditions or call c.CheckReady().
 	ready := false
 	return ready, nil
+}
+
+// OperandRunCall defines a function type used to define a function that
+// returns an operand execute call. This is used for passing the operand
+// execute function (Ensure or Delete) in a generic way.
+type OperandRunCall func(op *Operand) func() error
+
+// callEnsure is an OperandRunCall type function that calls the Ensure function
+// of a given operand.
+func CallEnsure(op *Operand) func() error {
+	return op.Ensure
+}
+
+// callCleanup is an OperandRunCall type function that calls the Cleanup
+// function of a given operand.
+func CallCleanup(op *Operand) func() error {
+	return op.Delete
 }

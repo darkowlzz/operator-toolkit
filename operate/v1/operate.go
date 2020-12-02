@@ -87,41 +87,44 @@ func (co *CompositeOperator) IsSuspended() bool {
 // order of their dependencies, to ensure all the operations the individual
 // operands perform.
 func (co *CompositeOperator) Ensure() (result ctrl.Result, event eventv1.ReconcilerEvent, rerr error) {
+	return executeOperands(co.order, operand.CallEnsure)
+}
+
+// Cleanup implements the Operator interface.
+func (co *CompositeOperator) Cleanup() (result ctrl.Result, event eventv1.ReconcilerEvent, rerr error) {
+	return executeOperands(co.order.Reverse(), operand.CallCleanup)
+}
+
+// executeOperands executes operands in a given OperandOrder by calling a given
+// OperandRunCall function on each of the operands. The OperandRunCall can be a
+// call to Ensure or Delete.
+func executeOperands(order operand.OperandOrder, call operand.OperandRunCall) (result ctrl.Result, event eventv1.ReconcilerEvent, rerr error) {
 	// TODO: Get the right event from the operand's target objects.
 
-	for _, ops := range co.order {
-		// Run the operands in the same order concurrently.
+	for _, ops := range order {
+		// Run the operands concurrently.
 		var wg sync.WaitGroup
 		var e chan error = make(chan error, len(ops))
 
 		wg.Add(len(ops))
 		for _, op := range ops {
-			go operateWithWaitGroup(&wg, e, op.Ensure)
+			go operateWithWaitGroup(&wg, e, call(op))
 		}
 		wg.Wait()
 		close(e)
 
-		// TODO: Use a multierror package to better collect the multiple
-		// errors.
 		gotErrs := false
 		for err := range e {
 			gotErrs = true
 			rerr = multierror.Append(rerr, err)
 		}
 
-		// If an error is encountered, set requeue in the result and break out
-		// of the operation execution loop.
 		if gotErrs {
 			result = ctrl.Result{Requeue: true}
 			break
 		}
 	}
 
-	return
-}
-
-// Cleanup implements the Operator interface.
-func (co *CompositeOperator) Cleanup() (result ctrl.Result, event eventv1.ReconcilerEvent, rerr error) {
 	return
 }
 

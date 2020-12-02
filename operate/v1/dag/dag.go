@@ -35,7 +35,7 @@ func NewOperandDAG(operands []*operand.Operand) (*OperandDAG, error) {
 		}
 
 		// Connect the operand to all the vertices it depends on.
-		for _, dep := range op.DependsOn {
+		for _, dep := range op.Requires {
 			tailVertex, err := od.GetVertex(dep)
 			if err != nil {
 				return nil, err

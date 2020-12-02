@@ -37,3 +37,12 @@ func (o OperandOrder) String() string {
 	result.WriteString("]")
 	return result.String()
 }
+
+// Reverse returns the OperandOrder in reverse order.
+func (o OperandOrder) Reverse() OperandOrder {
+	// Refer: https://github.com/golang/go/wiki/SliceTricks#reversing
+	for left, right := 0, len(o)-1; left < right; left, right = left+1, right-1 {
+		o[left], o[right] = o[right], o[left]
+	}
+	return o
+}

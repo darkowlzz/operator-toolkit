@@ -1,7 +1,6 @@
 package dag
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/darkowlzz/composite-reconciler/operate/v1/operand"
@@ -33,20 +32,20 @@ func TestDAG(t *testing.T) {
 			Name: "B",
 		},
 		&operand.Operand{
-			Name:      "C",
-			DependsOn: []string{"B"},
+			Name:     "C",
+			Requires: []string{"B"},
 		},
 		&operand.Operand{
-			Name:      "D",
-			DependsOn: []string{"A", "C"},
+			Name:     "D",
+			Requires: []string{"A", "C"},
 		},
 		&operand.Operand{
-			Name:      "E",
-			DependsOn: []string{"D"},
+			Name:     "E",
+			Requires: []string{"D"},
 		},
 		&operand.Operand{
-			Name:      "F",
-			DependsOn: []string{"C"},
+			Name:     "F",
+			Requires: []string{"C"},
 		},
 	}
 
@@ -55,6 +54,12 @@ func TestDAG(t *testing.T) {
   1: [ C ]
   2: [ D F ]
   3: [ E ]
+]`
+	expectedReverseResult := `[
+  0: [ E ]
+  1: [ D F ]
+  2: [ C ]
+  3: [ A B ]
 ]`
 
 	opd, err := NewOperandDAG(ops)
@@ -66,9 +71,12 @@ func TestDAG(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to order the operands: %v", err)
 	}
-	fmt.Println(ordered)
-
 	if ordered.String() != expectedResult {
 		t.Errorf("unexpected results:\n\t(WNT) %q\n\t(GOT) %q", expectedResult, ordered)
+	}
+
+	reverseOrder := ordered.Reverse()
+	if reverseOrder.String() != expectedReverseResult {
+		t.Errorf("unexpected reverse results:\n\t(WNT) %q\n\t(GOT) %q", expectedReverseResult, reverseOrder)
 	}
 }

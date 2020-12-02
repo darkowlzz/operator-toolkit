@@ -23,16 +23,16 @@ func TestCompositeOperatorOrder(t *testing.T) {
 			Name: configmapName,
 		},
 		&operand.Operand{
-			Name:      daemonsetName,
-			DependsOn: []string{secretName, configmapName},
+			Name:     daemonsetName,
+			Requires: []string{secretName, configmapName},
 		},
 		&operand.Operand{
-			Name:      deploymentAName,
-			DependsOn: []string{secretName},
+			Name:     deploymentAName,
+			Requires: []string{secretName},
 		},
 		&operand.Operand{
-			Name:      deploymentBName,
-			DependsOn: []string{deploymentAName},
+			Name:     deploymentBName,
+			Requires: []string{deploymentAName},
 		},
 	}
 
@@ -60,6 +60,10 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 			return nil
 			// return errors.New("some error for opA")
 		},
+		Delete: func() error {
+			fmt.Println("DELETING opA")
+			return nil
+		},
 	}
 
 	operandB := &operand.Operand{
@@ -70,13 +74,21 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 			return nil
 			// return errors.New("some error for opB")
 		},
+		Delete: func() error {
+			fmt.Println("DELETING opB")
+			return nil
+		},
 	}
 
 	operandC := &operand.Operand{
-		Name:      "opC",
-		DependsOn: []string{operandA.Name},
+		Name:     "opC",
+		Requires: []string{operandA.Name},
 		Ensure: func() error {
 			fmt.Println("RUNNING opC")
+			return nil
+		},
+		Delete: func() error {
+			fmt.Println("DELETING opC")
 			return nil
 		},
 	}
@@ -100,4 +112,10 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 	fmt.Println("EERR:", eerr)
 	fmt.Println("RES:", res)
 	fmt.Println("EVENT:", eve)
+
+	cres, ceve, ceerr := co.Cleanup()
+	fmt.Println("EERR:", ceerr)
+	fmt.Println("RES:", cres)
+	fmt.Println("EVENT:", ceve)
+
 }
