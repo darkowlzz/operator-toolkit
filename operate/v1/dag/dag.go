@@ -23,7 +23,9 @@ func NewOperandDAG(operands []*operand.Operand) (*OperandDAG, error) {
 	// Create vertices for all the operands.
 	for _, op := range operands {
 		v := dag.NewVertex(op.Name, op)
-		od.AddVertex(v)
+		if err := od.AddVertex(v); err != nil {
+			return nil, err
+		}
 	}
 
 	// Create edges between the vertices based on the operand's depends on
@@ -40,7 +42,9 @@ func NewOperandDAG(operands []*operand.Operand) (*OperandDAG, error) {
 			if err != nil {
 				return nil, err
 			}
-			od.AddEdge(tailVertex, headVertex)
+			if err := od.AddEdge(tailVertex, headVertex); err != nil {
+				return nil, err
+			}
 		}
 	}
 
