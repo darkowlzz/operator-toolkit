@@ -17,6 +17,7 @@ type CompositeOperator struct {
 	isSuspended       func() bool
 	order             operand.OperandOrder
 	executionStrategy executor.ExecutionStrategy
+	changeStrategy    executor.ChangeApplyStrategy
 	// TODO: Add a k8s client to be used by the operands.
 }
 
@@ -44,6 +45,13 @@ func WithSuspensionCheck(f func() bool) CompositeOperatorOption {
 	}
 }
 
+// WithChangeStrategy sets the ChangeApplyStrategy of a CompositeOperator.
+func WithChangeStrategy(changeStrat executor.ChangeApplyStrategy) CompositeOperatorOption {
+	return func(c *CompositeOperator) {
+		c.changeStrategy = changeStrat
+	}
+}
+
 // NewCompositeOperator creates a composite operator with a list of operands.
 // It evaluates the operands for valid, creating a relationship model between
 // the model and returns a CompositeOperator. The relationship model between
@@ -54,6 +62,7 @@ func NewCompositeOperator(opts ...CompositeOperatorOption) (*CompositeOperator, 
 	c := &CompositeOperator{
 		isSuspended:       defaultIsSuspended,
 		executionStrategy: executor.Parallel,
+		changeStrategy:    executor.OneAtATime,
 	}
 
 	// Loop through each option.

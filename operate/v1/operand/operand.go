@@ -61,6 +61,9 @@ type OperandRunCall func(op *Operand) func() (eventv1.ReconcilerEvent, error)
 // callEnsure is an OperandRunCall type function that calls the Ensure function
 // of a given operand.
 func CallEnsure(op *Operand) func() (eventv1.ReconcilerEvent, error) {
+	// TODO: Perform the readiness check before returning. This will ensure
+	// that the operands that depend on this are executed only after this
+	// operation is successful.
 	return op.Ensure
 }
 
