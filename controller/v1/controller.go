@@ -67,7 +67,7 @@ type Controller interface {
 	// done in the operation. A controller can use this to emit event of one
 	// change performed by the reconciler and return the result with requeue
 	// set to true.
-	Operate() (result ctrl.Result, event eventv1.ReconcilerEvent, err error)
+	Operate() (result ctrl.Result, event []eventv1.ReconcilerEvent, err error)
 
 	// PatchStatus compares the original primary object instance status with
 	// the reconciled primary object status and patches the API object if

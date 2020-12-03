@@ -15,7 +15,7 @@ func (c CompositeReconciler) Reconcile(req ctrl.Request) (result ctrl.Result, re
 	reterr = nil
 
 	ctx := context.Background()
-	controller := c.C
+	controller := c.Ctrlr
 
 	// Initialize the reconciler.
 	controller.InitReconcile(ctx, req)
@@ -48,10 +48,10 @@ func (c CompositeReconciler) Reconcile(req ctrl.Request) (result ctrl.Result, re
 		}
 	}
 
-	// If finalizer is set, check for deletion.
-	if c.FinalizerName != "" {
-		if delErr := DeletionCheck(controller, c.FinalizerName); delErr != nil {
-			result = ctrl.Result{Requeue: true}
+	// If the cleanup strategy is finalizer based, perform deletion check.
+	if c.CleanupStrategy == FinalizerCleanup {
+		result, events, delErr := DeletionCheck(c.CleanupStrategy, controller, c.FinalizerName)
+		if delErr != nil {
 			reterr = delErr
 			return
 		}
@@ -72,14 +72,15 @@ func (c CompositeReconciler) Reconcile(req ctrl.Request) (result ctrl.Result, re
 	}
 
 	// Run the operation.
-	result, event, opErr := controller.Operate()
+	result, events, opErr := controller.Operate()
 	if opErr != nil {
 		c.Log.Info("failed to finish Operation", "error", opErr)
 		reterr = opErr
 	}
 
 	// Record an event if the operation returned one.
-	if event != nil {
+	for _, event := range events {
+		// if event != nil {
 		event.Record(c.Recorder)
 	}
 

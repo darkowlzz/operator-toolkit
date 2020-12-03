@@ -1,8 +1,10 @@
 package v1
 
 import (
+	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // DefaultIsUninitialized performs uninitialized check on an object based on
@@ -14,12 +16,15 @@ func DefaultIsUninitialized(conditions []conditionsv1.Condition) bool {
 // DeletionCheck checks if the main resource has been marked for deletion and
 // runs cleanup. If the resource is not marked for deletion, it ensures that
 // the metadata contains finalizer.
-func DeletionCheck(c Controller, finalizerName string) error {
+func DeletionCheck(c Controller, finalizerName string) (result ctrl.Result, event []eventv1.ReconcilerEvent, rerr error) {
 	metadata := c.GetObjectMetadata()
 	if metadata.DeletionTimestamp.IsZero() {
 		if !contains(metadata.Finalizers, finalizerName) {
 			if err := c.AddFinalizer(finalizerName); err != nil {
-				return err
+				// Return for a retry and return the error.
+				result = ctrl.Result{Requeue: true}
+				rerr = err
+				return
 			}
 		}
 	} else {
