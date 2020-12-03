@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
 	"github.com/darkowlzz/composite-reconciler/operate/v1/operand"
 )
 
@@ -42,7 +43,9 @@ func TestCompositeOperatorOrder(t *testing.T) {
   2: [ deploymentB ]
 ]`
 
-	co, err := NewCompositeOperator(operands...)
+	co, err := NewCompositeOperator(
+		WithOperands(operands...),
+	)
 	if err != nil {
 		t.Errorf("unexpected error while creating a composite operator: %v", err)
 	}
@@ -55,41 +58,44 @@ func TestCompositeOperatorOrder(t *testing.T) {
 func TestCompositeOperatorEnsure(t *testing.T) {
 	operandA := &operand.Operand{
 		Name: "opA",
-		Ensure: func() error {
+		Ensure: func() (eventv1.ReconcilerEvent, error) {
 			fmt.Println("RUNNING opA")
-			return nil
+			time.Sleep(2 * time.Second)
+			fmt.Println("ENDING opA")
+			return nil, nil
 			// return errors.New("some error for opA")
 		},
-		Delete: func() error {
+		Delete: func() (eventv1.ReconcilerEvent, error) {
 			fmt.Println("DELETING opA")
-			return nil
+			return nil, nil
 		},
 	}
 
 	operandB := &operand.Operand{
 		Name: "opB",
-		Ensure: func() error {
-			time.Sleep(1 * time.Second)
+		Ensure: func() (eventv1.ReconcilerEvent, error) {
 			fmt.Println("RUNNING opB")
-			return nil
+			time.Sleep(2 * time.Second)
+			fmt.Println("ENDING opB")
+			return nil, nil
 			// return errors.New("some error for opB")
 		},
-		Delete: func() error {
+		Delete: func() (eventv1.ReconcilerEvent, error) {
 			fmt.Println("DELETING opB")
-			return nil
+			return nil, nil
 		},
 	}
 
 	operandC := &operand.Operand{
 		Name:     "opC",
 		Requires: []string{operandA.Name},
-		Ensure: func() error {
+		Ensure: func() (eventv1.ReconcilerEvent, error) {
 			fmt.Println("RUNNING opC")
-			return nil
+			return nil, nil
 		},
-		Delete: func() error {
+		Delete: func() (eventv1.ReconcilerEvent, error) {
 			fmt.Println("DELETING opC")
-			return nil
+			return nil, nil
 		},
 	}
 
@@ -99,11 +105,13 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 	//     wantRequeue bool
 	// }{
 	//     {
-
+	//         name: ""
 	//     },
 	// }
 
-	co, err := NewCompositeOperator(operandA, operandB, operandC)
+	co, err := NewCompositeOperator(
+		WithOperands(operandA, operandB, operandC),
+	)
 	if err != nil {
 		t.Errorf("unexpected error while creating a composite operator: %v", err)
 	}

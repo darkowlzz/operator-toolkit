@@ -4,6 +4,8 @@ import (
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
 )
 
 // Operand defines a single operation that's part of an composite operator. It
@@ -27,11 +29,13 @@ type Operand struct {
 	Requires []string
 
 	// Ensure creates, or updates a target object with the wanted
-	// configurations.
-	Ensure func() error
+	// configurations. It also returns an event that can be posted on the
+	// parent object's event list.
+	Ensure func() (eventv1.ReconcilerEvent, error)
 
-	// Delete deletes a target object.
-	Delete func() error
+	// Delete deletes a target object. It also returns an event that can be
+	// posted on the parent object's event list.
+	Delete func() (eventv1.ReconcilerEvent, error)
 
 	// ReadyConditions are the set of conditions that indicate that the target
 	// object is ready and available.
@@ -52,16 +56,16 @@ func (c *Operand) Ready() (bool, error) {
 // OperandRunCall defines a function type used to define a function that
 // returns an operand execute call. This is used for passing the operand
 // execute function (Ensure or Delete) in a generic way.
-type OperandRunCall func(op *Operand) func() error
+type OperandRunCall func(op *Operand) func() (eventv1.ReconcilerEvent, error)
 
 // callEnsure is an OperandRunCall type function that calls the Ensure function
 // of a given operand.
-func CallEnsure(op *Operand) func() error {
+func CallEnsure(op *Operand) func() (eventv1.ReconcilerEvent, error) {
 	return op.Ensure
 }
 
 // callCleanup is an OperandRunCall type function that calls the Cleanup
 // function of a given operand.
-func CallCleanup(op *Operand) func() error {
+func CallCleanup(op *Operand) func() (eventv1.ReconcilerEvent, error) {
 	return op.Delete
 }
