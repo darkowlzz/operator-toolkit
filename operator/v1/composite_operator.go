@@ -4,9 +4,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
-	"github.com/darkowlzz/composite-reconciler/operate/v1/dag"
-	"github.com/darkowlzz/composite-reconciler/operate/v1/executor"
-	"github.com/darkowlzz/composite-reconciler/operate/v1/operand"
+	"github.com/darkowlzz/composite-reconciler/operator/v1/dag"
+	"github.com/darkowlzz/composite-reconciler/operator/v1/executor"
+	"github.com/darkowlzz/composite-reconciler/operator/v1/operand"
 )
 
 // CompositeOperator contains all the operands and the relationship between

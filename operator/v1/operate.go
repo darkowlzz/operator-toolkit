@@ -7,7 +7,7 @@ import (
 )
 
 // Operator is the operator interface that can be implemented by an operator to
-// be used with the composite operator lifecycle.
+// be used in a controller control loop.
 type Operator interface {
 	// IsSuspended tells if an operator is suspended and should not run any
 	// operation.

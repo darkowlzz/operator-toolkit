@@ -6,7 +6,7 @@ import (
 	"time"
 
 	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
-	"github.com/darkowlzz/composite-reconciler/operate/v1/operand"
+	"github.com/darkowlzz/composite-reconciler/operator/v1/operand"
 )
 
 func TestCompositeOperatorOrder(t *testing.T) {

@@ -3,7 +3,7 @@ package dag
 import (
 	"testing"
 
-	"github.com/darkowlzz/composite-reconciler/operate/v1/operand"
+	"github.com/darkowlzz/composite-reconciler/operator/v1/operand"
 )
 
 func TestDAG(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
-	"github.com/darkowlzz/composite-reconciler/operate/v1/operand"
+	"github.com/darkowlzz/composite-reconciler/operator/v1/operand"
 )
 
 // ExecutionStrategy is the operands execution strategy of an operator.
@@ -19,24 +19,10 @@ const (
 	Serial
 )
 
-// ChangeApplyStrategy is the strategy used to apply a change using the
-// operator.
-type ChangeApplyStrategy int
-
-const (
-	// OneAtATime is a ChangeApplyStrategy that applies one change at a time.
-	// This strategy is slow and results in reconciliation requeue for every
-	// applied change.
-	OneAtATime ChangeApplyStrategy = iota
-	// AllAtOnce is a ChangeApplyStrategy that applies all the changes at once.
-	// This strategy is fast and applies all the changes at once in a single
-	// reconciliation.
-	AllAtOnce
-)
-
 // ExecuteOperands executes operands in a given OperandOrder by calling a given
 // OperandRunCall function on each of the operands. The OperandRunCall can be a
 // call to Ensure or Delete.
+// TODO: Add event recorder and publish immediately.
 func ExecuteOperands(
 	order operand.OperandOrder,
 	call operand.OperandRunCall,

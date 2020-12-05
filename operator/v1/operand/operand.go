@@ -8,6 +8,29 @@ import (
 	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
 )
 
+// ChangeApplyStrategy is the strategy used to apply a change using the
+// operator.
+// type ChangeApplyStrategy int
+// TODO: Move to Operand.
+type RequeueStrategy int
+
+const (
+	// AllAtOnce is a ChangeApplyStrategy that applies all the changes at once.
+	// This strategy is fast and applies all the changes at once in a single
+	// reconciliation.
+
+	// Only requeue on error.
+	OnError RequeueStrategy = iota
+
+	// OneAtATime is a ChangeApplyStrategy that applies one change at a time.
+	// This strategy is slow and results in reconciliation requeue for every
+	// applied change.
+	// OneAtATime ChangeApplyStrategy = iota
+
+	// Always requeue result after executing.
+	Always
+)
+
 // Operand defines a single operation that's part of an composite operator. It
 // contains implementation details about how an action is performed, maybe for
 // creating a resource, and how to reverse/undo the action, maybe for cleanup
