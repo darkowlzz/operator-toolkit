@@ -6,10 +6,9 @@ package mocks
 
 import (
 	context "context"
-	v1 "github.com/darkowlzz/composite-reconciler/event/v1"
 	gomock "github.com/golang/mock/gomock"
-	v10 "github.com/openshift/custom-resource-status/conditions/v1"
-	v11 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "github.com/openshift/custom-resource-status/conditions/v1"
+	v10 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	reflect "reflect"
 	reconcile "sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -52,11 +51,12 @@ func (mr *MockControllerMockRecorder) AddFinalizer(arg0 interface{}) *gomock.Cal
 }
 
 // Cleanup mocks base method
-func (m *MockController) Cleanup() error {
+func (m *MockController) Cleanup() (reconcile.Result, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Cleanup")
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(reconcile.Result)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // Cleanup indicates an expected call of Cleanup
@@ -92,10 +92,10 @@ func (mr *MockControllerMockRecorder) FetchInstance() *gomock.Call {
 }
 
 // GetObjectMetadata mocks base method
-func (m *MockController) GetObjectMetadata() v11.ObjectMeta {
+func (m *MockController) GetObjectMetadata() v10.ObjectMeta {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetObjectMetadata")
-	ret0, _ := ret[0].(v11.ObjectMeta)
+	ret0, _ := ret[0].(v10.ObjectMeta)
 	return ret0
 }
 
@@ -118,7 +118,7 @@ func (mr *MockControllerMockRecorder) InitReconcile(arg0, arg1 interface{}) *gom
 }
 
 // Initialize mocks base method
-func (m *MockController) Initialize(arg0 v10.Condition) error {
+func (m *MockController) Initialize(arg0 v1.Condition) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Initialize", arg0)
 	ret0, _ := ret[0].(error)
@@ -146,13 +146,12 @@ func (mr *MockControllerMockRecorder) IsUninitialized() *gomock.Call {
 }
 
 // Operate mocks base method
-func (m *MockController) Operate() (reconcile.Result, v1.ReconcilerEvent, error) {
+func (m *MockController) Operate() (reconcile.Result, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Operate")
 	ret0, _ := ret[0].(reconcile.Result)
-	ret1, _ := ret[1].(v1.ReconcilerEvent)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // Operate indicates an expected call of Operate
@@ -188,7 +187,7 @@ func (mr *MockControllerMockRecorder) SaveClone() *gomock.Call {
 }
 
 // UpdateConditions mocks base method
-func (m *MockController) UpdateConditions(arg0 []v10.Condition) {
+func (m *MockController) UpdateConditions(arg0 []v1.Condition) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "UpdateConditions", arg0)
 }

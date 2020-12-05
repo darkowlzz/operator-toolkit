@@ -6,7 +6,7 @@ import (
 	"github.com/go-logr/logr"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // CleanupStrategy is the resource cleanup strategy used by the reconciler.
@@ -35,7 +35,6 @@ type CompositeReconciler struct {
 	CleanupStrategy CleanupStrategy
 	Log             logr.Logger
 	Ctrlr           Controller
-	Recorder        record.EventRecorder
 }
 
 // CompositeReconcilerOptions is used to configure CompositeReconciler.
@@ -71,13 +70,6 @@ func WithFinalizer(finalizer string) CompositeReconcilerOptions {
 	}
 }
 
-// WithRecorder sets the EventRecorder used by the CompositeReconciler.
-func WithRecorder(recorder record.EventRecorder) CompositeReconcilerOptions {
-	return func(c *CompositeReconciler) {
-		c.Recorder = recorder
-	}
-}
-
 // WithCleanupStrategy sets the CleanupStrategy of the CompositeReconciler.
 func WithCleanupStrategy(cleanupStrat CleanupStrategy) CompositeReconcilerOptions {
 	return func(c *CompositeReconciler) {
@@ -89,8 +81,8 @@ func WithCleanupStrategy(cleanupStrat CleanupStrategy) CompositeReconcilerOption
 // overridden by the provided options.
 func NewCompositeReconciler(opts ...CompositeReconcilerOptions) (*CompositeReconciler, error) {
 	cr := &CompositeReconciler{
-		Log:             ctrlr.Log,
-		InitCondition:   defaultInitCondition,
+		Log:             ctrl.Log,
+		InitCondition:   DefaultInitCondition,
 		CleanupStrategy: OwnerReferenceCleanup,
 	}
 
@@ -102,16 +94,12 @@ func NewCompositeReconciler(opts ...CompositeReconcilerOptions) (*CompositeRecon
 		return nil, fmt.Errorf("must provide a Controller to the CompositeReconciler")
 	}
 
-	if cr.Recorder == nil {
-		return nil, fmt.Errorf("must provide a Recorder to the CompositeReconciler")
-	}
-
 	return cr, nil
 }
 
 // DefaultInitCondition is the default init condition used by the composite
 // reconciler to add to the status of a new resource.
-const DefaultInitCondition *conditionsv1.Condition = &conditionsv1.Condition{
+var DefaultInitCondition conditionsv1.Condition = conditionsv1.Condition{
 	Type:    conditionsv1.ConditionProgressing,
 	Status:  corev1.ConditionTrue,
 	Reason:  "Initializing",

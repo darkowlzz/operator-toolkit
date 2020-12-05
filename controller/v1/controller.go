@@ -8,8 +8,6 @@ import (
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
-
-	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
 )
 
 // Controller is the controller interface that must be implemented by a
@@ -62,12 +60,8 @@ type Controller interface {
 	// environment are in the desired state. It should be able to update any
 	// existing resources or create one, if there's a configuration drift,
 	// based on the type of objects.
-	// The returned result is the returned reconcile result. eventMessage is a
-	// message that's emitted to the primary object. It's related to the change
-	// done in the operation. A controller can use this to emit event of one
-	// change performed by the reconciler and return the result with requeue
-	// set to true.
-	Operate() (result ctrl.Result, event []eventv1.ReconcilerEvent, err error)
+	// The returned result is the returned reconcile result.
+	Operate() (result ctrl.Result, err error)
 
 	// PatchStatus compares the original primary object instance status with
 	// the reconciled primary object status and patches the API object if
@@ -87,7 +81,7 @@ type Controller interface {
 	// made by the controller. This can be empty for controllers that use owner
 	// reference based garbage collection for cleanup. For controllers with
 	// custom cleanup requirement, the cleanup logic can be defined here.
-	Cleanup() error
+	Cleanup() (result ctrl.Result, err error)
 
 	// UpdateConditions updates the status condition of local instance of the
 	// primary object with the given conditions. It doesn't update the API

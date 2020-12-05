@@ -45,7 +45,7 @@ func TestReconcile(t *testing.T) {
 			name: "instance not found",
 			reconciler: func(m Controller) *CompositeReconciler {
 				return &CompositeReconciler{
-					C: m,
+					Ctrlr: m,
 				}
 			},
 			expectations: func(m *mocks.MockController) {
@@ -58,8 +58,8 @@ func TestReconcile(t *testing.T) {
 			name: "validation failure",
 			reconciler: func(m Controller) *CompositeReconciler {
 				return &CompositeReconciler{
-					C:   m,
-					Log: fakeLogger{},
+					Ctrlr: m,
+					Log:   fakeLogger{},
 				}
 			},
 			expectations: func(m *mocks.MockController) {
@@ -75,8 +75,8 @@ func TestReconcile(t *testing.T) {
 			name: "init failure",
 			reconciler: func(m Controller) *CompositeReconciler {
 				return &CompositeReconciler{
-					C:   m,
-					Log: fakeLogger{},
+					Ctrlr: m,
+					Log:   fakeLogger{},
 				}
 			},
 			expectations: func(m *mocks.MockController) {
@@ -97,8 +97,8 @@ func TestReconcile(t *testing.T) {
 			name: "fetch status failure",
 			reconciler: func(m Controller) *CompositeReconciler {
 				return &CompositeReconciler{
-					C:   m,
-					Log: fakeLogger{},
+					Ctrlr: m,
+					Log:   fakeLogger{},
 				}
 			},
 			expectations: func(m *mocks.MockController) {
@@ -120,8 +120,8 @@ func TestReconcile(t *testing.T) {
 			name: "operate failure",
 			reconciler: func(m Controller) *CompositeReconciler {
 				return &CompositeReconciler{
-					C:   m,
-					Log: fakeLogger{},
+					Ctrlr: m,
+					Log:   fakeLogger{},
 				}
 			},
 			expectations: func(m *mocks.MockController) {
@@ -135,7 +135,7 @@ func TestReconcile(t *testing.T) {
 				m.EXPECT().Initialize(conditionsv1.Condition{})
 				m.EXPECT().UpdateStatus()
 				m.EXPECT().PatchStatus()
-				m.EXPECT().Operate().Return(ctrl.Result{Requeue: true}, nil, errors.New("operate error"))
+				m.EXPECT().Operate().Return(ctrl.Result{Requeue: true}, errors.New("operate error"))
 			},
 			wantResult: ctrl.Result{Requeue: true},
 			wantErr:    true,
@@ -144,8 +144,8 @@ func TestReconcile(t *testing.T) {
 			name: "operate successful - requeue",
 			reconciler: func(m Controller) *CompositeReconciler {
 				return &CompositeReconciler{
-					C:   m,
-					Log: fakeLogger{},
+					Ctrlr: m,
+					Log:   fakeLogger{},
 				}
 			},
 			expectations: func(m *mocks.MockController) {
@@ -159,7 +159,7 @@ func TestReconcile(t *testing.T) {
 				m.EXPECT().Initialize(conditionsv1.Condition{})
 				m.EXPECT().UpdateStatus()
 				m.EXPECT().PatchStatus()
-				m.EXPECT().Operate().Return(ctrl.Result{Requeue: true}, nil, nil)
+				m.EXPECT().Operate().Return(ctrl.Result{Requeue: true}, nil)
 			},
 			wantResult: ctrl.Result{Requeue: true},
 		},
@@ -167,8 +167,8 @@ func TestReconcile(t *testing.T) {
 			name: "updatestatus failure",
 			reconciler: func(m Controller) *CompositeReconciler {
 				return &CompositeReconciler{
-					C:   m,
-					Log: fakeLogger{},
+					Ctrlr: m,
+					Log:   fakeLogger{},
 				}
 			},
 			expectations: func(m *mocks.MockController) {
@@ -182,7 +182,7 @@ func TestReconcile(t *testing.T) {
 				m.EXPECT().Initialize(conditionsv1.Condition{})
 				m.EXPECT().UpdateStatus()
 				m.EXPECT().PatchStatus().Return(errors.New("failed to update status"))
-				m.EXPECT().Operate().Return(ctrl.Result{}, nil, nil)
+				m.EXPECT().Operate().Return(ctrl.Result{}, nil)
 			},
 			wantResult: ctrl.Result{},
 			wantErr:    true,
@@ -191,8 +191,8 @@ func TestReconcile(t *testing.T) {
 			name: "successful reconcile",
 			reconciler: func(m Controller) *CompositeReconciler {
 				return &CompositeReconciler{
-					C:   m,
-					Log: fakeLogger{},
+					Ctrlr: m,
+					Log:   fakeLogger{},
 				}
 			},
 			expectations: func(m *mocks.MockController) {
@@ -206,7 +206,7 @@ func TestReconcile(t *testing.T) {
 				m.EXPECT().Initialize(conditionsv1.Condition{})
 				m.EXPECT().UpdateStatus()
 				m.EXPECT().PatchStatus()
-				m.EXPECT().Operate().Return(ctrl.Result{}, nil, nil)
+				m.EXPECT().Operate().Return(ctrl.Result{}, nil)
 			},
 			wantResult: ctrl.Result{},
 		},
@@ -214,9 +214,10 @@ func TestReconcile(t *testing.T) {
 			name: "add finalizer failure",
 			reconciler: func(m Controller) *CompositeReconciler {
 				return &CompositeReconciler{
-					C:             m,
-					Log:           fakeLogger{},
-					FinalizerName: "foofinalizer",
+					Ctrlr:           m,
+					Log:             fakeLogger{},
+					FinalizerName:   "foofinalizer",
+					CleanupStrategy: FinalizerCleanup,
 				}
 			},
 			expectations: func(m *mocks.MockController) {
@@ -228,8 +229,10 @@ func TestReconcile(t *testing.T) {
 				m.EXPECT().IsUninitialized().Return(true)
 				m.EXPECT().GetObjectMetadata()
 				m.EXPECT().Initialize(conditionsv1.Condition{})
+				m.EXPECT().UpdateStatus()
 				m.EXPECT().GetObjectMetadata()
 				m.EXPECT().AddFinalizer(gomock.Any()).Return(errors.New("failed to add finalizer"))
+				m.EXPECT().PatchStatus()
 			},
 			wantResult: ctrl.Result{Requeue: true},
 			wantErr:    true,
@@ -238,9 +241,10 @@ func TestReconcile(t *testing.T) {
 			name: "add finalizer success",
 			reconciler: func(m Controller) *CompositeReconciler {
 				return &CompositeReconciler{
-					C:             m,
-					Log:           fakeLogger{},
-					FinalizerName: "foofinalizer",
+					Ctrlr:           m,
+					Log:             fakeLogger{},
+					FinalizerName:   "foofinalizer",
+					CleanupStrategy: FinalizerCleanup,
 				}
 			},
 			expectations: func(m *mocks.MockController) {
@@ -250,13 +254,13 @@ func TestReconcile(t *testing.T) {
 				m.EXPECT().Validate().Return(nil)
 				m.EXPECT().SaveClone()
 				m.EXPECT().IsUninitialized().Return(true)
+				m.EXPECT().UpdateStatus()
 				m.EXPECT().GetObjectMetadata()
 				m.EXPECT().Initialize(conditionsv1.Condition{})
 				m.EXPECT().GetObjectMetadata()
 				m.EXPECT().AddFinalizer(gomock.Any())
-				m.EXPECT().UpdateStatus()
 				m.EXPECT().PatchStatus()
-				m.EXPECT().Operate().Return(ctrl.Result{}, nil, nil)
+				m.EXPECT().Operate().Return(ctrl.Result{}, nil)
 			},
 			wantResult: ctrl.Result{},
 		},
@@ -264,9 +268,10 @@ func TestReconcile(t *testing.T) {
 			name: "finalizer cleanup failure",
 			reconciler: func(m Controller) *CompositeReconciler {
 				return &CompositeReconciler{
-					C:             m,
-					Log:           fakeLogger{},
-					FinalizerName: "foofinalizer",
+					Ctrlr:           m,
+					Log:             fakeLogger{},
+					FinalizerName:   "foofinalizer",
+					CleanupStrategy: FinalizerCleanup,
 				}
 			},
 			expectations: func(m *mocks.MockController) {
@@ -276,6 +281,8 @@ func TestReconcile(t *testing.T) {
 				m.EXPECT().Validate().Return(nil)
 				m.EXPECT().SaveClone()
 				m.EXPECT().IsUninitialized().Return(true)
+				m.EXPECT().PatchStatus()
+				m.EXPECT().UpdateStatus()
 				m.EXPECT().GetObjectMetadata()
 				m.EXPECT().Initialize(conditionsv1.Condition{})
 				// Create a time and add as delete timestamp.
@@ -285,7 +292,7 @@ func TestReconcile(t *testing.T) {
 					Finalizers:        []string{"foofinalizer"},
 				}
 				m.EXPECT().GetObjectMetadata().Return(metadata)
-				m.EXPECT().Cleanup().Return(errors.New("failed to cleanup"))
+				m.EXPECT().Cleanup().Return(ctrl.Result{Requeue: true}, errors.New("failed to cleanup"))
 			},
 			wantResult: ctrl.Result{Requeue: true},
 			wantErr:    true,
@@ -294,9 +301,10 @@ func TestReconcile(t *testing.T) {
 			name: "finalizer cleanup success",
 			reconciler: func(m Controller) *CompositeReconciler {
 				return &CompositeReconciler{
-					C:             m,
-					Log:           fakeLogger{},
-					FinalizerName: "foofinalizer",
+					Ctrlr:           m,
+					Log:             fakeLogger{},
+					FinalizerName:   "foofinalizer",
+					CleanupStrategy: FinalizerCleanup,
 				}
 			},
 			expectations: func(m *mocks.MockController) {
@@ -318,7 +326,6 @@ func TestReconcile(t *testing.T) {
 				m.EXPECT().Cleanup()
 				m.EXPECT().UpdateStatus()
 				m.EXPECT().PatchStatus()
-				m.EXPECT().Operate().Return(ctrl.Result{}, nil, nil)
 			},
 			wantResult: ctrl.Result{},
 		},

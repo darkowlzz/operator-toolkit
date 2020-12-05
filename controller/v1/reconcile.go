@@ -10,7 +10,7 @@ import (
 )
 
 // Reconcile implements the composite controller reconciliation.
-func (c CompositeReconciler) Reconcile(req ctrl.Request) (result ctrl.Result, reterr error) {
+func (c *CompositeReconciler) Reconcile(req ctrl.Request) (result ctrl.Result, reterr error) {
 	result = ctrl.Result{}
 	reterr = nil
 
@@ -48,15 +48,6 @@ func (c CompositeReconciler) Reconcile(req ctrl.Request) (result ctrl.Result, re
 		}
 	}
 
-	// If the cleanup strategy is finalizer based, perform deletion check.
-	if c.CleanupStrategy == FinalizerCleanup {
-		result, events, delErr := DeletionCheck(c.CleanupStrategy, controller, c.FinalizerName)
-		if delErr != nil {
-			reterr = delErr
-			return
-		}
-	}
-
 	// Attempt to patch the status after each reconciliation.
 	defer func() {
 		// ?: Should patch status only if reterr is nil?
@@ -65,24 +56,59 @@ func (c CompositeReconciler) Reconcile(req ctrl.Request) (result ctrl.Result, re
 		}
 	}()
 
+	// Update the local copy of the target object status based on the state of
+	// the world.
+	// NOTE: The actual target object gets updated in the API server at the end
+	// of the control loop with the deferred PatchStatus.
 	if updateErr := controller.UpdateStatus(); updateErr != nil {
 		result = ctrl.Result{Requeue: true}
 		reterr = updateErr
 		return
 	}
 
+	// If the cleanup strategy is finalizer based, call the cleanup handler.
+	if c.CleanupStrategy == FinalizerCleanup {
+		delEnabled, cResult, cErr := c.cleanupHandler()
+		// If the deletion of the target object has started, return with the
+		// result and error.
+		if delEnabled || cErr != nil {
+			result = cResult
+			reterr = cErr
+			return
+		}
+	}
+
 	// Run the operation.
-	result, events, opErr := controller.Operate()
-	if opErr != nil {
-		c.Log.Info("failed to finish Operation", "error", opErr)
-		reterr = opErr
+	result, reterr = controller.Operate()
+	if reterr != nil {
+		c.Log.Info("failed to finish Operation", "error", reterr)
 	}
 
-	// Record an event if the operation returned one.
-	for _, event := range events {
-		// if event != nil {
-		event.Record(c.Recorder)
-	}
+	return
+}
 
+// cleanupHandler checks if the target object is marked for deletion. If not,
+// it ensures that a finalizer is added to the target object. If an object is
+// marked for deletion, it runs the custom cleanup functions and returns the
+// result and error of cleanup. It also returns delEnabled to help the caller
+// of this function know that the cleanup process has started.
+func (c *CompositeReconciler) cleanupHandler() (delEnabled bool, result ctrl.Result, reterr error) {
+	metadata := c.Ctrlr.GetObjectMetadata()
+	if metadata.DeletionTimestamp.IsZero() {
+		if !contains(metadata.Finalizers, c.FinalizerName) {
+			if ferr := c.Ctrlr.AddFinalizer(c.FinalizerName); ferr != nil {
+				reterr = ferr
+				result = ctrl.Result{Requeue: true}
+			}
+		}
+	} else {
+		delEnabled = true
+		if contains(metadata.Finalizers, c.FinalizerName) {
+			result, reterr = c.Ctrlr.Cleanup()
+			if reterr != nil {
+				c.Log.Info("failed to cleanup", "error", reterr)
+			}
+		}
+	}
 	return
 }
