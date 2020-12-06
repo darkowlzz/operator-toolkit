@@ -21,8 +21,6 @@ type CompositeOperator struct {
 	executionStrategy executor.ExecutionStrategy
 	recorder          record.EventRecorder
 	executor          *executor.Executor
-
-	// TODO: Add a k8s client to be used by the operands.
 }
 
 // CompositeOperatorOption is used to configure CompositeOperator.
@@ -115,10 +113,16 @@ func (co *CompositeOperator) IsSuspended() bool {
 // order of their dependencies, to ensure all the operations the individual
 // operands perform.
 func (co *CompositeOperator) Ensure() (result ctrl.Result, rerr error) {
-	return co.executor.ExecuteOperands(co.order, operand.CallEnsure)
+	if !co.isSuspended() {
+		return co.executor.ExecuteOperands(co.order, operand.CallEnsure)
+	}
+	return
 }
 
 // Cleanup implements the Operator interface.
 func (co *CompositeOperator) Cleanup() (result ctrl.Result, rerr error) {
-	return co.executor.ExecuteOperands(co.order.Reverse(), operand.CallCleanup)
+	if !co.IsSuspended() {
+		return co.executor.ExecuteOperands(co.order.Reverse(), operand.CallCleanup)
+	}
+	return
 }

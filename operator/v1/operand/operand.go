@@ -6,30 +6,18 @@ import (
 	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
 )
 
-// ChangeApplyStrategy is the strategy used to apply a change using the
-// operator.
-// type ChangeApplyStrategy int
-// TODO: Move to Operand.
+// RequeueStrategy defines the requeue strategy of an operand.
 type RequeueStrategy int
 
 const (
-	// AllAtOnce is a ChangeApplyStrategy that applies all the changes at once.
-	// This strategy is fast and applies all the changes at once in a single
-	// reconciliation.
-
-	// Only requeue on error.
+	// RequeueOnError is used for requeue on error only.
 	RequeueOnError RequeueStrategy = iota
 
-	// OneAtATime is a ChangeApplyStrategy that applies one change at a time.
-	// This strategy is slow and results in reconciliation requeue for every
-	// applied change.
-	// OneAtATime ChangeApplyStrategy = iota
-
-	// Always requeue result after executing.
+	// RequeueAlways is used to requeue result after every applied change.
 	RequeueAlways
 )
 
-// Operand defines a single operation that's part of an composite operator. It
+// Operand defines a single operation that's part of a composite operator. It
 // contains implementation details about how an action is performed, maybe for
 // creating a resource, and how to reverse/undo the action, maybe for cleanup
 // purposes. It also contains relationship information about the operand with
@@ -59,6 +47,7 @@ type Operand struct {
 	ReadyCheck func() (bool, error)
 }
 
+// OperandOption is used to configure Operand.
 type OperandOption func(*Operand)
 
 func WithRequires(requires []string) OperandOption {
