@@ -1,9 +1,11 @@
 package v1
 
 import (
+	"fmt"
+
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
 	"github.com/darkowlzz/composite-reconciler/operator/v1/dag"
 	"github.com/darkowlzz/composite-reconciler/operator/v1/executor"
 	"github.com/darkowlzz/composite-reconciler/operator/v1/operand"
@@ -17,7 +19,9 @@ type CompositeOperator struct {
 	isSuspended       func() bool
 	order             operand.OperandOrder
 	executionStrategy executor.ExecutionStrategy
-	changeStrategy    executor.ChangeApplyStrategy
+	recorder          record.EventRecorder
+	executor          *executor.Executor
+
 	// TODO: Add a k8s client to be used by the operands.
 }
 
@@ -45,10 +49,10 @@ func WithSuspensionCheck(f func() bool) CompositeOperatorOption {
 	}
 }
 
-// WithChangeStrategy sets the ChangeApplyStrategy of a CompositeOperator.
-func WithChangeStrategy(changeStrat executor.ChangeApplyStrategy) CompositeOperatorOption {
+// WithEventRecorder sets the EventRecorder of a CompositeOperator.
+func WithEventRecorder(recorder record.EventRecorder) CompositeOperatorOption {
 	return func(c *CompositeOperator) {
-		c.changeStrategy = changeStrat
+		c.recorder = recorder
 	}
 }
 
@@ -62,12 +66,16 @@ func NewCompositeOperator(opts ...CompositeOperatorOption) (*CompositeOperator, 
 	c := &CompositeOperator{
 		isSuspended:       defaultIsSuspended,
 		executionStrategy: executor.Parallel,
-		changeStrategy:    executor.OneAtATime,
 	}
 
 	// Loop through each option.
 	for _, opt := range opts {
 		opt(c)
+	}
+
+	// Ensure a recorder is provided.
+	if c.recorder == nil {
+		return nil, fmt.Errorf("EventRecorder must be provided to the CompositeOperator")
 	}
 
 	// Initialize the operator DAG.
@@ -83,6 +91,9 @@ func NewCompositeOperator(opts ...CompositeOperatorOption) (*CompositeOperator, 
 		return nil, err
 	}
 	c.order = order
+
+	// Create an executor.
+	c.executor = executor.NewExecutor(c.executionStrategy, c.recorder)
 
 	return c, nil
 }
@@ -103,11 +114,11 @@ func (co *CompositeOperator) IsSuspended() bool {
 // Ensure implements the Operator interface. It runs all the operands, in the
 // order of their dependencies, to ensure all the operations the individual
 // operands perform.
-func (co *CompositeOperator) Ensure() (result ctrl.Result, events []eventv1.ReconcilerEvent, rerr error) {
-	return executor.ExecuteOperands(co.order, operand.CallEnsure, co.executionStrategy)
+func (co *CompositeOperator) Ensure() (result ctrl.Result, rerr error) {
+	return co.executor.ExecuteOperands(co.order, operand.CallEnsure)
 }
 
 // Cleanup implements the Operator interface.
-func (co *CompositeOperator) Cleanup() (result ctrl.Result, events []eventv1.ReconcilerEvent, rerr error) {
-	return executor.ExecuteOperands(co.order.Reverse(), operand.CallCleanup, co.executionStrategy)
+func (co *CompositeOperator) Cleanup() (result ctrl.Result, rerr error) {
+	return co.executor.ExecuteOperands(co.order.Reverse(), operand.CallCleanup)
 }

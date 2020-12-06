@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	multierror "github.com/hashicorp/go-multierror"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
@@ -19,37 +20,47 @@ const (
 	Serial
 )
 
+// Executor is an operand executor. It is used to configure how the operands
+// are executed. The event recorder is used to broadcast an event right after
+// executing an operand.
+type Executor struct {
+	execStrategy ExecutionStrategy
+	recorder     record.EventRecorder
+}
+
+// NewExecutor initializes and returns an Executor.
+func NewExecutor(e ExecutionStrategy, r record.EventRecorder) *Executor {
+	return &Executor{
+		execStrategy: e,
+		recorder:     r,
+	}
+}
+
 // ExecuteOperands executes operands in a given OperandOrder by calling a given
 // OperandRunCall function on each of the operands. The OperandRunCall can be a
 // call to Ensure or Delete.
-// TODO: Add event recorder and publish immediately.
-func ExecuteOperands(
+func (exe *Executor) ExecuteOperands(
 	order operand.OperandOrder,
 	call operand.OperandRunCall,
-	execStrat ExecutionStrategy,
-) (result ctrl.Result, events []eventv1.ReconcilerEvent, rerr error) {
+) (result ctrl.Result, rerr error) {
 	// Iterate through the order steps and run the operands in the steps as per
 	// the execution strategy.
 	for _, ops := range order {
-		// Store the collected events and errors in the current execution step.
-		var evnts []eventv1.ReconcilerEvent
+		// Error in the current execution step.
 		var execErr error
 
-		switch execStrat {
+		switch exe.execStrategy {
 		case Serial:
 			// Run the operands serially.
-			evnts, execErr = SerialExec(ops, call)
+			execErr = exe.SerialExec(ops, call)
 		case Parallel:
 			// Run the operands concurrently.
-			evnts, execErr = ConcurrentExec(ops, call)
+			execErr = exe.ConcurrentExec(ops, call)
 		default:
-			rerr = fmt.Errorf("unknown operands execution strategy: %v", execStrat)
+			rerr = fmt.Errorf("unknown operands execution strategy: %v", exe.execStrategy)
 			return
 		}
 
-		// Append all the events received from the execution and check the
-		// error.
-		events = append(events, evnts...)
 		if execErr != nil {
 			result = ctrl.Result{Requeue: true}
 			// TODO: When the failure toleration option is added, aggregate all
@@ -64,15 +75,17 @@ func ExecuteOperands(
 
 // SerialExec runs the given set of operands serially with the given call
 // function.
-func SerialExec(ops []*operand.Operand, call operand.OperandRunCall) (events []eventv1.ReconcilerEvent, rerr error) {
+func (exe *Executor) SerialExec(ops []*operand.Operand, call operand.OperandRunCall) (rerr error) {
 	for _, op := range ops {
-		// Call the run call function and collect the event and error. Since
-		// this is serial execution, return if an error occurs.
+		// Call the run call function. Since this is serial execution, return
+		// if an error occurs.
 		event, err := call(op)()
-		events = append(events, event)
 		if err != nil {
 			rerr = multierror.Append(rerr, err)
 			return
+		}
+		if event != nil {
+			event.Record(exe.recorder)
 		}
 	}
 
@@ -81,30 +94,21 @@ func SerialExec(ops []*operand.Operand, call operand.OperandRunCall) (events []e
 
 // ConcurrentExec runs the operands concurrently, collecting the events and
 // errors from the operand executions and returns them.
-func ConcurrentExec(ops []*operand.Operand, call operand.OperandRunCall) (events []eventv1.ReconcilerEvent, rerr error) {
+func (exe *Executor) ConcurrentExec(ops []*operand.Operand, call operand.OperandRunCall) (rerr error) {
 	// Wait group to synchronize the go routines.
 	var wg sync.WaitGroup
 
 	totalOperands := len(ops)
-
-	// Event buffered channel to collect all the events from the go routines.
-	var eventChan chan eventv1.ReconcilerEvent = make(chan eventv1.ReconcilerEvent, totalOperands)
 
 	// Error buffered channel to collect all the errors from the go routines.
 	var errChan chan error = make(chan error, totalOperands)
 
 	wg.Add(totalOperands)
 	for _, op := range ops {
-		go operateWithWaitGroup(&wg, eventChan, errChan, call(op))
+		go exe.operateWithWaitGroup(&wg, errChan, call(op))
 	}
 	wg.Wait()
-	close(eventChan)
 	close(errChan)
-
-	// Aggregate all the events.
-	for event := range eventChan {
-		events = append(events, event)
-	}
 
 	// Check if any errors were encountere.
 	for err := range errChan {
@@ -118,14 +122,15 @@ func ConcurrentExec(ops []*operand.Operand, call operand.OperandRunCall) (events
 // group at the end. This is a goroutine function used for running the operands
 // concurrently. The events and errors from the execution are communicated via
 // the respective channels.
-func operateWithWaitGroup(wg *sync.WaitGroup, eventChan chan eventv1.ReconcilerEvent, errChan chan error, f func() (eventv1.ReconcilerEvent, error)) {
+func (exe *Executor) operateWithWaitGroup(wg *sync.WaitGroup, errChan chan error, f func() (eventv1.ReconcilerEvent, error)) {
 	defer wg.Done()
 
 	event, err := f()
 	if err != nil {
 		errChan <- err
 	}
+
 	if event != nil {
-		eventChan <- event
+		event.Record(exe.recorder)
 	}
 }

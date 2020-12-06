@@ -2,8 +2,6 @@ package v1
 
 import (
 	ctrl "sigs.k8s.io/controller-runtime"
-
-	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
 )
 
 // Operator is the operator interface that can be implemented by an operator to
@@ -15,11 +13,11 @@ type Operator interface {
 
 	// Ensure runs all the operands' Ensure method in order defined by their
 	// dependencies.
-	Ensure() (result ctrl.Result, events []eventv1.ReconcilerEvent, err error)
+	Ensure() (result ctrl.Result, err error)
 
 	// Cleanup runs all the operands' Delete method in reverse order defined by
 	// their dependencies.
-	Cleanup() (result ctrl.Result, events []eventv1.ReconcilerEvent, err error)
+	Cleanup() (result ctrl.Result, err error)
 }
 
 // defaultIsSuspended always returns false.

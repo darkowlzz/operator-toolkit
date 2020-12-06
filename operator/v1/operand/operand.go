@@ -1,10 +1,6 @@
 package operand
 
 import (
-	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-
 	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
 )
 
@@ -46,7 +42,7 @@ type Operand struct {
 
 	// Resources are the objects that the operand creates, updates or deletes.
 	// These objects are checked for readiness based on the ReadyConditions.
-	Resources []runtime.Object
+	// Resources []runtime.Object
 
 	// Requires defines the relationship between the operands of an operator.
 	Requires []string
@@ -62,7 +58,10 @@ type Operand struct {
 
 	// ReadyConditions are the set of conditions that indicate that the target
 	// object is ready and available.
-	ReadyConditions []map[conditionsv1.ConditionType]corev1.ConditionStatus
+	// ReadyConditions []map[conditionsv1.ConditionType]corev1.ConditionStatus
+
+	// Requeue is the requeue strategy for this operand.
+	Requeue RequeueStrategy
 
 	// CheckReady allows writing custom logic for checking if an object is
 	// ready. This should be used when status conditions are not enough for
@@ -70,10 +69,51 @@ type Operand struct {
 	CheckReady func() (bool, error)
 }
 
-func (c *Operand) Ready() (bool, error) {
-	// Fetch dependent objects and check ReadyConditions or call c.CheckReady().
-	ready := false
-	return ready, nil
+type OperandOption func(*Operand)
+
+func WithRequires(requires []string) OperandOption {
+	return func(o *Operand) {
+		o.Requires = append(o.Requires, requires...)
+	}
+}
+
+func WithEnsure(f func() (eventv1.ReconcilerEvent, error)) OperandOption {
+	return func(o *Operand) {
+		o.Ensure = f
+	}
+}
+
+func WithDelete(f func() (eventv1.ReconcilerEvent, error)) OperandOption {
+	return func(o *Operand) {
+		o.Delete = f
+	}
+}
+
+func WithCheckReady(f func() (bool, error)) OperandOption {
+	return func(o *Operand) {
+		o.CheckReady = f
+	}
+}
+
+func WithRequeueStrategy(requeue RequeueStrategy) OperandOption {
+	return func(o *Operand) {
+		o.Requeue = requeue
+	}
+}
+
+// NewOperand creates and returns a new Operand with the given name and
+// options.
+func NewOperand(name string, opts ...OperandOption) *Operand {
+	o := &Operand{
+		Name:    name,
+		Requeue: OnError,
+	}
+
+	for _, opt := range opts {
+		opt(o)
+	}
+
+	return o
 }
 
 // OperandRunCall defines a function type used to define a function that

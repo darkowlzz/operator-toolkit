@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/client-go/tools/record"
+
 	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
 	"github.com/darkowlzz/composite-reconciler/operator/v1/operand"
 )
@@ -43,9 +45,12 @@ func TestCompositeOperatorOrder(t *testing.T) {
   2: [ deploymentB ]
 ]`
 
+	rec := record.NewFakeRecorder(1)
 	co, err := NewCompositeOperator(
 		WithOperands(operands...),
+		WithEventRecorder(rec),
 	)
+
 	if err != nil {
 		t.Errorf("unexpected error while creating a composite operator: %v", err)
 	}
@@ -109,21 +114,21 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 	//     },
 	// }
 
+	rec := record.NewFakeRecorder(1)
 	co, err := NewCompositeOperator(
 		WithOperands(operandA, operandB, operandC),
+		WithEventRecorder(rec),
 	)
 	if err != nil {
 		t.Errorf("unexpected error while creating a composite operator: %v", err)
 	}
 
-	res, eve, eerr := co.Ensure()
+	res, eerr := co.Ensure()
 	fmt.Println("EERR:", eerr)
 	fmt.Println("RES:", res)
-	fmt.Println("EVENT:", eve)
 
-	cres, ceve, ceerr := co.Cleanup()
+	cres, ceerr := co.Cleanup()
 	fmt.Println("EERR:", ceerr)
 	fmt.Println("RES:", cres)
-	fmt.Println("EVENT:", ceve)
 
 }
