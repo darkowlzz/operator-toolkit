@@ -49,13 +49,18 @@ func (exe *Executor) ExecuteOperands(
 		// Error in the current execution step.
 		var execErr error
 
+		// res is the Result of the step.
+		var res *ctrl.Result
+
+		requeueStrategy := operand.StepRequeueStrategy(ops)
+
 		switch exe.execStrategy {
 		case Serial:
 			// Run the operands serially.
-			execErr = exe.SerialExec(ops, call)
+			res, execErr = exe.SerialExec(ops, call)
 		case Parallel:
 			// Run the operands concurrently.
-			execErr = exe.ConcurrentExec(ops, call)
+			res, execErr = exe.ConcurrentExec(ops, call)
 		default:
 			rerr = fmt.Errorf("unknown operands execution strategy: %v", exe.execStrategy)
 			return
@@ -63,9 +68,14 @@ func (exe *Executor) ExecuteOperands(
 
 		if execErr != nil {
 			result = ctrl.Result{Requeue: true}
-			// TODO: When the failure toleration option is added, aggregate all
-			// the errors by appending to the main rerr and continue iterating.
 			rerr = execErr
+			break
+		}
+
+		// If a change was made with a Result received after the execution and
+		// the RequeueStrategy is RequeueAlways, set a requeued result.
+		if res != nil && requeueStrategy == operand.RequeueAlways {
+			result = ctrl.Result{Requeue: true}
 			break
 		}
 	}
@@ -74,8 +84,11 @@ func (exe *Executor) ExecuteOperands(
 }
 
 // SerialExec runs the given set of operands serially with the given call
-// function.
-func (exe *Executor) SerialExec(ops []*operand.Operand, call operand.OperandRunCall) (rerr error) {
+// function. An event is used to know if a change was applied. When an event is
+// found, a result object is returned, else nil.
+func (exe *Executor) SerialExec(ops []*operand.Operand, call operand.OperandRunCall) (result *ctrl.Result, rerr error) {
+	result = nil
+
 	for _, op := range ops {
 		// Call the run call function. Since this is serial execution, return
 		// if an error occurs.
@@ -86,26 +99,33 @@ func (exe *Executor) SerialExec(ops []*operand.Operand, call operand.OperandRunC
 		}
 		if event != nil {
 			event.Record(exe.recorder)
+			result = &ctrl.Result{}
 		}
 	}
 
 	return
 }
 
-// ConcurrentExec runs the operands concurrently, collecting the events and
-// errors from the operand executions and returns them.
-func (exe *Executor) ConcurrentExec(ops []*operand.Operand, call operand.OperandRunCall) (rerr error) {
+// ConcurrentExec runs the operands concurrently, collecting the errors from
+// the operand executions and returns them.
+func (exe *Executor) ConcurrentExec(ops []*operand.Operand, call operand.OperandRunCall) (result *ctrl.Result, rerr error) {
+	result = nil
+
 	// Wait group to synchronize the go routines.
 	var wg sync.WaitGroup
 
 	totalOperands := len(ops)
+
+	// resultChan is used to collect the result returned from the concurrent
+	// execution of the operands.
+	var resultChan chan ctrl.Result = make(chan ctrl.Result, totalOperands)
 
 	// Error buffered channel to collect all the errors from the go routines.
 	var errChan chan error = make(chan error, totalOperands)
 
 	wg.Add(totalOperands)
 	for _, op := range ops {
-		go exe.operateWithWaitGroup(&wg, errChan, call(op))
+		go exe.operateWithWaitGroup(&wg, resultChan, errChan, call(op))
 	}
 	wg.Wait()
 	close(errChan)
@@ -115,14 +135,29 @@ func (exe *Executor) ConcurrentExec(ops []*operand.Operand, call operand.Operand
 		rerr = multierror.Append(rerr, err)
 	}
 
+	// Check the result channel, if it contains any result, return a result
+	// object.
+	foundResult := false
+	if len(resultChan) > 0 {
+		foundResult = true
+	}
+	if foundResult {
+		result = &ctrl.Result{}
+	}
+
 	return
 }
 
 // operateWithWaitGroup runs the given function f and calls done on the wait
 // group at the end. This is a goroutine function used for running the operands
-// concurrently. The events and errors from the execution are communicated via
-// the respective channels.
-func (exe *Executor) operateWithWaitGroup(wg *sync.WaitGroup, errChan chan error, f func() (eventv1.ReconcilerEvent, error)) {
+// concurrently. The result from events and errors from the execution are
+// communicated via the respective channels.
+func (exe *Executor) operateWithWaitGroup(
+	wg *sync.WaitGroup,
+	resultChan chan ctrl.Result,
+	errChan chan error,
+	f func() (eventv1.ReconcilerEvent, error),
+) {
 	defer wg.Done()
 
 	event, err := f()
@@ -130,7 +165,10 @@ func (exe *Executor) operateWithWaitGroup(wg *sync.WaitGroup, errChan chan error
 		errChan <- err
 	}
 
+	// Event is used to determine if a change tool place. Send a result to the
+	// result channel when an event is received.
 	if event != nil {
 		event.Record(exe.recorder)
+		resultChan <- ctrl.Result{}
 	}
 }

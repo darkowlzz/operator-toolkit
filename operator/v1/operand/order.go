@@ -46,3 +46,18 @@ func (o OperandOrder) Reverse() OperandOrder {
 	}
 	return o
 }
+
+// StepRequeueStrategy returns the requeue strategy of a step. By default, the
+// operands are requeued on error. Since the operands in a step run
+// concurrently, if an operand has RequeueAlways strategy, the whole step gets
+// RequeueAlways strategy.
+func StepRequeueStrategy(step []*Operand) RequeueStrategy {
+	strategy := RequeueOnError
+	for _, o := range step {
+		if o.Requeue == RequeueAlways {
+			strategy = RequeueAlways
+			break
+		}
+	}
+	return strategy
+}

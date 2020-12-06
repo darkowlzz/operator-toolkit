@@ -1,6 +1,8 @@
 package operand
 
 import (
+	"fmt"
+
 	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
 )
 
@@ -16,7 +18,7 @@ const (
 	// reconciliation.
 
 	// Only requeue on error.
-	OnError RequeueStrategy = iota
+	RequeueOnError RequeueStrategy = iota
 
 	// OneAtATime is a ChangeApplyStrategy that applies one change at a time.
 	// This strategy is slow and results in reconciliation requeue for every
@@ -24,7 +26,7 @@ const (
 	// OneAtATime ChangeApplyStrategy = iota
 
 	// Always requeue result after executing.
-	Always
+	RequeueAlways
 )
 
 // Operand defines a single operation that's part of an composite operator. It
@@ -36,13 +38,6 @@ const (
 type Operand struct {
 	// Name of the operand.
 	Name string
-
-	// Objs is the metadata of the target objects an operator updates.
-	// Objs []runtime.Object
-
-	// Resources are the objects that the operand creates, updates or deletes.
-	// These objects are checked for readiness based on the ReadyConditions.
-	// Resources []runtime.Object
 
 	// Requires defines the relationship between the operands of an operator.
 	Requires []string
@@ -56,17 +51,12 @@ type Operand struct {
 	// posted on the parent object's event list.
 	Delete func() (eventv1.ReconcilerEvent, error)
 
-	// ReadyConditions are the set of conditions that indicate that the target
-	// object is ready and available.
-	// ReadyConditions []map[conditionsv1.ConditionType]corev1.ConditionStatus
-
 	// Requeue is the requeue strategy for this operand.
 	Requeue RequeueStrategy
 
-	// CheckReady allows writing custom logic for checking if an object is
-	// ready. This should be used when status conditions are not enough for
-	// knowing the readiness.
-	CheckReady func() (bool, error)
+	// ReadyCheck allows writing custom logic for checking if an object is
+	// ready.
+	ReadyCheck func() (bool, error)
 }
 
 type OperandOption func(*Operand)
@@ -91,7 +81,7 @@ func WithDelete(f func() (eventv1.ReconcilerEvent, error)) OperandOption {
 
 func WithCheckReady(f func() (bool, error)) OperandOption {
 	return func(o *Operand) {
-		o.CheckReady = f
+		o.ReadyCheck = f
 	}
 }
 
@@ -106,7 +96,7 @@ func WithRequeueStrategy(requeue RequeueStrategy) OperandOption {
 func NewOperand(name string, opts ...OperandOption) *Operand {
 	o := &Operand{
 		Name:    name,
-		Requeue: OnError,
+		Requeue: RequeueOnError,
 	}
 
 	for _, opt := range opts {
@@ -122,12 +112,29 @@ func NewOperand(name string, opts ...OperandOption) *Operand {
 type OperandRunCall func(op *Operand) func() (eventv1.ReconcilerEvent, error)
 
 // callEnsure is an OperandRunCall type function that calls the Ensure function
-// of a given operand.
+// and the ReadyCheck of a given operand. The Ensure function ensures that the
+// desired change is applied to the world and ReadyCheck helps proceed only
+// when the desired state of the world is reached. This helps run dependent
+// operands only after a successful operand execution.
 func CallEnsure(op *Operand) func() (eventv1.ReconcilerEvent, error) {
-	// TODO: Perform the readiness check before returning. This will ensure
-	// that the operands that depend on this are executed only after this
-	// operation is successful.
-	return op.Ensure
+	return func() (event eventv1.ReconcilerEvent, err error) {
+		event, err = op.Ensure()
+		if err != nil {
+			return
+		}
+
+		ready, readyErr := op.ReadyCheck()
+		if readyErr != nil {
+			err = readyErr
+			return
+		}
+
+		if !ready {
+			err = fmt.Errorf("operand %q readiness check failed: not in the desired state yet", op.Name)
+		}
+
+		return
+	}
 }
 
 // callCleanup is an OperandRunCall type function that calls the Cleanup

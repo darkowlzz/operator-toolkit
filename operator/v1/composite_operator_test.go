@@ -5,11 +5,26 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 
 	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
 	"github.com/darkowlzz/composite-reconciler/operator/v1/operand"
 )
+
+type fooCreatedEvent struct {
+	Object  runtime.Object
+	FooName string
+}
+
+func (c *fooCreatedEvent) Record(recorder record.EventRecorder) {
+	recorder.Event(c.Object,
+		eventv1.K8sEventTypeNormal,
+		"FooReady",
+		fmt.Sprintf("Created foo with name %s", c.FooName),
+	)
+}
 
 func TestCompositeOperatorOrder(t *testing.T) {
 	secretName := "secret"
@@ -67,13 +82,24 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 			fmt.Println("RUNNING opA")
 			time.Sleep(2 * time.Second)
 			fmt.Println("ENDING opA")
-			return nil, nil
+
+			pod := &corev1.Pod{}
+			evnt := &fooCreatedEvent{Object: pod, FooName: "foo foo"}
+			return evnt, nil
+			// return nil, nil
 			// return errors.New("some error for opA")
 		},
 		Delete: func() (eventv1.ReconcilerEvent, error) {
 			fmt.Println("DELETING opA")
 			return nil, nil
 		},
+		ReadyCheck: func() (bool, error) {
+			return true, nil
+		},
+		// Setting RequeueAlways results in early return from ExecuteOperands
+		// and operandC doesn't get executed. It's intended. In a real
+		// reconciler, the operands will be re-executed via requeue.
+		// Requeue: operand.RequeueAlways,
 	}
 
 	operandB := &operand.Operand{
@@ -89,6 +115,9 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 			fmt.Println("DELETING opB")
 			return nil, nil
 		},
+		ReadyCheck: func() (bool, error) {
+			return true, nil
+		},
 	}
 
 	operandC := &operand.Operand{
@@ -101,6 +130,9 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 		Delete: func() (eventv1.ReconcilerEvent, error) {
 			fmt.Println("DELETING opC")
 			return nil, nil
+		},
+		ReadyCheck: func() (bool, error) {
+			return true, nil
 		},
 	}
 
