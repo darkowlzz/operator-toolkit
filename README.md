@@ -1,6 +1,6 @@
 # composite-reconciler
 
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/darkowlzz/composite-reconciler/controller/v1)](https://pkg.go.dev/github.com/darkowlzz/composite-reconciler/controller/v1)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/darkowlzz/composite-reconciler)](https://pkg.go.dev/github.com/darkowlzz/composite-reconciler)
 
 composite-reconciler provides helpers to implement a kubernetes controller
 based on the composite controller pattern. A composite controller manages a set
