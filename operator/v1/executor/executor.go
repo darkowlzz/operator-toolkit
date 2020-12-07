@@ -57,10 +57,10 @@ func (exe *Executor) ExecuteOperands(
 		switch exe.execStrategy {
 		case Serial:
 			// Run the operands serially.
-			res, execErr = exe.SerialExec(ops, call)
+			res, execErr = exe.serialExec(ops, call)
 		case Parallel:
 			// Run the operands concurrently.
-			res, execErr = exe.ConcurrentExec(ops, call)
+			res, execErr = exe.concurrentExec(ops, call)
 		default:
 			rerr = fmt.Errorf("unknown operands execution strategy: %v", exe.execStrategy)
 			return
@@ -83,10 +83,10 @@ func (exe *Executor) ExecuteOperands(
 	return
 }
 
-// SerialExec runs the given set of operands serially with the given call
+// serialExec runs the given set of operands serially with the given call
 // function. An event is used to know if a change was applied. When an event is
 // found, a result object is returned, else nil.
-func (exe *Executor) SerialExec(ops []*operand.Operand, call operand.OperandRunCall) (result *ctrl.Result, rerr error) {
+func (exe *Executor) serialExec(ops []*operand.Operand, call operand.OperandRunCall) (result *ctrl.Result, rerr error) {
 	result = nil
 
 	for _, op := range ops {
@@ -106,9 +106,9 @@ func (exe *Executor) SerialExec(ops []*operand.Operand, call operand.OperandRunC
 	return
 }
 
-// ConcurrentExec runs the operands concurrently, collecting the errors from
+// concurrentExec runs the operands concurrently, collecting the errors from
 // the operand executions and returns them.
-func (exe *Executor) ConcurrentExec(ops []*operand.Operand, call operand.OperandRunCall) (result *ctrl.Result, rerr error) {
+func (exe *Executor) concurrentExec(ops []*operand.Operand, call operand.OperandRunCall) (result *ctrl.Result, rerr error) {
 	result = nil
 
 	// Wait group to synchronize the go routines.
