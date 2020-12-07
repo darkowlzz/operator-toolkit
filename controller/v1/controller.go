@@ -52,7 +52,9 @@ type Controller interface {
 	// UpdateStatus queries the status of the child objects and based on them,
 	// sets the status of the primary object instance. It doesn't save the
 	// updated object in the API. API update is done in PatchStatus() after
-	// collecting and comparing all the status updates.
+	// collecting and comparing all the status updates. This is also called
+	// when cleanup is in progress. This should be able to remove previous
+	// status related to child objects that have been terminated.
 	UpdateStatus() error
 
 	// Operate runs the core operation of the controller that ensures that

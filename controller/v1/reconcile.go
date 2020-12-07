@@ -50,21 +50,21 @@ func (c *CompositeReconciler) Reconcile(req ctrl.Request) (result ctrl.Result, r
 
 	// Attempt to patch the status after each reconciliation.
 	defer func() {
+		// Update the local copy of the target object status based on the state of
+		// the world.
+		// NOTE: The actual target object gets updated in the API server at the end
+		// of the control loop with the deferred PatchStatus.
+		if updateErr := controller.UpdateStatus(); updateErr != nil {
+			result = ctrl.Result{Requeue: true}
+			reterr = kerrors.NewAggregate([]error{reterr, fmt.Errorf("error while updating status: %v", updateErr)})
+			return
+		}
+
 		// ?: Should patch status only if reterr is nil?
 		if err := controller.PatchStatus(); err != nil {
-			reterr = kerrors.NewAggregate([]error{reterr, fmt.Errorf("error while patching status: %s", err)})
+			reterr = kerrors.NewAggregate([]error{reterr, fmt.Errorf("error while patching status: %v", err)})
 		}
 	}()
-
-	// Update the local copy of the target object status based on the state of
-	// the world.
-	// NOTE: The actual target object gets updated in the API server at the end
-	// of the control loop with the deferred PatchStatus.
-	if updateErr := controller.UpdateStatus(); updateErr != nil {
-		result = ctrl.Result{Requeue: true}
-		reterr = updateErr
-		return
-	}
 
 	// If the cleanup strategy is finalizer based, call the cleanup handler.
 	if c.CleanupStrategy == FinalizerCleanup {

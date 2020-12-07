@@ -110,8 +110,8 @@ func TestReconcile(t *testing.T) {
 				m.EXPECT().IsUninitialized().Return(true)
 				m.EXPECT().GetObjectMetadata()
 				m.EXPECT().Initialize(conditionsv1.Condition{})
+				m.EXPECT().Operate()
 				m.EXPECT().UpdateStatus().Return(errors.New("failed to get status"))
-				m.EXPECT().PatchStatus()
 			},
 			wantResult: ctrl.Result{Requeue: true},
 			wantErr:    true,

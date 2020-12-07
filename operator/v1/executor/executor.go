@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	multierror "github.com/hashicorp/go-multierror"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -94,7 +94,7 @@ func (exe *Executor) serialExec(ops []*operand.Operand, call operand.OperandRunC
 		// if an error occurs.
 		event, err := call(op)()
 		if err != nil {
-			rerr = multierror.Append(rerr, err)
+			rerr = kerrors.NewAggregate([]error{rerr, err})
 			return
 		}
 		if event != nil {
@@ -132,7 +132,7 @@ func (exe *Executor) concurrentExec(ops []*operand.Operand, call operand.Operand
 
 	// Check if any errors were encountere.
 	for err := range errChan {
-		rerr = multierror.Append(rerr, err)
+		rerr = kerrors.NewAggregate([]error{rerr, err})
 	}
 
 	// Check the result channel, if it contains any result, return a result
