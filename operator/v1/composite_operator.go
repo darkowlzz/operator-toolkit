@@ -14,7 +14,7 @@ import (
 // CompositeOperator contains all the operands and the relationship between
 // them. It implements the Operator interface.
 type CompositeOperator struct {
-	Operands          []*operand.Operand
+	Operands          []operand.Operand
 	DAG               *dag.OperandDAG
 	isSuspended       func() bool
 	order             operand.OperandOrder
@@ -34,7 +34,7 @@ func WithExecutionStrategy(strategy executor.ExecutionStrategy) CompositeOperato
 }
 
 // WithOperands sets the set of operands in a CompositeOperator.
-func WithOperands(operands ...*operand.Operand) CompositeOperatorOption {
+func WithOperands(operands ...operand.Operand) CompositeOperatorOption {
 	return func(c *CompositeOperator) {
 		c.Operands = operands
 	}

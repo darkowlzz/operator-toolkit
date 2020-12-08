@@ -11,18 +11,14 @@ import (
 // each other and find an optimal execution path.
 type OperandDAG struct {
 	*dag.DAG
-
-	// ExecOrder is the execution order of the operands.
-	// ExecOrder operand.OperandOrder
 }
 
-// func NewOperandDAG(operands map[string]*operand.Operand) (*OperandDAG, error) {
-func NewOperandDAG(operands []*operand.Operand) (*OperandDAG, error) {
+func NewOperandDAG(operands []operand.Operand) (*OperandDAG, error) {
 	od := &OperandDAG{DAG: dag.NewDAG()}
 
 	// Create vertices for all the operands.
 	for _, op := range operands {
-		v := dag.NewVertex(op.Name, op)
+		v := dag.NewVertex(op.Name(), op)
 		if err := od.AddVertex(v); err != nil {
 			return nil, err
 		}
@@ -31,13 +27,13 @@ func NewOperandDAG(operands []*operand.Operand) (*OperandDAG, error) {
 	// Create edges between the vertices based on the operand's depends on
 	// property.
 	for _, op := range operands {
-		headVertex, err := od.GetVertex(op.Name)
+		headVertex, err := od.GetVertex(op.Name())
 		if err != nil {
 			return nil, err
 		}
 
 		// Connect the operand to all the vertices it depends on.
-		for _, dep := range op.Requires {
+		for _, dep := range op.Requires() {
 			tailVertex, err := od.GetVertex(dep)
 			if err != nil {
 				return nil, err
@@ -61,18 +57,15 @@ func (od *OperandDAG) Order() (operand.OperandOrder, error) {
 		return nil, err
 	}
 
-	result := make([][]*operand.Operand, steps)
+	result := make([][]operand.Operand, steps)
 
 	for name, step := range soln {
 		v, verr := od.GetVertex(name)
 		if verr != nil {
 			return result, verr
 		}
-		result[step] = append(result[step], v.Value.(*operand.Operand))
+		result[step] = append(result[step], v.Value.(operand.Operand))
 	}
-
-	// Save the result for use as a cached.
-	// od.ExecOrder = result
 
 	return result, nil
 }

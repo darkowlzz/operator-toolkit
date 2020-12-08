@@ -1,5 +1,7 @@
 package operand
 
+//go:generate mockgen -destination=../../../mocks/mock_operand.go -package=mocks github.com/darkowlzz/composite-reconciler/operator/v1/operand Operand
+
 import (
 	"fmt"
 
@@ -23,89 +25,41 @@ const (
 // purposes. It also contains relationship information about the operand with
 // other operands and details about checking the ready status of target
 // objects.
-type Operand struct {
+type Operand interface {
 	// Name of the operand.
-	Name string
+	Name() string
 
 	// Requires defines the relationship between the operands of an operator.
-	Requires []string
+	Requires() []string
 
 	// Ensure creates, or updates a target object with the wanted
 	// configurations. It also returns an event that can be posted on the
 	// parent object's event list.
-	Ensure func() (eventv1.ReconcilerEvent, error)
+	Ensure() (eventv1.ReconcilerEvent, error)
 
 	// Delete deletes a target object. It also returns an event that can be
 	// posted on the parent object's event list.
-	Delete func() (eventv1.ReconcilerEvent, error)
+	Delete() (eventv1.ReconcilerEvent, error)
 
 	// Requeue is the requeue strategy for this operand.
-	Requeue RequeueStrategy
+	RequeueStrategy() RequeueStrategy
 
 	// ReadyCheck allows writing custom logic for checking if an object is
 	// ready.
-	ReadyCheck func() (bool, error)
-}
-
-// OperandOption is used to configure Operand.
-type OperandOption func(*Operand)
-
-func WithRequires(requires []string) OperandOption {
-	return func(o *Operand) {
-		o.Requires = append(o.Requires, requires...)
-	}
-}
-
-func WithEnsure(f func() (eventv1.ReconcilerEvent, error)) OperandOption {
-	return func(o *Operand) {
-		o.Ensure = f
-	}
-}
-
-func WithDelete(f func() (eventv1.ReconcilerEvent, error)) OperandOption {
-	return func(o *Operand) {
-		o.Delete = f
-	}
-}
-
-func WithCheckReady(f func() (bool, error)) OperandOption {
-	return func(o *Operand) {
-		o.ReadyCheck = f
-	}
-}
-
-func WithRequeueStrategy(requeue RequeueStrategy) OperandOption {
-	return func(o *Operand) {
-		o.Requeue = requeue
-	}
-}
-
-// NewOperand creates and returns a new Operand with the given name and
-// options.
-func NewOperand(name string, opts ...OperandOption) *Operand {
-	o := &Operand{
-		Name:    name,
-		Requeue: RequeueOnError,
-	}
-
-	for _, opt := range opts {
-		opt(o)
-	}
-
-	return o
+	ReadyCheck() (bool, error)
 }
 
 // OperandRunCall defines a function type used to define a function that
 // returns an operand execute call. This is used for passing the operand
 // execute function (Ensure or Delete) in a generic way.
-type OperandRunCall func(op *Operand) func() (eventv1.ReconcilerEvent, error)
+type OperandRunCall func(op Operand) func() (eventv1.ReconcilerEvent, error)
 
 // callEnsure is an OperandRunCall type function that calls the Ensure function
 // and the ReadyCheck of a given operand. The Ensure function ensures that the
 // desired change is applied to the world and ReadyCheck helps proceed only
 // when the desired state of the world is reached. This helps run dependent
 // operands only after a successful operand execution.
-func CallEnsure(op *Operand) func() (eventv1.ReconcilerEvent, error) {
+func CallEnsure(op Operand) func() (eventv1.ReconcilerEvent, error) {
 	return func() (event eventv1.ReconcilerEvent, err error) {
 		event, err = op.Ensure()
 		if err != nil {
@@ -119,7 +73,7 @@ func CallEnsure(op *Operand) func() (eventv1.ReconcilerEvent, error) {
 		}
 
 		if !ready {
-			err = fmt.Errorf("operand %q readiness check failed: not in the desired state yet", op.Name)
+			err = fmt.Errorf("operand %q readiness check failed: not in the desired state yet", op.Name())
 		}
 
 		return
@@ -128,6 +82,6 @@ func CallEnsure(op *Operand) func() (eventv1.ReconcilerEvent, error) {
 
 // callCleanup is an OperandRunCall type function that calls the Cleanup
 // function of a given operand.
-func CallCleanup(op *Operand) func() (eventv1.ReconcilerEvent, error) {
+func CallCleanup(op Operand) func() (eventv1.ReconcilerEvent, error) {
 	return op.Delete
 }

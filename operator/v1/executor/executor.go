@@ -86,7 +86,7 @@ func (exe *Executor) ExecuteOperands(
 // serialExec runs the given set of operands serially with the given call
 // function. An event is used to know if a change was applied. When an event is
 // found, a result object is returned, else nil.
-func (exe *Executor) serialExec(ops []*operand.Operand, call operand.OperandRunCall) (result *ctrl.Result, rerr error) {
+func (exe *Executor) serialExec(ops []operand.Operand, call operand.OperandRunCall) (result *ctrl.Result, rerr error) {
 	result = nil
 
 	for _, op := range ops {
@@ -108,7 +108,7 @@ func (exe *Executor) serialExec(ops []*operand.Operand, call operand.OperandRunC
 
 // concurrentExec runs the operands concurrently, collecting the errors from
 // the operand executions and returns them.
-func (exe *Executor) concurrentExec(ops []*operand.Operand, call operand.OperandRunCall) (result *ctrl.Result, rerr error) {
+func (exe *Executor) concurrentExec(ops []operand.Operand, call operand.OperandRunCall) (result *ctrl.Result, rerr error) {
 	result = nil
 
 	// Wait group to synchronize the go routines.

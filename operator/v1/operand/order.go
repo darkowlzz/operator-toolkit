@@ -9,7 +9,7 @@ import (
 // OperandOrder stores the operands in order of their execution. The first
 // dimension of the slice depicts the execution step and the second dimention
 // contains the operands that can be run in parallel.
-type OperandOrder [][]*Operand
+type OperandOrder [][]Operand
 
 // String implements the Stringer interface for OperandOrder.
 // Example string result:
@@ -27,7 +27,7 @@ func (o OperandOrder) String() string {
 		// Sort the items for deterministic results.
 		items := []string{}
 		for _, op := range s {
-			items = append(items, op.Name)
+			items = append(items, op.Name())
 		}
 		sort.Strings(items)
 		itemsStr := strings.Join(items, " ")
@@ -51,10 +51,10 @@ func (o OperandOrder) Reverse() OperandOrder {
 // operands are requeued on error. Since the operands in a step run
 // concurrently, if an operand has RequeueAlways strategy, the whole step gets
 // RequeueAlways strategy.
-func StepRequeueStrategy(step []*Operand) RequeueStrategy {
+func StepRequeueStrategy(step []Operand) RequeueStrategy {
 	strategy := RequeueOnError
 	for _, o := range step {
-		if o.Requeue == RequeueAlways {
+		if o.RequeueStrategy() == RequeueAlways {
 			strategy = RequeueAlways
 			break
 		}

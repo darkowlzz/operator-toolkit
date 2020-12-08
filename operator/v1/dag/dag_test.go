@@ -3,6 +3,9 @@ package dag
 import (
 	"testing"
 
+	"github.com/golang/mock/gomock"
+
+	"github.com/darkowlzz/composite-reconciler/mocks"
 	"github.com/darkowlzz/composite-reconciler/operator/v1/operand"
 )
 
@@ -24,30 +27,35 @@ func TestDAG(t *testing.T) {
 	//
 	// Expected run order: [A:0 B:0 C:1 D:2 F:2 E:3]
 
-	ops := []*operand.Operand{
-		&operand.Operand{
-			Name: "A",
-		},
-		&operand.Operand{
-			Name: "B",
-		},
-		&operand.Operand{
-			Name:     "C",
-			Requires: []string{"B"},
-		},
-		&operand.Operand{
-			Name:     "D",
-			Requires: []string{"A", "C"},
-		},
-		&operand.Operand{
-			Name:     "E",
-			Requires: []string{"D"},
-		},
-		&operand.Operand{
-			Name:     "F",
-			Requires: []string{"C"},
-		},
-	}
+	// Set up mock operands.
+	mctrl := gomock.NewController(t)
+	defer mctrl.Finish()
+
+	mA := mocks.NewMockOperand(mctrl)
+	mA.EXPECT().Name().Return("A").AnyTimes()
+	mA.EXPECT().Requires().Return([]string{})
+
+	mB := mocks.NewMockOperand(mctrl)
+	mB.EXPECT().Name().Return("B").AnyTimes()
+	mB.EXPECT().Requires().Return([]string{})
+
+	mC := mocks.NewMockOperand(mctrl)
+	mC.EXPECT().Name().Return("C").AnyTimes()
+	mC.EXPECT().Requires().Return([]string{"B"})
+
+	mD := mocks.NewMockOperand(mctrl)
+	mD.EXPECT().Name().Return("D").AnyTimes()
+	mD.EXPECT().Requires().Return([]string{"A", "C"})
+
+	mE := mocks.NewMockOperand(mctrl)
+	mE.EXPECT().Name().Return("E").AnyTimes()
+	mE.EXPECT().Requires().Return([]string{"D"})
+
+	mF := mocks.NewMockOperand(mctrl)
+	mF.EXPECT().Name().Return("F").AnyTimes()
+	mF.EXPECT().Requires().Return([]string{"C"})
+
+	ops := []operand.Operand{mA, mB, mC, mD, mE, mF}
 
 	expectedResult := `[
   0: [ A B ]
