@@ -42,6 +42,7 @@ func NewExecutor(e ExecutionStrategy, r record.EventRecorder) *Executor {
 func (exe *Executor) ExecuteOperands(
 	order operand.OperandOrder,
 	call operand.OperandRunCall,
+	obj interface{},
 ) (result ctrl.Result, rerr error) {
 	// Iterate through the order steps and run the operands in the steps as per
 	// the execution strategy.
@@ -57,10 +58,10 @@ func (exe *Executor) ExecuteOperands(
 		switch exe.execStrategy {
 		case Serial:
 			// Run the operands serially.
-			res, execErr = exe.serialExec(ops, call)
+			res, execErr = exe.serialExec(ops, call, obj)
 		case Parallel:
 			// Run the operands concurrently.
-			res, execErr = exe.concurrentExec(ops, call)
+			res, execErr = exe.concurrentExec(ops, call, obj)
 		default:
 			rerr = fmt.Errorf("unknown operands execution strategy: %v", exe.execStrategy)
 			return
@@ -86,13 +87,14 @@ func (exe *Executor) ExecuteOperands(
 // serialExec runs the given set of operands serially with the given call
 // function. An event is used to know if a change was applied. When an event is
 // found, a result object is returned, else nil.
-func (exe *Executor) serialExec(ops []operand.Operand, call operand.OperandRunCall) (result *ctrl.Result, rerr error) {
+func (exe *Executor) serialExec(ops []operand.Operand, call operand.OperandRunCall, obj interface{}) (result *ctrl.Result, rerr error) {
 	result = nil
 
 	for _, op := range ops {
 		// Call the run call function. Since this is serial execution, return
 		// if an error occurs.
-		event, err := call(op)()
+		// c := call(op)
+		event, err := call(op)(obj)
 		if err != nil {
 			rerr = kerrors.NewAggregate([]error{rerr, err})
 			return
@@ -108,7 +110,7 @@ func (exe *Executor) serialExec(ops []operand.Operand, call operand.OperandRunCa
 
 // concurrentExec runs the operands concurrently, collecting the errors from
 // the operand executions and returns them.
-func (exe *Executor) concurrentExec(ops []operand.Operand, call operand.OperandRunCall) (result *ctrl.Result, rerr error) {
+func (exe *Executor) concurrentExec(ops []operand.Operand, call operand.OperandRunCall, obj interface{}) (result *ctrl.Result, rerr error) {
 	result = nil
 
 	// Wait group to synchronize the go routines.
@@ -125,7 +127,7 @@ func (exe *Executor) concurrentExec(ops []operand.Operand, call operand.OperandR
 
 	wg.Add(totalOperands)
 	for _, op := range ops {
-		go exe.operateWithWaitGroup(&wg, resultChan, errChan, call(op))
+		go exe.operateWithWaitGroup(&wg, resultChan, errChan, call(op), obj)
 	}
 	wg.Wait()
 	close(errChan)
@@ -156,11 +158,12 @@ func (exe *Executor) operateWithWaitGroup(
 	wg *sync.WaitGroup,
 	resultChan chan ctrl.Result,
 	errChan chan error,
-	f func() (eventv1.ReconcilerEvent, error),
+	f func(obj interface{}) (eventv1.ReconcilerEvent, error),
+	obj interface{},
 ) {
 	defer wg.Done()
 
-	event, err := f()
+	event, err := f(obj)
 	if err != nil {
 		errChan <- err
 	}

@@ -9,18 +9,18 @@ import (
 type Operator interface {
 	// IsSuspended tells if an operator is suspended and should not run any
 	// operation.
-	IsSuspended() bool
+	IsSuspended(interface{}) bool
 
 	// Ensure runs all the operands' Ensure method in order defined by their
 	// dependencies.
-	Ensure() (result ctrl.Result, err error)
+	Ensure(interface{}) (result ctrl.Result, err error)
 
 	// Cleanup runs all the operands' Delete method in reverse order defined by
 	// their dependencies.
-	Cleanup() (result ctrl.Result, err error)
+	Cleanup(interface{}) (result ctrl.Result, err error)
 }
 
 // defaultIsSuspended always returns false.
-func defaultIsSuspended() bool {
+func defaultIsSuspended(obj interface{}) bool {
 	return false
 }

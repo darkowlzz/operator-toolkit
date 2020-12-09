@@ -35,33 +35,33 @@ func (m *MockOperand) EXPECT() *MockOperandMockRecorder {
 }
 
 // Delete mocks base method
-func (m *MockOperand) Delete() (v1.ReconcilerEvent, error) {
+func (m *MockOperand) Delete(arg0 interface{}) (v1.ReconcilerEvent, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete")
+	ret := m.ctrl.Call(m, "Delete", arg0)
 	ret0, _ := ret[0].(v1.ReconcilerEvent)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Delete indicates an expected call of Delete
-func (mr *MockOperandMockRecorder) Delete() *gomock.Call {
+func (mr *MockOperandMockRecorder) Delete(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockOperand)(nil).Delete))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockOperand)(nil).Delete), arg0)
 }
 
 // Ensure mocks base method
-func (m *MockOperand) Ensure() (v1.ReconcilerEvent, error) {
+func (m *MockOperand) Ensure(arg0 interface{}) (v1.ReconcilerEvent, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Ensure")
+	ret := m.ctrl.Call(m, "Ensure", arg0)
 	ret0, _ := ret[0].(v1.ReconcilerEvent)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Ensure indicates an expected call of Ensure
-func (mr *MockOperandMockRecorder) Ensure() *gomock.Call {
+func (mr *MockOperandMockRecorder) Ensure(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ensure", reflect.TypeOf((*MockOperand)(nil).Ensure))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ensure", reflect.TypeOf((*MockOperand)(nil).Ensure), arg0)
 }
 
 // Name mocks base method
@@ -79,18 +79,18 @@ func (mr *MockOperandMockRecorder) Name() *gomock.Call {
 }
 
 // ReadyCheck mocks base method
-func (m *MockOperand) ReadyCheck() (bool, error) {
+func (m *MockOperand) ReadyCheck(arg0 interface{}) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ReadyCheck")
+	ret := m.ctrl.Call(m, "ReadyCheck", arg0)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ReadyCheck indicates an expected call of ReadyCheck
-func (mr *MockOperandMockRecorder) ReadyCheck() *gomock.Call {
+func (mr *MockOperandMockRecorder) ReadyCheck(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadyCheck", reflect.TypeOf((*MockOperand)(nil).ReadyCheck))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadyCheck", reflect.TypeOf((*MockOperand)(nil).ReadyCheck), arg0)
 }
 
 // RequeueStrategy mocks base method

@@ -33,7 +33,7 @@ func (c *fooCreatedEvent) Record(recorder record.EventRecorder) {
 }
 
 // isSuspendedAlwaysTrue always return true.
-func isSuspendedAlwaysTrue() bool {
+func isSuspendedAlwaysTrue(obj interface{}) bool {
 	return true
 }
 
@@ -46,7 +46,7 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 	// counter, count. It tries to simulate the behavior in which the first
 	// time Ensure is run, it returns an event, but the following times, it
 	// returns nil.
-	conditionalEnsure := func() (eventv1.ReconcilerEvent, error) {
+	conditionalEnsure := func(obj interface{}) (eventv1.ReconcilerEvent, error) {
 		count++
 		if count == 1 {
 			return evnt, nil
@@ -69,15 +69,15 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 			},
 			wantRequeue: false,
 			expectations: func(opA, opB, opC *mocks.MockOperand) {
-				opA.EXPECT().Ensure()
+				opA.EXPECT().Ensure(gomock.Any())
 				opA.EXPECT().RequeueStrategy()
-				opA.EXPECT().ReadyCheck().Return(true, nil)
-				opB.EXPECT().Ensure()
+				opA.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
+				opB.EXPECT().Ensure(gomock.Any())
 				opB.EXPECT().RequeueStrategy()
-				opB.EXPECT().ReadyCheck().Return(true, nil)
-				opC.EXPECT().Ensure()
+				opB.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
+				opC.EXPECT().Ensure(gomock.Any())
 				opC.EXPECT().RequeueStrategy()
-				opC.EXPECT().ReadyCheck().Return(true, nil)
+				opC.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
 			},
 			times: 1,
 		},
@@ -90,12 +90,12 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 			expectations: func(opA, opB, opC *mocks.MockOperand) {
 				// Reset counter used by conditionalEnsure.
 				count = 0
-				opA.EXPECT().Ensure().DoAndReturn(conditionalEnsure)
+				opA.EXPECT().Ensure(gomock.Any()).DoAndReturn(conditionalEnsure)
 				opA.EXPECT().RequeueStrategy().Return(operand.RequeueAlways)
-				opA.EXPECT().ReadyCheck().Return(true, nil)
-				opB.EXPECT().Ensure()
+				opA.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
+				opB.EXPECT().Ensure(gomock.Any())
 				opB.EXPECT().RequeueStrategy().AnyTimes()
-				opB.EXPECT().ReadyCheck().Return(true, nil)
+				opB.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
 				// No execution of opC.
 			},
 			times: 1,
@@ -109,15 +109,15 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 			expectations: func(opA, opB, opC *mocks.MockOperand) {
 				// Reset counter used by conditionalEnsure.
 				count = 0
-				opA.EXPECT().Ensure().DoAndReturn(conditionalEnsure).Times(2)
+				opA.EXPECT().Ensure(gomock.Any()).DoAndReturn(conditionalEnsure).Times(2)
 				opA.EXPECT().RequeueStrategy().Return(operand.RequeueAlways).Times(2)
-				opA.EXPECT().ReadyCheck().Return(true, nil).Times(2)
-				opB.EXPECT().Ensure().Times(2)
+				opA.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil).Times(2)
+				opB.EXPECT().Ensure(gomock.Any()).Times(2)
 				opB.EXPECT().RequeueStrategy().AnyTimes()
-				opB.EXPECT().ReadyCheck().Return(true, nil).Times(2)
-				opC.EXPECT().Ensure()
+				opB.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil).Times(2)
+				opC.EXPECT().Ensure(gomock.Any())
 				opC.EXPECT().RequeueStrategy()
-				opC.EXPECT().ReadyCheck().Return(true, nil)
+				opC.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
 			},
 			times: 2,
 		},
@@ -128,15 +128,15 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 			},
 			wantRequeue: false,
 			expectations: func(opA, opB, opC *mocks.MockOperand) {
-				opA.EXPECT().Ensure()
+				opA.EXPECT().Ensure(gomock.Any())
 				opA.EXPECT().RequeueStrategy()
-				opA.EXPECT().ReadyCheck().Return(true, nil)
-				opB.EXPECT().Ensure()
+				opA.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
+				opB.EXPECT().Ensure(gomock.Any())
 				opB.EXPECT().RequeueStrategy()
-				opB.EXPECT().ReadyCheck().Return(true, nil)
-				opC.EXPECT().Ensure()
+				opB.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
+				opC.EXPECT().Ensure(gomock.Any())
 				opC.EXPECT().RequeueStrategy()
-				opC.EXPECT().ReadyCheck().Return(true, nil)
+				opC.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
 			},
 			times: 1,
 		},
@@ -149,12 +149,12 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 			expectations: func(opA, opB, opC *mocks.MockOperand) {
 				// Reset counter used by conditionalEnsure.
 				count = 0
-				opA.EXPECT().Ensure().DoAndReturn(conditionalEnsure)
+				opA.EXPECT().Ensure(gomock.Any()).DoAndReturn(conditionalEnsure)
 				opA.EXPECT().RequeueStrategy().Return(operand.RequeueAlways)
-				opA.EXPECT().ReadyCheck().Return(true, nil)
-				opB.EXPECT().Ensure()
+				opA.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
+				opB.EXPECT().Ensure(gomock.Any())
 				opB.EXPECT().RequeueStrategy().AnyTimes()
-				opB.EXPECT().ReadyCheck().Return(true, nil)
+				opB.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
 				// No execution of opC.
 			},
 			times: 1,
@@ -168,15 +168,15 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 			expectations: func(opA, opB, opC *mocks.MockOperand) {
 				// Reset counter used by conditionalEnsure.
 				count = 0
-				opA.EXPECT().Ensure().DoAndReturn(conditionalEnsure).Times(2)
+				opA.EXPECT().Ensure(gomock.Any()).DoAndReturn(conditionalEnsure).Times(2)
 				opA.EXPECT().RequeueStrategy().Return(operand.RequeueAlways).AnyTimes()
-				opA.EXPECT().ReadyCheck().Return(true, nil).Times(2)
-				opB.EXPECT().Ensure().Times(2)
-				opB.EXPECT().ReadyCheck().Return(true, nil).Times(2)
+				opA.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil).Times(2)
+				opB.EXPECT().Ensure(gomock.Any()).Times(2)
+				opB.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil).Times(2)
 				opB.EXPECT().RequeueStrategy().AnyTimes()
-				opC.EXPECT().Ensure()
+				opC.EXPECT().Ensure(gomock.Any())
 				opC.EXPECT().RequeueStrategy()
-				opC.EXPECT().ReadyCheck().Return(true, nil)
+				opC.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
 			},
 			times: 2,
 		},
@@ -226,7 +226,7 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 			// Run ensure for the given number of times.
 			i := 0
 			for i < tc.times {
-				res, eerr = co.Ensure()
+				res, eerr = co.Ensure(pod)
 				assert.Nil(t, eerr)
 				i++
 			}

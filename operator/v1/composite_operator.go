@@ -16,7 +16,7 @@ import (
 type CompositeOperator struct {
 	Operands          []operand.Operand
 	DAG               *dag.OperandDAG
-	isSuspended       func() bool
+	isSuspended       func(interface{}) bool
 	order             operand.OperandOrder
 	executionStrategy executor.ExecutionStrategy
 	recorder          record.EventRecorder
@@ -41,7 +41,7 @@ func WithOperands(operands ...operand.Operand) CompositeOperatorOption {
 }
 
 // SetIsSuspended can be used to set the operator suspension check.
-func WithSuspensionCheck(f func() bool) CompositeOperatorOption {
+func WithSuspensionCheck(f func(interface{}) bool) CompositeOperatorOption {
 	return func(c *CompositeOperator) {
 		c.isSuspended = f
 	}
@@ -105,24 +105,24 @@ func (co *CompositeOperator) Order() operand.OperandOrder {
 
 // IsSuspend implements the Operator interface. It checks if the operator can
 // run or if it's suspended and shouldn't run.
-func (co *CompositeOperator) IsSuspended() bool {
-	return co.isSuspended()
+func (co *CompositeOperator) IsSuspended(obj interface{}) bool {
+	return co.isSuspended(obj)
 }
 
 // Ensure implements the Operator interface. It runs all the operands, in the
 // order of their dependencies, to ensure all the operations the individual
 // operands perform.
-func (co *CompositeOperator) Ensure() (result ctrl.Result, rerr error) {
-	if !co.isSuspended() {
-		return co.executor.ExecuteOperands(co.order, operand.CallEnsure)
+func (co *CompositeOperator) Ensure(obj interface{}) (result ctrl.Result, rerr error) {
+	if !co.IsSuspended(obj) {
+		return co.executor.ExecuteOperands(co.order, operand.CallEnsure, obj)
 	}
 	return
 }
 
 // Cleanup implements the Operator interface.
-func (co *CompositeOperator) Cleanup() (result ctrl.Result, rerr error) {
-	if !co.IsSuspended() {
-		return co.executor.ExecuteOperands(co.order.Reverse(), operand.CallCleanup)
+func (co *CompositeOperator) Cleanup(obj interface{}) (result ctrl.Result, rerr error) {
+	if !co.IsSuspended(obj) {
+		return co.executor.ExecuteOperands(co.order.Reverse(), operand.CallCleanup, obj)
 	}
 	return
 }

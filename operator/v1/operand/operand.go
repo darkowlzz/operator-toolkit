@@ -35,38 +35,39 @@ type Operand interface {
 	// Ensure creates, or updates a target object with the wanted
 	// configurations. It also returns an event that can be posted on the
 	// parent object's event list.
-	Ensure() (eventv1.ReconcilerEvent, error)
+	Ensure(obj interface{}) (eventv1.ReconcilerEvent, error)
 
 	// Delete deletes a target object. It also returns an event that can be
 	// posted on the parent object's event list.
-	Delete() (eventv1.ReconcilerEvent, error)
+	Delete(obj interface{}) (eventv1.ReconcilerEvent, error)
 
 	// Requeue is the requeue strategy for this operand.
 	RequeueStrategy() RequeueStrategy
 
 	// ReadyCheck allows writing custom logic for checking if an object is
 	// ready.
-	ReadyCheck() (bool, error)
+	ReadyCheck(obj interface{}) (bool, error)
 }
 
 // OperandRunCall defines a function type used to define a function that
 // returns an operand execute call. This is used for passing the operand
 // execute function (Ensure or Delete) in a generic way.
-type OperandRunCall func(op Operand) func() (eventv1.ReconcilerEvent, error)
+type OperandRunCall func(op Operand) func(obj interface{}) (eventv1.ReconcilerEvent, error)
 
 // callEnsure is an OperandRunCall type function that calls the Ensure function
 // and the ReadyCheck of a given operand. The Ensure function ensures that the
 // desired change is applied to the world and ReadyCheck helps proceed only
 // when the desired state of the world is reached. This helps run dependent
 // operands only after a successful operand execution.
-func CallEnsure(op Operand) func() (eventv1.ReconcilerEvent, error) {
-	return func() (event eventv1.ReconcilerEvent, err error) {
-		event, err = op.Ensure()
+func CallEnsure(op Operand) func(obj interface{}) (eventv1.ReconcilerEvent, error) {
+	// func CallEnsure(op Operand) OperandRunCall {
+	return func(obj interface{}) (event eventv1.ReconcilerEvent, err error) {
+		event, err = op.Ensure(obj)
 		if err != nil {
 			return
 		}
 
-		ready, readyErr := op.ReadyCheck()
+		ready, readyErr := op.ReadyCheck(obj)
 		if readyErr != nil {
 			err = readyErr
 			return
@@ -82,6 +83,7 @@ func CallEnsure(op Operand) func() (eventv1.ReconcilerEvent, error) {
 
 // callCleanup is an OperandRunCall type function that calls the Cleanup
 // function of a given operand.
-func CallCleanup(op Operand) func() (eventv1.ReconcilerEvent, error) {
+func CallCleanup(op Operand) func(obj interface{}) (eventv1.ReconcilerEvent, error) {
+	// func CallCleanup(op Operand) OperandRunCall {
 	return op.Delete
 }
