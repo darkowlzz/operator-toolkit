@@ -1,12 +1,14 @@
 package v1
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -33,7 +35,7 @@ func (c *fooCreatedEvent) Record(recorder record.EventRecorder) {
 }
 
 // isSuspendedAlwaysTrue always return true.
-func isSuspendedAlwaysTrue(obj interface{}) bool {
+func isSuspendedAlwaysTrue(ctx context.Context, obj runtime.Object) bool {
 	return true
 }
 
@@ -46,7 +48,7 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 	// counter, count. It tries to simulate the behavior in which the first
 	// time Ensure is run, it returns an event, but the following times, it
 	// returns nil.
-	conditionalEnsure := func(obj interface{}) (eventv1.ReconcilerEvent, error) {
+	conditionalEnsure := func(ctx context.Context, obj runtime.Object, ownerRef metav1.OwnerReference) (eventv1.ReconcilerEvent, error) {
 		count++
 		if count == 1 {
 			return evnt, nil
@@ -69,15 +71,15 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 			},
 			wantRequeue: false,
 			expectations: func(opA, opB, opC *mocks.MockOperand) {
-				opA.EXPECT().Ensure(gomock.Any())
+				opA.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any())
 				opA.EXPECT().RequeueStrategy()
-				opA.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
-				opB.EXPECT().Ensure(gomock.Any())
+				opA.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
+				opB.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any())
 				opB.EXPECT().RequeueStrategy()
-				opB.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
-				opC.EXPECT().Ensure(gomock.Any())
+				opB.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
+				opC.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any())
 				opC.EXPECT().RequeueStrategy()
-				opC.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
+				opC.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
 			},
 			times: 1,
 		},
@@ -90,12 +92,12 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 			expectations: func(opA, opB, opC *mocks.MockOperand) {
 				// Reset counter used by conditionalEnsure.
 				count = 0
-				opA.EXPECT().Ensure(gomock.Any()).DoAndReturn(conditionalEnsure)
+				opA.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(conditionalEnsure)
 				opA.EXPECT().RequeueStrategy().Return(operand.RequeueAlways)
-				opA.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
-				opB.EXPECT().Ensure(gomock.Any())
+				opA.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
+				opB.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any())
 				opB.EXPECT().RequeueStrategy().AnyTimes()
-				opB.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
+				opB.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
 				// No execution of opC.
 			},
 			times: 1,
@@ -109,15 +111,15 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 			expectations: func(opA, opB, opC *mocks.MockOperand) {
 				// Reset counter used by conditionalEnsure.
 				count = 0
-				opA.EXPECT().Ensure(gomock.Any()).DoAndReturn(conditionalEnsure).Times(2)
+				opA.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(conditionalEnsure).Times(2)
 				opA.EXPECT().RequeueStrategy().Return(operand.RequeueAlways).Times(2)
-				opA.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil).Times(2)
-				opB.EXPECT().Ensure(gomock.Any()).Times(2)
+				opA.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil).Times(2)
+				opB.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any()).Times(2)
 				opB.EXPECT().RequeueStrategy().AnyTimes()
-				opB.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil).Times(2)
-				opC.EXPECT().Ensure(gomock.Any())
+				opB.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil).Times(2)
+				opC.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any())
 				opC.EXPECT().RequeueStrategy()
-				opC.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
+				opC.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
 			},
 			times: 2,
 		},
@@ -128,15 +130,15 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 			},
 			wantRequeue: false,
 			expectations: func(opA, opB, opC *mocks.MockOperand) {
-				opA.EXPECT().Ensure(gomock.Any())
+				opA.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any())
 				opA.EXPECT().RequeueStrategy()
-				opA.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
-				opB.EXPECT().Ensure(gomock.Any())
+				opA.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
+				opB.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any())
 				opB.EXPECT().RequeueStrategy()
-				opB.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
-				opC.EXPECT().Ensure(gomock.Any())
+				opB.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
+				opC.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any())
 				opC.EXPECT().RequeueStrategy()
-				opC.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
+				opC.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
 			},
 			times: 1,
 		},
@@ -149,12 +151,12 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 			expectations: func(opA, opB, opC *mocks.MockOperand) {
 				// Reset counter used by conditionalEnsure.
 				count = 0
-				opA.EXPECT().Ensure(gomock.Any()).DoAndReturn(conditionalEnsure)
+				opA.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(conditionalEnsure)
 				opA.EXPECT().RequeueStrategy().Return(operand.RequeueAlways)
-				opA.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
-				opB.EXPECT().Ensure(gomock.Any())
+				opA.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
+				opB.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any())
 				opB.EXPECT().RequeueStrategy().AnyTimes()
-				opB.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
+				opB.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
 				// No execution of opC.
 			},
 			times: 1,
@@ -168,15 +170,15 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 			expectations: func(opA, opB, opC *mocks.MockOperand) {
 				// Reset counter used by conditionalEnsure.
 				count = 0
-				opA.EXPECT().Ensure(gomock.Any()).DoAndReturn(conditionalEnsure).Times(2)
+				opA.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(conditionalEnsure).Times(2)
 				opA.EXPECT().RequeueStrategy().Return(operand.RequeueAlways).AnyTimes()
-				opA.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil).Times(2)
-				opB.EXPECT().Ensure(gomock.Any()).Times(2)
-				opB.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil).Times(2)
+				opA.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil).Times(2)
+				opB.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any()).Times(2)
+				opB.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil).Times(2)
 				opB.EXPECT().RequeueStrategy().AnyTimes()
-				opC.EXPECT().Ensure(gomock.Any())
+				opC.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any())
 				opC.EXPECT().RequeueStrategy()
-				opC.EXPECT().ReadyCheck(gomock.Any()).Return(true, nil)
+				opC.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
 			},
 			times: 2,
 		},
@@ -226,7 +228,7 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 			// Run ensure for the given number of times.
 			i := 0
 			for i < tc.times {
-				res, eerr = co.Ensure(pod)
+				res, eerr = co.Ensure(context.Background(), pod, metav1.OwnerReference{})
 				assert.Nil(t, eerr)
 				i++
 			}

@@ -48,10 +48,6 @@ func NewOperandDAG(operands []operand.Operand) (*OperandDAG, error) {
 }
 
 func (od *OperandDAG) Order() (operand.OperandOrder, error) {
-	// if od.ExecOrder != nil {
-	//     return od.ExecOrder, nil
-	// }
-
 	soln, steps, err := od.solve()
 	if err != nil {
 		return nil, err

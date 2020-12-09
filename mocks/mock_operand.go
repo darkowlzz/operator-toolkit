@@ -5,9 +5,12 @@
 package mocks
 
 import (
+	context "context"
 	v1 "github.com/darkowlzz/composite-reconciler/event/v1"
 	operand "github.com/darkowlzz/composite-reconciler/operator/v1/operand"
 	gomock "github.com/golang/mock/gomock"
+	v10 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	reflect "reflect"
 )
 
@@ -35,33 +38,33 @@ func (m *MockOperand) EXPECT() *MockOperandMockRecorder {
 }
 
 // Delete mocks base method
-func (m *MockOperand) Delete(arg0 interface{}) (v1.ReconcilerEvent, error) {
+func (m *MockOperand) Delete(arg0 context.Context, arg1 runtime.Object) (v1.ReconcilerEvent, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", arg0)
+	ret := m.ctrl.Call(m, "Delete", arg0, arg1)
 	ret0, _ := ret[0].(v1.ReconcilerEvent)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Delete indicates an expected call of Delete
-func (mr *MockOperandMockRecorder) Delete(arg0 interface{}) *gomock.Call {
+func (mr *MockOperandMockRecorder) Delete(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockOperand)(nil).Delete), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockOperand)(nil).Delete), arg0, arg1)
 }
 
 // Ensure mocks base method
-func (m *MockOperand) Ensure(arg0 interface{}) (v1.ReconcilerEvent, error) {
+func (m *MockOperand) Ensure(arg0 context.Context, arg1 runtime.Object, arg2 v10.OwnerReference) (v1.ReconcilerEvent, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Ensure", arg0)
+	ret := m.ctrl.Call(m, "Ensure", arg0, arg1, arg2)
 	ret0, _ := ret[0].(v1.ReconcilerEvent)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Ensure indicates an expected call of Ensure
-func (mr *MockOperandMockRecorder) Ensure(arg0 interface{}) *gomock.Call {
+func (mr *MockOperandMockRecorder) Ensure(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ensure", reflect.TypeOf((*MockOperand)(nil).Ensure), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ensure", reflect.TypeOf((*MockOperand)(nil).Ensure), arg0, arg1, arg2)
 }
 
 // Name mocks base method
@@ -79,18 +82,18 @@ func (mr *MockOperandMockRecorder) Name() *gomock.Call {
 }
 
 // ReadyCheck mocks base method
-func (m *MockOperand) ReadyCheck(arg0 interface{}) (bool, error) {
+func (m *MockOperand) ReadyCheck(arg0 context.Context, arg1 runtime.Object) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ReadyCheck", arg0)
+	ret := m.ctrl.Call(m, "ReadyCheck", arg0, arg1)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ReadyCheck indicates an expected call of ReadyCheck
-func (mr *MockOperandMockRecorder) ReadyCheck(arg0 interface{}) *gomock.Call {
+func (mr *MockOperandMockRecorder) ReadyCheck(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadyCheck", reflect.TypeOf((*MockOperand)(nil).ReadyCheck), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadyCheck", reflect.TypeOf((*MockOperand)(nil).ReadyCheck), arg0, arg1)
 }
 
 // RequeueStrategy mocks base method

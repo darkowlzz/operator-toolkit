@@ -1,9 +1,12 @@
 package executor
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -42,7 +45,9 @@ func NewExecutor(e ExecutionStrategy, r record.EventRecorder) *Executor {
 func (exe *Executor) ExecuteOperands(
 	order operand.OperandOrder,
 	call operand.OperandRunCall,
-	obj interface{},
+	ctx context.Context,
+	obj runtime.Object,
+	ownerRef metav1.OwnerReference,
 ) (result ctrl.Result, rerr error) {
 	// Iterate through the order steps and run the operands in the steps as per
 	// the execution strategy.
@@ -58,10 +63,10 @@ func (exe *Executor) ExecuteOperands(
 		switch exe.execStrategy {
 		case Serial:
 			// Run the operands serially.
-			res, execErr = exe.serialExec(ops, call, obj)
+			res, execErr = exe.serialExec(ops, call, ctx, obj, ownerRef)
 		case Parallel:
 			// Run the operands concurrently.
-			res, execErr = exe.concurrentExec(ops, call, obj)
+			res, execErr = exe.concurrentExec(ops, call, ctx, obj, ownerRef)
 		default:
 			rerr = fmt.Errorf("unknown operands execution strategy: %v", exe.execStrategy)
 			return
@@ -87,14 +92,19 @@ func (exe *Executor) ExecuteOperands(
 // serialExec runs the given set of operands serially with the given call
 // function. An event is used to know if a change was applied. When an event is
 // found, a result object is returned, else nil.
-func (exe *Executor) serialExec(ops []operand.Operand, call operand.OperandRunCall, obj interface{}) (result *ctrl.Result, rerr error) {
+func (exe *Executor) serialExec(
+	ops []operand.Operand,
+	call operand.OperandRunCall,
+	ctx context.Context,
+	obj runtime.Object,
+	ownerRef metav1.OwnerReference,
+) (result *ctrl.Result, rerr error) {
 	result = nil
 
 	for _, op := range ops {
 		// Call the run call function. Since this is serial execution, return
 		// if an error occurs.
-		// c := call(op)
-		event, err := call(op)(obj)
+		event, err := call(op)(ctx, obj, ownerRef)
 		if err != nil {
 			rerr = kerrors.NewAggregate([]error{rerr, err})
 			return
@@ -110,7 +120,13 @@ func (exe *Executor) serialExec(ops []operand.Operand, call operand.OperandRunCa
 
 // concurrentExec runs the operands concurrently, collecting the errors from
 // the operand executions and returns them.
-func (exe *Executor) concurrentExec(ops []operand.Operand, call operand.OperandRunCall, obj interface{}) (result *ctrl.Result, rerr error) {
+func (exe *Executor) concurrentExec(
+	ops []operand.Operand,
+	call operand.OperandRunCall,
+	ctx context.Context,
+	obj runtime.Object,
+	ownerRef metav1.OwnerReference,
+) (result *ctrl.Result, rerr error) {
 	result = nil
 
 	// Wait group to synchronize the go routines.
@@ -127,7 +143,7 @@ func (exe *Executor) concurrentExec(ops []operand.Operand, call operand.OperandR
 
 	wg.Add(totalOperands)
 	for _, op := range ops {
-		go exe.operateWithWaitGroup(&wg, resultChan, errChan, call(op), obj)
+		go exe.operateWithWaitGroup(&wg, resultChan, errChan, call(op), ctx, obj, ownerRef)
 	}
 	wg.Wait()
 	close(errChan)
@@ -158,12 +174,14 @@ func (exe *Executor) operateWithWaitGroup(
 	wg *sync.WaitGroup,
 	resultChan chan ctrl.Result,
 	errChan chan error,
-	f func(obj interface{}) (eventv1.ReconcilerEvent, error),
-	obj interface{},
+	f func(context.Context, runtime.Object, metav1.OwnerReference) (eventv1.ReconcilerEvent, error),
+	ctx context.Context,
+	obj runtime.Object,
+	ownerRef metav1.OwnerReference,
 ) {
 	defer wg.Done()
 
-	event, err := f(obj)
+	event, err := f(ctx, obj, ownerRef)
 	if err != nil {
 		errChan <- err
 	}
