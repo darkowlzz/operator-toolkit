@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -340,8 +341,9 @@ func TestReconcile(t *testing.T) {
 			tc.expectations(m)
 			c := tc.reconciler(m)
 			request := ctrl.Request{}
+			ctx := context.Background()
 
-			res, err := c.Reconcile(request)
+			res, err := c.Reconcile(ctx, request)
 			if (err != nil) != tc.wantErr {
 				t.Errorf("expected error %t, actual: %v", tc.wantErr, err)
 			}

@@ -10,11 +10,10 @@ import (
 )
 
 // Reconcile implements the composite controller reconciliation.
-func (c *CompositeReconciler) Reconcile(req ctrl.Request) (result ctrl.Result, reterr error) {
+func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, reterr error) {
 	result = ctrl.Result{}
 	reterr = nil
 
-	ctx := context.Background()
 	controller := c.Ctrlr
 
 	// Initialize the reconciler.
