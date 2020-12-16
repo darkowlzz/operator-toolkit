@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
 	"github.com/darkowlzz/composite-reconciler/mocks"
@@ -22,7 +22,7 @@ import (
 // fooCreatedEvent is a ReconcilerEvent type used for testing event
 // broadcasting.
 type fooCreatedEvent struct {
-	Object  runtime.Object
+	Object  client.Object
 	FooName string
 }
 
@@ -35,7 +35,7 @@ func (c *fooCreatedEvent) Record(recorder record.EventRecorder) {
 }
 
 // isSuspendedAlwaysTrue always return true.
-func isSuspendedAlwaysTrue(ctx context.Context, obj runtime.Object) bool {
+func isSuspendedAlwaysTrue(ctx context.Context, obj client.Object) bool {
 	return true
 }
 
@@ -48,7 +48,7 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 	// counter, count. It tries to simulate the behavior in which the first
 	// time Ensure is run, it returns an event, but the following times, it
 	// returns nil.
-	conditionalEnsure := func(ctx context.Context, obj runtime.Object, ownerRef metav1.OwnerReference) (eventv1.ReconcilerEvent, error) {
+	conditionalEnsure := func(ctx context.Context, obj client.Object, ownerRef metav1.OwnerReference) (eventv1.ReconcilerEvent, error) {
 		count++
 		if count == 1 {
 			return evnt, nil

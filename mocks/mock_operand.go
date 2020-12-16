@@ -10,8 +10,8 @@ import (
 	operand "github.com/darkowlzz/composite-reconciler/operator/v1/operand"
 	gomock "github.com/golang/mock/gomock"
 	v10 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	runtime "k8s.io/apimachinery/pkg/runtime"
 	reflect "reflect"
+	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // MockOperand is a mock of Operand interface
@@ -38,7 +38,7 @@ func (m *MockOperand) EXPECT() *MockOperandMockRecorder {
 }
 
 // Delete mocks base method
-func (m *MockOperand) Delete(arg0 context.Context, arg1 runtime.Object) (v1.ReconcilerEvent, error) {
+func (m *MockOperand) Delete(arg0 context.Context, arg1 client.Object) (v1.ReconcilerEvent, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", arg0, arg1)
 	ret0, _ := ret[0].(v1.ReconcilerEvent)
@@ -53,7 +53,7 @@ func (mr *MockOperandMockRecorder) Delete(arg0, arg1 interface{}) *gomock.Call {
 }
 
 // Ensure mocks base method
-func (m *MockOperand) Ensure(arg0 context.Context, arg1 runtime.Object, arg2 v10.OwnerReference) (v1.ReconcilerEvent, error) {
+func (m *MockOperand) Ensure(arg0 context.Context, arg1 client.Object, arg2 v10.OwnerReference) (v1.ReconcilerEvent, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Ensure", arg0, arg1, arg2)
 	ret0, _ := ret[0].(v1.ReconcilerEvent)
@@ -82,7 +82,7 @@ func (mr *MockOperandMockRecorder) Name() *gomock.Call {
 }
 
 // ReadyCheck mocks base method
-func (m *MockOperand) ReadyCheck(arg0 context.Context, arg1 runtime.Object) (bool, error) {
+func (m *MockOperand) ReadyCheck(arg0 context.Context, arg1 client.Object) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ReadyCheck", arg0, arg1)
 	ret0, _ := ret[0].(bool)

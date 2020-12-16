@@ -6,10 +6,10 @@ import (
 	"sync"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
 	"github.com/darkowlzz/composite-reconciler/operator/v1/operand"
@@ -46,7 +46,7 @@ func (exe *Executor) ExecuteOperands(
 	order operand.OperandOrder,
 	call operand.OperandRunCall,
 	ctx context.Context,
-	obj runtime.Object,
+	obj client.Object,
 	ownerRef metav1.OwnerReference,
 ) (result ctrl.Result, rerr error) {
 	// Iterate through the order steps and run the operands in the steps as per
@@ -96,7 +96,7 @@ func (exe *Executor) serialExec(
 	ops []operand.Operand,
 	call operand.OperandRunCall,
 	ctx context.Context,
-	obj runtime.Object,
+	obj client.Object,
 	ownerRef metav1.OwnerReference,
 ) (result *ctrl.Result, rerr error) {
 	result = nil
@@ -124,7 +124,7 @@ func (exe *Executor) concurrentExec(
 	ops []operand.Operand,
 	call operand.OperandRunCall,
 	ctx context.Context,
-	obj runtime.Object,
+	obj client.Object,
 	ownerRef metav1.OwnerReference,
 ) (result *ctrl.Result, rerr error) {
 	result = nil
@@ -174,9 +174,9 @@ func (exe *Executor) operateWithWaitGroup(
 	wg *sync.WaitGroup,
 	resultChan chan ctrl.Result,
 	errChan chan error,
-	f func(context.Context, runtime.Object, metav1.OwnerReference) (eventv1.ReconcilerEvent, error),
+	f func(context.Context, client.Object, metav1.OwnerReference) (eventv1.ReconcilerEvent, error),
 	ctx context.Context,
-	obj runtime.Object,
+	obj client.Object,
 	ownerRef metav1.OwnerReference,
 ) {
 	defer wg.Done()

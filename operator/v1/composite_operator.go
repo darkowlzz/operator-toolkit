@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/darkowlzz/composite-reconciler/operator/v1/dag"
 	"github.com/darkowlzz/composite-reconciler/operator/v1/executor"
@@ -19,7 +19,7 @@ import (
 type CompositeOperator struct {
 	Operands          []operand.Operand
 	DAG               *dag.OperandDAG
-	isSuspended       func(context.Context, runtime.Object) bool
+	isSuspended       func(context.Context, client.Object) bool
 	order             operand.OperandOrder
 	executionStrategy executor.ExecutionStrategy
 	recorder          record.EventRecorder
@@ -44,7 +44,7 @@ func WithOperands(operands ...operand.Operand) CompositeOperatorOption {
 }
 
 // SetIsSuspended can be used to set the operator suspension check.
-func WithSuspensionCheck(f func(context.Context, runtime.Object) bool) CompositeOperatorOption {
+func WithSuspensionCheck(f func(context.Context, client.Object) bool) CompositeOperatorOption {
 	return func(c *CompositeOperator) {
 		c.isSuspended = f
 	}
@@ -108,14 +108,14 @@ func (co *CompositeOperator) Order() operand.OperandOrder {
 
 // IsSuspend implements the Operator interface. It checks if the operator can
 // run or if it's suspended and shouldn't run.
-func (co *CompositeOperator) IsSuspended(ctx context.Context, obj runtime.Object) bool {
+func (co *CompositeOperator) IsSuspended(ctx context.Context, obj client.Object) bool {
 	return co.isSuspended(ctx, obj)
 }
 
 // Ensure implements the Operator interface. It runs all the operands, in the
 // order of their dependencies, to ensure all the operations the individual
 // operands perform.
-func (co *CompositeOperator) Ensure(ctx context.Context, obj runtime.Object, ownerRef metav1.OwnerReference) (result ctrl.Result, rerr error) {
+func (co *CompositeOperator) Ensure(ctx context.Context, obj client.Object, ownerRef metav1.OwnerReference) (result ctrl.Result, rerr error) {
 	if !co.IsSuspended(ctx, obj) {
 		return co.executor.ExecuteOperands(co.order, operand.CallEnsure, ctx, obj, ownerRef)
 	}
@@ -123,7 +123,7 @@ func (co *CompositeOperator) Ensure(ctx context.Context, obj runtime.Object, own
 }
 
 // Cleanup implements the Operator interface.
-func (co *CompositeOperator) Cleanup(ctx context.Context, obj runtime.Object) (result ctrl.Result, rerr error) {
+func (co *CompositeOperator) Cleanup(ctx context.Context, obj client.Object) (result ctrl.Result, rerr error) {
 	if !co.IsSuspended(ctx, obj) {
 		return co.executor.ExecuteOperands(co.order.Reverse(), operand.CallCleanup, ctx, obj, metav1.OwnerReference{})
 	}
