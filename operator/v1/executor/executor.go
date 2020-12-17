@@ -52,7 +52,7 @@ func (exe *Executor) ExecuteOperands(
 	obj client.Object,
 	ownerRef metav1.OwnerReference,
 ) (result ctrl.Result, rerr error) {
-	tr := otel.Tracer("operand-executor")
+	tr := otel.Tracer("ExecuteOperands")
 	ctx, span := tr.Start(ctx, "execute")
 	defer span.End()
 
@@ -70,9 +70,10 @@ func (exe *Executor) ExecuteOperands(
 		requeueStrategy := operand.StepRequeueStrategy(ops)
 
 		span.AddEvent(
-			"Execute operands", trace.WithAttributes(
-				label.Int("operand-count", len(ops)),
-				label.Int("requeue-strategy", int(requeueStrategy))),
+			"Execute operands",
+			trace.WithAttributes(
+				label.Int("requeue-strategy", int(requeueStrategy)),
+			),
 		)
 
 		switch exe.execStrategy {
@@ -116,9 +117,22 @@ func (exe *Executor) serialExec(
 	obj client.Object,
 	ownerRef metav1.OwnerReference,
 ) (result *ctrl.Result, rerr error) {
+	tr := otel.Tracer("serialExec")
+	ctx, span := tr.Start(ctx, "serial-exec")
+	defer span.End()
+
 	result = nil
 
+	span.AddEvent(
+		"Execute serially",
+		trace.WithAttributes(label.Int("operand-count", len(ops))),
+	)
+
 	for _, op := range ops {
+		span.AddEvent(
+			"Executing operand",
+			trace.WithAttributes(label.String("operand-name", op.Name())),
+		)
 		// Call the run call function. Since this is serial execution, return
 		// if an error occurs.
 		event, err := call(op)(ctx, obj, ownerRef)
@@ -132,6 +146,8 @@ func (exe *Executor) serialExec(
 		}
 	}
 
+	span.AddEvent("Finish serial execution")
+
 	return
 }
 
@@ -144,6 +160,10 @@ func (exe *Executor) concurrentExec(
 	obj client.Object,
 	ownerRef metav1.OwnerReference,
 ) (result *ctrl.Result, rerr error) {
+	tr := otel.Tracer("concurrentExec")
+	ctx, span := tr.Start(ctx, "concurrent-exec")
+	defer span.End()
+
 	result = nil
 
 	// Wait group to synchronize the go routines.
@@ -158,8 +178,17 @@ func (exe *Executor) concurrentExec(
 	// Error buffered channel to collect all the errors from the go routines.
 	var errChan chan error = make(chan error, totalOperands)
 
+	span.AddEvent(
+		"Execute concurrently",
+		trace.WithAttributes(label.Int("operand-count", len(ops))),
+	)
+
 	wg.Add(totalOperands)
 	for _, op := range ops {
+		span.AddEvent(
+			"Executing operand",
+			trace.WithAttributes(label.String("operand-name", op.Name())),
+		)
 		go exe.operateWithWaitGroup(&wg, resultChan, errChan, call(op), ctx, obj, ownerRef)
 	}
 	wg.Wait()
@@ -179,6 +208,8 @@ func (exe *Executor) concurrentExec(
 	if foundResult {
 		result = &ctrl.Result{}
 	}
+
+	span.AddEvent("Finish concurrent execution")
 
 	return
 }

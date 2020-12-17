@@ -12,7 +12,7 @@ import (
 
 // Reconcile implements the composite controller reconciliation.
 func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, reterr error) {
-	tr := otel.Tracer("composite-reconciler")
+	tr := otel.Tracer("Reconcile")
 	ctx, span := tr.Start(ctx, "reconcile")
 	defer span.End()
 
@@ -22,6 +22,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	controller := c.Ctrlr
 
 	// Initialize the reconciler.
+	span.AddEvent("Initialize reconcile")
 	controller.InitReconcile(ctx, req)
 	if fetchErr := controller.FetchInstance(ctx); fetchErr != nil {
 		reterr = client.IgnoreNotFound(fetchErr)
@@ -29,9 +30,11 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// Add defaults to the primary object instance.
+	span.AddEvent("Populate defaults")
 	controller.Default()
 
 	// Validate the instance spec.
+	span.AddEvent("Validate")
 	if valErr := controller.Validate(); valErr != nil {
 		reterr = valErr
 		c.Log.Info("object validation failed", "error", valErr)
@@ -44,6 +47,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// Initialize the primary object if uninitialized.
 	init := controller.IsUninitialized()
 	if init {
+		span.AddEvent("Initialize instance")
 		c.Log.Info("initializing", "instance", controller.GetObjectMetadata().Name)
 		if initErr := controller.Initialize(c.InitCondition); initErr != nil {
 			c.Log.Info("initialization failed", "error", initErr)
@@ -58,12 +62,14 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		// the world.
 		// NOTE: The actual target object gets updated in the API server at the end
 		// of the control loop with the deferred PatchStatus.
+		span.AddEvent("Get status updates")
 		if updateErr := controller.UpdateStatus(ctx); updateErr != nil {
 			result = ctrl.Result{Requeue: true}
 			reterr = kerrors.NewAggregate([]error{reterr, fmt.Errorf("error while updating status: %v", updateErr)})
 			return
 		}
 
+		span.AddEvent("Patch status")
 		// ?: Should patch status only if reterr is nil?
 		if err := controller.PatchStatus(ctx); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, fmt.Errorf("error while patching status: %v", err)})
@@ -72,6 +78,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// If the cleanup strategy is finalizer based, call the cleanup handler.
 	if c.CleanupStrategy == FinalizerCleanup {
+		span.AddEvent("Trigger cleanup")
 		delEnabled, cResult, cErr := c.cleanupHandler(ctx)
 		// If the deletion of the target object has started, return with the
 		// result and error.
@@ -83,6 +90,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// Run the operation.
+	span.AddEvent("Run Operate")
 	result, reterr = controller.Operate(ctx)
 	if reterr != nil {
 		c.Log.Info("failed to finish Operation", "error", reterr)

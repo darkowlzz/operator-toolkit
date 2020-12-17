@@ -110,7 +110,7 @@ func (co *CompositeOperator) Order() operand.OperandOrder {
 // IsSuspend implements the Operator interface. It checks if the operator can
 // run or if it's suspended and shouldn't run.
 func (co *CompositeOperator) IsSuspended(ctx context.Context, obj client.Object) bool {
-	tr := otel.Tracer("compositeoperator-IsSuspended")
+	tr := otel.Tracer("IsSuspended")
 	ctx, span := tr.Start(ctx, "IsSuspended")
 	defer span.End()
 
@@ -121,7 +121,7 @@ func (co *CompositeOperator) IsSuspended(ctx context.Context, obj client.Object)
 // order of their dependencies, to ensure all the operations the individual
 // operands perform.
 func (co *CompositeOperator) Ensure(ctx context.Context, obj client.Object, ownerRef metav1.OwnerReference) (result ctrl.Result, rerr error) {
-	tr := otel.Tracer("compositeoperator-Ensure")
+	tr := otel.Tracer("Ensure")
 	ctx, span := tr.Start(ctx, "Ensure")
 	defer span.End()
 
@@ -133,7 +133,7 @@ func (co *CompositeOperator) Ensure(ctx context.Context, obj client.Object, owne
 
 // Cleanup implements the Operator interface.
 func (co *CompositeOperator) Cleanup(ctx context.Context, obj client.Object) (result ctrl.Result, rerr error) {
-	tr := otel.Tracer("compositeoperator-Cleanup")
+	tr := otel.Tracer("Cleanup")
 	ctx, span := tr.Start(ctx, "Cleanup")
 	defer span.End()
 
