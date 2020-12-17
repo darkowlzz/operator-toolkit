@@ -51,7 +51,7 @@ func TestReconcile(t *testing.T) {
 			},
 			expectations: func(m *mocks.MockController) {
 				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance().Return(NotFoundError())
+				m.EXPECT().FetchInstance(gomock.Any()).Return(NotFoundError())
 			},
 			wantResult: ctrl.Result{},
 		},
@@ -65,7 +65,7 @@ func TestReconcile(t *testing.T) {
 			},
 			expectations: func(m *mocks.MockController) {
 				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance().Return(nil)
+				m.EXPECT().FetchInstance(gomock.Any()).Return(nil)
 				m.EXPECT().Default()
 				m.EXPECT().Validate().Return(errors.New("validation failure"))
 			},
@@ -82,7 +82,7 @@ func TestReconcile(t *testing.T) {
 			},
 			expectations: func(m *mocks.MockController) {
 				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance().Return(nil)
+				m.EXPECT().FetchInstance(gomock.Any()).Return(nil)
 				m.EXPECT().Default()
 				m.EXPECT().Validate().Return(nil)
 				m.EXPECT().SaveClone()
@@ -104,15 +104,15 @@ func TestReconcile(t *testing.T) {
 			},
 			expectations: func(m *mocks.MockController) {
 				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance().Return(nil)
+				m.EXPECT().FetchInstance(gomock.Any()).Return(nil)
 				m.EXPECT().Default()
 				m.EXPECT().Validate().Return(nil)
 				m.EXPECT().SaveClone()
 				m.EXPECT().IsUninitialized().Return(true)
 				m.EXPECT().GetObjectMetadata()
 				m.EXPECT().Initialize(conditionsv1.Condition{})
-				m.EXPECT().Operate()
-				m.EXPECT().UpdateStatus().Return(errors.New("failed to get status"))
+				m.EXPECT().Operate(gomock.Any())
+				m.EXPECT().UpdateStatus(gomock.Any()).Return(errors.New("failed to get status"))
 			},
 			wantResult: ctrl.Result{Requeue: true},
 			wantErr:    true,
@@ -127,16 +127,16 @@ func TestReconcile(t *testing.T) {
 			},
 			expectations: func(m *mocks.MockController) {
 				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance().Return(nil)
+				m.EXPECT().FetchInstance(gomock.Any()).Return(nil)
 				m.EXPECT().Default()
 				m.EXPECT().Validate().Return(nil)
 				m.EXPECT().SaveClone()
 				m.EXPECT().IsUninitialized().Return(true)
 				m.EXPECT().GetObjectMetadata()
 				m.EXPECT().Initialize(conditionsv1.Condition{})
-				m.EXPECT().UpdateStatus()
-				m.EXPECT().PatchStatus()
-				m.EXPECT().Operate().Return(ctrl.Result{Requeue: true}, errors.New("operate error"))
+				m.EXPECT().UpdateStatus(gomock.Any())
+				m.EXPECT().PatchStatus(gomock.Any())
+				m.EXPECT().Operate(gomock.Any()).Return(ctrl.Result{Requeue: true}, errors.New("operate error"))
 			},
 			wantResult: ctrl.Result{Requeue: true},
 			wantErr:    true,
@@ -151,16 +151,16 @@ func TestReconcile(t *testing.T) {
 			},
 			expectations: func(m *mocks.MockController) {
 				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance().Return(nil)
+				m.EXPECT().FetchInstance(gomock.Any()).Return(nil)
 				m.EXPECT().Default()
 				m.EXPECT().Validate().Return(nil)
 				m.EXPECT().SaveClone()
 				m.EXPECT().IsUninitialized().Return(true)
 				m.EXPECT().GetObjectMetadata()
 				m.EXPECT().Initialize(conditionsv1.Condition{})
-				m.EXPECT().UpdateStatus()
-				m.EXPECT().PatchStatus()
-				m.EXPECT().Operate().Return(ctrl.Result{Requeue: true}, nil)
+				m.EXPECT().UpdateStatus(gomock.Any())
+				m.EXPECT().PatchStatus(gomock.Any())
+				m.EXPECT().Operate(gomock.Any()).Return(ctrl.Result{Requeue: true}, nil)
 			},
 			wantResult: ctrl.Result{Requeue: true},
 		},
@@ -174,16 +174,16 @@ func TestReconcile(t *testing.T) {
 			},
 			expectations: func(m *mocks.MockController) {
 				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance().Return(nil)
+				m.EXPECT().FetchInstance(gomock.Any()).Return(nil)
 				m.EXPECT().Default()
 				m.EXPECT().Validate().Return(nil)
 				m.EXPECT().SaveClone()
 				m.EXPECT().IsUninitialized().Return(true)
 				m.EXPECT().GetObjectMetadata()
 				m.EXPECT().Initialize(conditionsv1.Condition{})
-				m.EXPECT().UpdateStatus()
-				m.EXPECT().PatchStatus().Return(errors.New("failed to update status"))
-				m.EXPECT().Operate().Return(ctrl.Result{}, nil)
+				m.EXPECT().UpdateStatus(gomock.Any())
+				m.EXPECT().PatchStatus(gomock.Any()).Return(errors.New("failed to update status"))
+				m.EXPECT().Operate(gomock.Any()).Return(ctrl.Result{}, nil)
 			},
 			wantResult: ctrl.Result{},
 			wantErr:    true,
@@ -198,16 +198,16 @@ func TestReconcile(t *testing.T) {
 			},
 			expectations: func(m *mocks.MockController) {
 				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance().Return(nil)
+				m.EXPECT().FetchInstance(gomock.Any()).Return(nil)
 				m.EXPECT().Default()
 				m.EXPECT().Validate().Return(nil)
 				m.EXPECT().SaveClone()
 				m.EXPECT().IsUninitialized().Return(true)
 				m.EXPECT().GetObjectMetadata()
 				m.EXPECT().Initialize(conditionsv1.Condition{})
-				m.EXPECT().UpdateStatus()
-				m.EXPECT().PatchStatus()
-				m.EXPECT().Operate().Return(ctrl.Result{}, nil)
+				m.EXPECT().UpdateStatus(gomock.Any())
+				m.EXPECT().PatchStatus(gomock.Any())
+				m.EXPECT().Operate(gomock.Any()).Return(ctrl.Result{}, nil)
 			},
 			wantResult: ctrl.Result{},
 		},
@@ -223,17 +223,17 @@ func TestReconcile(t *testing.T) {
 			},
 			expectations: func(m *mocks.MockController) {
 				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance().Return(nil)
+				m.EXPECT().FetchInstance(gomock.Any()).Return(nil)
 				m.EXPECT().Default()
 				m.EXPECT().Validate().Return(nil)
 				m.EXPECT().SaveClone()
 				m.EXPECT().IsUninitialized().Return(true)
 				m.EXPECT().GetObjectMetadata()
 				m.EXPECT().Initialize(conditionsv1.Condition{})
-				m.EXPECT().UpdateStatus()
+				m.EXPECT().UpdateStatus(gomock.Any())
 				m.EXPECT().GetObjectMetadata()
 				m.EXPECT().AddFinalizer(gomock.Any()).Return(errors.New("failed to add finalizer"))
-				m.EXPECT().PatchStatus()
+				m.EXPECT().PatchStatus(gomock.Any())
 			},
 			wantResult: ctrl.Result{Requeue: true},
 			wantErr:    true,
@@ -250,18 +250,18 @@ func TestReconcile(t *testing.T) {
 			},
 			expectations: func(m *mocks.MockController) {
 				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance().Return(nil)
+				m.EXPECT().FetchInstance(gomock.Any()).Return(nil)
 				m.EXPECT().Default()
 				m.EXPECT().Validate().Return(nil)
 				m.EXPECT().SaveClone()
 				m.EXPECT().IsUninitialized().Return(true)
-				m.EXPECT().UpdateStatus()
+				m.EXPECT().UpdateStatus(gomock.Any())
 				m.EXPECT().GetObjectMetadata()
 				m.EXPECT().Initialize(conditionsv1.Condition{})
 				m.EXPECT().GetObjectMetadata()
 				m.EXPECT().AddFinalizer(gomock.Any())
-				m.EXPECT().PatchStatus()
-				m.EXPECT().Operate().Return(ctrl.Result{}, nil)
+				m.EXPECT().PatchStatus(gomock.Any())
+				m.EXPECT().Operate(gomock.Any()).Return(ctrl.Result{}, nil)
 			},
 			wantResult: ctrl.Result{},
 		},
@@ -277,13 +277,13 @@ func TestReconcile(t *testing.T) {
 			},
 			expectations: func(m *mocks.MockController) {
 				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance().Return(nil)
+				m.EXPECT().FetchInstance(gomock.Any()).Return(nil)
 				m.EXPECT().Default()
 				m.EXPECT().Validate().Return(nil)
 				m.EXPECT().SaveClone()
 				m.EXPECT().IsUninitialized().Return(true)
-				m.EXPECT().PatchStatus()
-				m.EXPECT().UpdateStatus()
+				m.EXPECT().PatchStatus(gomock.Any())
+				m.EXPECT().UpdateStatus(gomock.Any())
 				m.EXPECT().GetObjectMetadata()
 				m.EXPECT().Initialize(conditionsv1.Condition{})
 				// Create a time and add as delete timestamp.
@@ -293,7 +293,7 @@ func TestReconcile(t *testing.T) {
 					Finalizers:        []string{"foofinalizer"},
 				}
 				m.EXPECT().GetObjectMetadata().Return(metadata)
-				m.EXPECT().Cleanup().Return(ctrl.Result{Requeue: true}, errors.New("failed to cleanup"))
+				m.EXPECT().Cleanup(gomock.Any()).Return(ctrl.Result{Requeue: true}, errors.New("failed to cleanup"))
 			},
 			wantResult: ctrl.Result{Requeue: true},
 			wantErr:    true,
@@ -310,7 +310,7 @@ func TestReconcile(t *testing.T) {
 			},
 			expectations: func(m *mocks.MockController) {
 				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance().Return(nil)
+				m.EXPECT().FetchInstance(gomock.Any()).Return(nil)
 				m.EXPECT().Default()
 				m.EXPECT().Validate().Return(nil)
 				m.EXPECT().SaveClone()
@@ -324,9 +324,9 @@ func TestReconcile(t *testing.T) {
 					Finalizers:        []string{"foofinalizer"},
 				}
 				m.EXPECT().GetObjectMetadata().Return(metadata)
-				m.EXPECT().Cleanup()
-				m.EXPECT().UpdateStatus()
-				m.EXPECT().PatchStatus()
+				m.EXPECT().Cleanup(gomock.Any())
+				m.EXPECT().UpdateStatus(gomock.Any())
+				m.EXPECT().PatchStatus(gomock.Any())
 			},
 			wantResult: ctrl.Result{},
 		},

@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"sync"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/trace"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
@@ -49,6 +52,12 @@ func (exe *Executor) ExecuteOperands(
 	obj client.Object,
 	ownerRef metav1.OwnerReference,
 ) (result ctrl.Result, rerr error) {
+	tr := otel.Tracer("operand-executor")
+	ctx, span := tr.Start(ctx, "execute")
+	defer span.End()
+
+	span.SetAttributes(label.Int("order-length", len(order)))
+	span.AddEvent("Start operand execution")
 	// Iterate through the order steps and run the operands in the steps as per
 	// the execution strategy.
 	for _, ops := range order {
@@ -59,6 +68,12 @@ func (exe *Executor) ExecuteOperands(
 		var res *ctrl.Result
 
 		requeueStrategy := operand.StepRequeueStrategy(ops)
+
+		span.AddEvent(
+			"Execute operands", trace.WithAttributes(
+				label.Int("operand-count", len(ops)),
+				label.Int("requeue-strategy", int(requeueStrategy))),
+		)
 
 		switch exe.execStrategy {
 		case Serial:
@@ -85,6 +100,8 @@ func (exe *Executor) ExecuteOperands(
 			break
 		}
 	}
+
+	span.AddEvent("Finish operand execution")
 
 	return
 }

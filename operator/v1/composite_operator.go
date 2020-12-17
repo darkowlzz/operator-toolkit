@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"go.opentelemetry.io/otel"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -109,6 +110,10 @@ func (co *CompositeOperator) Order() operand.OperandOrder {
 // IsSuspend implements the Operator interface. It checks if the operator can
 // run or if it's suspended and shouldn't run.
 func (co *CompositeOperator) IsSuspended(ctx context.Context, obj client.Object) bool {
+	tr := otel.Tracer("compositeoperator-IsSuspended")
+	ctx, span := tr.Start(ctx, "IsSuspended")
+	defer span.End()
+
 	return co.isSuspended(ctx, obj)
 }
 
@@ -116,6 +121,10 @@ func (co *CompositeOperator) IsSuspended(ctx context.Context, obj client.Object)
 // order of their dependencies, to ensure all the operations the individual
 // operands perform.
 func (co *CompositeOperator) Ensure(ctx context.Context, obj client.Object, ownerRef metav1.OwnerReference) (result ctrl.Result, rerr error) {
+	tr := otel.Tracer("compositeoperator-Ensure")
+	ctx, span := tr.Start(ctx, "Ensure")
+	defer span.End()
+
 	if !co.IsSuspended(ctx, obj) {
 		return co.executor.ExecuteOperands(co.order, operand.CallEnsure, ctx, obj, ownerRef)
 	}
@@ -124,6 +133,10 @@ func (co *CompositeOperator) Ensure(ctx context.Context, obj client.Object, owne
 
 // Cleanup implements the Operator interface.
 func (co *CompositeOperator) Cleanup(ctx context.Context, obj client.Object) (result ctrl.Result, rerr error) {
+	tr := otel.Tracer("compositeoperator-Cleanup")
+	ctx, span := tr.Start(ctx, "Cleanup")
+	defer span.End()
+
 	if !co.IsSuspended(ctx, obj) {
 		return co.executor.ExecuteOperands(co.order.Reverse(), operand.CallCleanup, ctx, obj, metav1.OwnerReference{})
 	}

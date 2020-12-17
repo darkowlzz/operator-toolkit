@@ -51,18 +51,18 @@ func (mr *MockControllerMockRecorder) AddFinalizer(arg0 interface{}) *gomock.Cal
 }
 
 // Cleanup mocks base method
-func (m *MockController) Cleanup() (reconcile.Result, error) {
+func (m *MockController) Cleanup(arg0 context.Context) (reconcile.Result, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Cleanup")
+	ret := m.ctrl.Call(m, "Cleanup", arg0)
 	ret0, _ := ret[0].(reconcile.Result)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Cleanup indicates an expected call of Cleanup
-func (mr *MockControllerMockRecorder) Cleanup() *gomock.Call {
+func (mr *MockControllerMockRecorder) Cleanup(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Cleanup", reflect.TypeOf((*MockController)(nil).Cleanup))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Cleanup", reflect.TypeOf((*MockController)(nil).Cleanup), arg0)
 }
 
 // Default mocks base method
@@ -78,17 +78,17 @@ func (mr *MockControllerMockRecorder) Default() *gomock.Call {
 }
 
 // FetchInstance mocks base method
-func (m *MockController) FetchInstance() error {
+func (m *MockController) FetchInstance(arg0 context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FetchInstance")
+	ret := m.ctrl.Call(m, "FetchInstance", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // FetchInstance indicates an expected call of FetchInstance
-func (mr *MockControllerMockRecorder) FetchInstance() *gomock.Call {
+func (mr *MockControllerMockRecorder) FetchInstance(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchInstance", reflect.TypeOf((*MockController)(nil).FetchInstance))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchInstance", reflect.TypeOf((*MockController)(nil).FetchInstance), arg0)
 }
 
 // GetObjectMetadata mocks base method
@@ -146,32 +146,32 @@ func (mr *MockControllerMockRecorder) IsUninitialized() *gomock.Call {
 }
 
 // Operate mocks base method
-func (m *MockController) Operate() (reconcile.Result, error) {
+func (m *MockController) Operate(arg0 context.Context) (reconcile.Result, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Operate")
+	ret := m.ctrl.Call(m, "Operate", arg0)
 	ret0, _ := ret[0].(reconcile.Result)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Operate indicates an expected call of Operate
-func (mr *MockControllerMockRecorder) Operate() *gomock.Call {
+func (mr *MockControllerMockRecorder) Operate(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Operate", reflect.TypeOf((*MockController)(nil).Operate))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Operate", reflect.TypeOf((*MockController)(nil).Operate), arg0)
 }
 
 // PatchStatus mocks base method
-func (m *MockController) PatchStatus() error {
+func (m *MockController) PatchStatus(arg0 context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PatchStatus")
+	ret := m.ctrl.Call(m, "PatchStatus", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // PatchStatus indicates an expected call of PatchStatus
-func (mr *MockControllerMockRecorder) PatchStatus() *gomock.Call {
+func (mr *MockControllerMockRecorder) PatchStatus(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PatchStatus", reflect.TypeOf((*MockController)(nil).PatchStatus))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PatchStatus", reflect.TypeOf((*MockController)(nil).PatchStatus), arg0)
 }
 
 // SaveClone mocks base method
@@ -199,17 +199,17 @@ func (mr *MockControllerMockRecorder) UpdateConditions(arg0 interface{}) *gomock
 }
 
 // UpdateStatus mocks base method
-func (m *MockController) UpdateStatus() error {
+func (m *MockController) UpdateStatus(arg0 context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateStatus")
+	ret := m.ctrl.Call(m, "UpdateStatus", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateStatus indicates an expected call of UpdateStatus
-func (mr *MockControllerMockRecorder) UpdateStatus() *gomock.Call {
+func (mr *MockControllerMockRecorder) UpdateStatus(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateStatus", reflect.TypeOf((*MockController)(nil).UpdateStatus))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateStatus", reflect.TypeOf((*MockController)(nil).UpdateStatus), arg0)
 }
 
 // Validate mocks base method

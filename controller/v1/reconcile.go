@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"go.opentelemetry.io/otel"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -11,6 +12,10 @@ import (
 
 // Reconcile implements the composite controller reconciliation.
 func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, reterr error) {
+	tr := otel.Tracer("composite-reconciler")
+	ctx, span := tr.Start(ctx, "reconcile")
+	defer span.End()
+
 	result = ctrl.Result{}
 	reterr = nil
 
@@ -18,7 +23,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// Initialize the reconciler.
 	controller.InitReconcile(ctx, req)
-	if fetchErr := controller.FetchInstance(); fetchErr != nil {
+	if fetchErr := controller.FetchInstance(ctx); fetchErr != nil {
 		reterr = client.IgnoreNotFound(fetchErr)
 		return
 	}
@@ -53,21 +58,21 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		// the world.
 		// NOTE: The actual target object gets updated in the API server at the end
 		// of the control loop with the deferred PatchStatus.
-		if updateErr := controller.UpdateStatus(); updateErr != nil {
+		if updateErr := controller.UpdateStatus(ctx); updateErr != nil {
 			result = ctrl.Result{Requeue: true}
 			reterr = kerrors.NewAggregate([]error{reterr, fmt.Errorf("error while updating status: %v", updateErr)})
 			return
 		}
 
 		// ?: Should patch status only if reterr is nil?
-		if err := controller.PatchStatus(); err != nil {
+		if err := controller.PatchStatus(ctx); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, fmt.Errorf("error while patching status: %v", err)})
 		}
 	}()
 
 	// If the cleanup strategy is finalizer based, call the cleanup handler.
 	if c.CleanupStrategy == FinalizerCleanup {
-		delEnabled, cResult, cErr := c.cleanupHandler()
+		delEnabled, cResult, cErr := c.cleanupHandler(ctx)
 		// If the deletion of the target object has started, return with the
 		// result and error.
 		if delEnabled || cErr != nil {
@@ -78,7 +83,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// Run the operation.
-	result, reterr = controller.Operate()
+	result, reterr = controller.Operate(ctx)
 	if reterr != nil {
 		c.Log.Info("failed to finish Operation", "error", reterr)
 	}
@@ -91,7 +96,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 // marked for deletion, it runs the custom cleanup functions and returns the
 // result and error of cleanup. It also returns delEnabled to help the caller
 // of this function know that the cleanup process has started.
-func (c *CompositeReconciler) cleanupHandler() (delEnabled bool, result ctrl.Result, reterr error) {
+func (c *CompositeReconciler) cleanupHandler(ctx context.Context) (delEnabled bool, result ctrl.Result, reterr error) {
 	metadata := c.Ctrlr.GetObjectMetadata()
 	if metadata.DeletionTimestamp.IsZero() {
 		if !contains(metadata.Finalizers, c.FinalizerName) {
@@ -103,7 +108,7 @@ func (c *CompositeReconciler) cleanupHandler() (delEnabled bool, result ctrl.Res
 	} else {
 		delEnabled = true
 		if contains(metadata.Finalizers, c.FinalizerName) {
-			result, reterr = c.Ctrlr.Cleanup()
+			result, reterr = c.Ctrlr.Cleanup(ctx)
 			if reterr != nil {
 				c.Log.Info("failed to cleanup", "error", reterr)
 			}

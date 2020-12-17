@@ -22,7 +22,7 @@ type Controller interface {
 	// FetchInstance queries the latest version of the primary object the
 	// controller is responsible for. If the object is not found, a "not found"
 	// error is expected in return.
-	FetchInstance() error
+	FetchInstance(context.Context) error
 
 	// Apply default values to the primary object spec. Use this in case a
 	// defaulting webhook has not been deployed.
@@ -55,7 +55,7 @@ type Controller interface {
 	// collecting and comparing all the status updates. This is also called
 	// when cleanup is in progress. This should be able to remove previous
 	// status related to child objects that have been terminated.
-	UpdateStatus() error
+	UpdateStatus(context.Context) error
 
 	// Operate runs the core operation of the controller that ensures that
 	// the child objects or the other objects and configurations in the
@@ -63,12 +63,12 @@ type Controller interface {
 	// existing resources or create one, if there's a configuration drift,
 	// based on the type of objects.
 	// The returned result is the returned reconcile result.
-	Operate() (result ctrl.Result, err error)
+	Operate(context.Context) (result ctrl.Result, err error)
 
 	// PatchStatus compares the original primary object instance status with
 	// the reconciled primary object status and patches the API object if
 	// required.
-	PatchStatus() error
+	PatchStatus(context.Context) error
 
 	// GetObjectMetadata returns the resource metadata of the primary object.
 	// This is usually used to check if a resource is marked for deletion.
@@ -83,7 +83,7 @@ type Controller interface {
 	// made by the controller. This can be empty for controllers that use owner
 	// reference based garbage collection for cleanup. For controllers with
 	// custom cleanup requirement, the cleanup logic can be defined here.
-	Cleanup() (result ctrl.Result, err error)
+	Cleanup(context.Context) (result ctrl.Result, err error)
 
 	// UpdateConditions updates the status condition of local instance of the
 	// primary object with the given conditions. It doesn't update the API
