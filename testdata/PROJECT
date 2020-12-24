@@ -1,0 +1,11 @@
+domain: example.com
+layout: go.kubebuilder.io/v3
+projectName: testdata
+repo: github.com/darkowlzz/composite-reconciler
+resources:
+- api:
+    crdVersion: v1
+  group: app
+  kind: Game
+  version: v1alpha1
+version: 3-alpha

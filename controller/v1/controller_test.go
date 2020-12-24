@@ -8,12 +8,19 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
+	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/darkowlzz/composite-reconciler/mocks"
+	tdv1alpha1 "github.com/darkowlzz/composite-reconciler/testdata/api/v1alpha1"
 )
 
 // NotFoundError returns a k8s object not found error.
@@ -35,298 +42,295 @@ func (f fakeLogger) WithValues(keysAndValues ...interface{}) logr.Logger       {
 func (f fakeLogger) WithName(name string) logr.Logger                          { return f }
 
 func TestReconcile(t *testing.T) {
+	initCondition := conditionsv1.Condition{
+		Type:    conditionsv1.ConditionProgressing,
+		Status:  corev1.ConditionTrue,
+		Reason:  "Initializing",
+		Message: "Initializing",
+	}
+
+	testFinalizerName := "foofinalizer"
+
+	// Create a scheme with testdata scheme info.
+	scheme := runtime.NewScheme()
+	assert.Nil(t, tdv1alpha1.AddToScheme(scheme))
+
+	// Create a NamespacedName object.
+	gameNamespacedName := types.NamespacedName{
+		Name:      "test-game",
+		Namespace: "test-ns",
+	}
+
+	// Create an instance of the target object used for reconcile.
+	gameObj := &tdv1alpha1.Game{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-game",
+			Namespace: "test-ns",
+		},
+	}
+
+	// Clone the gameObj, add a delete timestamp to it and a finalizer. Use for
+	// finalizer based cleanup testing.
+	gameObjDeleteTimestamp := gameObj.DeepCopy()
+	timenow := metav1.Now()
+	gameObjDeleteTimestamp.SetDeletionTimestamp(&timenow)
+	gameObjDeleteTimestamp.SetFinalizers([]string{testFinalizerName})
+
 	testcases := []struct {
 		name         string
-		reconciler   func(m Controller) *CompositeReconciler
+		existingObjs []runtime.Object
+		reconciler   func(m Controller, scheme *runtime.Scheme, cli client.Client) *CompositeReconciler
 		expectations func(*mocks.MockController)
 		wantResult   ctrl.Result
 		wantErr      bool
 	}{
 		{
 			name: "instance not found",
-			reconciler: func(m Controller) *CompositeReconciler {
-				return &CompositeReconciler{
-					Ctrlr: m,
-				}
+			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *CompositeReconciler {
+				cr, _ := NewCompositeReconciler(
+					WithScheme(scheme),
+					WithController(m),
+					WithPrototype(&tdv1alpha1.Game{}),
+					WithClient(cli),
+				)
+				return cr
 			},
-			expectations: func(m *mocks.MockController) {
-				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance(gomock.Any()).Return(NotFoundError())
-			},
-			wantResult: ctrl.Result{},
+			expectations: func(m *mocks.MockController) {},
+			wantResult:   ctrl.Result{},
 		},
 		{
-			name: "validation failure",
-			reconciler: func(m Controller) *CompositeReconciler {
-				return &CompositeReconciler{
-					Ctrlr: m,
-					Log:   fakeLogger{},
-				}
+			name:         "validation failure",
+			existingObjs: []runtime.Object{gameObj},
+			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *CompositeReconciler {
+				cr, _ := NewCompositeReconciler(
+					WithScheme(scheme),
+					WithController(m),
+					WithPrototype(&tdv1alpha1.Game{}),
+					WithClient(cli),
+					WithLogger(fakeLogger{}),
+				)
+				return cr
 			},
 			expectations: func(m *mocks.MockController) {
-				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance(gomock.Any()).Return(nil)
-				m.EXPECT().Default()
-				m.EXPECT().Validate().Return(errors.New("validation failure"))
+				m.EXPECT().Default(gomock.Any(), gomock.Any())
+				m.EXPECT().Validate(gomock.Any(), gomock.Any()).Return(errors.New("validation failure"))
+			},
+			wantResult: ctrl.Result{},
+			wantErr:    true,
+		},
+		{
+			name:         "init failure",
+			existingObjs: []runtime.Object{gameObj},
+			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *CompositeReconciler {
+				cr, _ := NewCompositeReconciler(
+					WithScheme(scheme),
+					WithController(m),
+					WithPrototype(&tdv1alpha1.Game{}),
+					WithClient(cli),
+					WithLogger(fakeLogger{}),
+					WithInitCondition(initCondition),
+				)
+				return cr
+			},
+			expectations: func(m *mocks.MockController) {
+				m.EXPECT().Default(gomock.Any(), gomock.Any())
+				m.EXPECT().Validate(gomock.Any(), gomock.Any()).Return(nil)
+				m.EXPECT().Initialize(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("init failure"))
 			},
 			wantResult: ctrl.Result{},
 			wantErr:    true,
 		},
 		{
-			name: "init failure",
-			reconciler: func(m Controller) *CompositeReconciler {
-				return &CompositeReconciler{
-					Ctrlr: m,
-					Log:   fakeLogger{},
-				}
+			name:         "fetch status failure",
+			existingObjs: []runtime.Object{gameObj},
+			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *CompositeReconciler {
+				cr, _ := NewCompositeReconciler(
+					WithScheme(scheme),
+					WithController(m),
+					WithPrototype(&tdv1alpha1.Game{}),
+					WithClient(cli),
+					WithLogger(fakeLogger{}),
+					WithInitCondition(initCondition),
+				)
+				return cr
 			},
 			expectations: func(m *mocks.MockController) {
-				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance(gomock.Any()).Return(nil)
-				m.EXPECT().Default()
-				m.EXPECT().Validate().Return(nil)
-				m.EXPECT().SaveClone()
-				m.EXPECT().IsUninitialized().Return(true)
-				m.EXPECT().GetObjectMetadata()
-				m.EXPECT().Initialize(conditionsv1.Condition{}).Return(errors.New("init failure"))
-			},
-			wantResult: ctrl.Result{},
-			wantErr:    true,
-		},
-
-		{
-			name: "fetch status failure",
-			reconciler: func(m Controller) *CompositeReconciler {
-				return &CompositeReconciler{
-					Ctrlr: m,
-					Log:   fakeLogger{},
-				}
-			},
-			expectations: func(m *mocks.MockController) {
-				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance(gomock.Any()).Return(nil)
-				m.EXPECT().Default()
-				m.EXPECT().Validate().Return(nil)
-				m.EXPECT().SaveClone()
-				m.EXPECT().IsUninitialized().Return(true)
-				m.EXPECT().GetObjectMetadata()
-				m.EXPECT().Initialize(conditionsv1.Condition{})
-				m.EXPECT().Operate(gomock.Any())
-				m.EXPECT().UpdateStatus(gomock.Any()).Return(errors.New("failed to get status"))
+				m.EXPECT().Default(gomock.Any(), gomock.Any())
+				m.EXPECT().Validate(gomock.Any(), gomock.Any()).Return(nil)
+				m.EXPECT().Initialize(gomock.Any(), gomock.Any(), gomock.Any())
+				m.EXPECT().Operate(gomock.Any(), gomock.Any())
+				m.EXPECT().UpdateStatus(gomock.Any(), gomock.Any()).Return(errors.New("failed to get status"))
 			},
 			wantResult: ctrl.Result{Requeue: true},
 			wantErr:    true,
 		},
 		{
-			name: "operate failure",
-			reconciler: func(m Controller) *CompositeReconciler {
-				return &CompositeReconciler{
-					Ctrlr: m,
-					Log:   fakeLogger{},
-				}
+			name:         "operate failure",
+			existingObjs: []runtime.Object{gameObj},
+			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *CompositeReconciler {
+				cr, _ := NewCompositeReconciler(
+					WithScheme(scheme),
+					WithController(m),
+					WithPrototype(&tdv1alpha1.Game{}),
+					WithClient(cli),
+					WithLogger(fakeLogger{}),
+					WithInitCondition(initCondition),
+				)
+				return cr
 			},
 			expectations: func(m *mocks.MockController) {
-				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance(gomock.Any()).Return(nil)
-				m.EXPECT().Default()
-				m.EXPECT().Validate().Return(nil)
-				m.EXPECT().SaveClone()
-				m.EXPECT().IsUninitialized().Return(true)
-				m.EXPECT().GetObjectMetadata()
-				m.EXPECT().Initialize(conditionsv1.Condition{})
-				m.EXPECT().UpdateStatus(gomock.Any())
-				m.EXPECT().PatchStatus(gomock.Any())
-				m.EXPECT().Operate(gomock.Any()).Return(ctrl.Result{Requeue: true}, errors.New("operate error"))
+				m.EXPECT().Default(gomock.Any(), gomock.Any())
+				m.EXPECT().Validate(gomock.Any(), gomock.Any()).Return(nil)
+				m.EXPECT().Initialize(gomock.Any(), gomock.Any(), gomock.Any())
+				m.EXPECT().UpdateStatus(gomock.Any(), gomock.Any())
+				m.EXPECT().Operate(gomock.Any(), gomock.Any()).Return(ctrl.Result{Requeue: true}, errors.New("operate error"))
 			},
 			wantResult: ctrl.Result{Requeue: true},
 			wantErr:    true,
 		},
 		{
-			name: "operate successful - requeue",
-			reconciler: func(m Controller) *CompositeReconciler {
-				return &CompositeReconciler{
-					Ctrlr: m,
-					Log:   fakeLogger{},
-				}
+			name:         "operate successful - requeue",
+			existingObjs: []runtime.Object{gameObj},
+			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *CompositeReconciler {
+				cr, _ := NewCompositeReconciler(
+					WithScheme(scheme),
+					WithController(m),
+					WithPrototype(&tdv1alpha1.Game{}),
+					WithClient(cli),
+					WithLogger(fakeLogger{}),
+					WithInitCondition(initCondition),
+				)
+				return cr
 			},
 			expectations: func(m *mocks.MockController) {
-				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance(gomock.Any()).Return(nil)
-				m.EXPECT().Default()
-				m.EXPECT().Validate().Return(nil)
-				m.EXPECT().SaveClone()
-				m.EXPECT().IsUninitialized().Return(true)
-				m.EXPECT().GetObjectMetadata()
-				m.EXPECT().Initialize(conditionsv1.Condition{})
-				m.EXPECT().UpdateStatus(gomock.Any())
-				m.EXPECT().PatchStatus(gomock.Any())
-				m.EXPECT().Operate(gomock.Any()).Return(ctrl.Result{Requeue: true}, nil)
+				m.EXPECT().Default(gomock.Any(), gomock.Any())
+				m.EXPECT().Validate(gomock.Any(), gomock.Any()).Return(nil)
+				m.EXPECT().Initialize(gomock.Any(), gomock.Any(), gomock.Any())
+				m.EXPECT().UpdateStatus(gomock.Any(), gomock.Any())
+				m.EXPECT().Operate(gomock.Any(), gomock.Any()).Return(ctrl.Result{Requeue: true}, nil)
 			},
 			wantResult: ctrl.Result{Requeue: true},
 		},
 		{
-			name: "updatestatus failure",
-			reconciler: func(m Controller) *CompositeReconciler {
-				return &CompositeReconciler{
-					Ctrlr: m,
-					Log:   fakeLogger{},
-				}
+			name:         "updatestatus failure",
+			existingObjs: []runtime.Object{gameObj},
+			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *CompositeReconciler {
+				cr, _ := NewCompositeReconciler(
+					WithScheme(scheme),
+					WithController(m),
+					WithPrototype(&tdv1alpha1.Game{}),
+					WithClient(cli),
+					WithLogger(fakeLogger{}),
+					WithInitCondition(initCondition),
+				)
+				return cr
 			},
 			expectations: func(m *mocks.MockController) {
-				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance(gomock.Any()).Return(nil)
-				m.EXPECT().Default()
-				m.EXPECT().Validate().Return(nil)
-				m.EXPECT().SaveClone()
-				m.EXPECT().IsUninitialized().Return(true)
-				m.EXPECT().GetObjectMetadata()
-				m.EXPECT().Initialize(conditionsv1.Condition{})
-				m.EXPECT().UpdateStatus(gomock.Any())
-				m.EXPECT().PatchStatus(gomock.Any()).Return(errors.New("failed to update status"))
-				m.EXPECT().Operate(gomock.Any()).Return(ctrl.Result{}, nil)
-			},
-			wantResult: ctrl.Result{},
-			wantErr:    true,
-		},
-		{
-			name: "successful reconcile",
-			reconciler: func(m Controller) *CompositeReconciler {
-				return &CompositeReconciler{
-					Ctrlr: m,
-					Log:   fakeLogger{},
-				}
-			},
-			expectations: func(m *mocks.MockController) {
-				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance(gomock.Any()).Return(nil)
-				m.EXPECT().Default()
-				m.EXPECT().Validate().Return(nil)
-				m.EXPECT().SaveClone()
-				m.EXPECT().IsUninitialized().Return(true)
-				m.EXPECT().GetObjectMetadata()
-				m.EXPECT().Initialize(conditionsv1.Condition{})
-				m.EXPECT().UpdateStatus(gomock.Any())
-				m.EXPECT().PatchStatus(gomock.Any())
-				m.EXPECT().Operate(gomock.Any()).Return(ctrl.Result{}, nil)
-			},
-			wantResult: ctrl.Result{},
-		},
-		{
-			name: "add finalizer failure",
-			reconciler: func(m Controller) *CompositeReconciler {
-				return &CompositeReconciler{
-					Ctrlr:           m,
-					Log:             fakeLogger{},
-					FinalizerName:   "foofinalizer",
-					CleanupStrategy: FinalizerCleanup,
-				}
-			},
-			expectations: func(m *mocks.MockController) {
-				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance(gomock.Any()).Return(nil)
-				m.EXPECT().Default()
-				m.EXPECT().Validate().Return(nil)
-				m.EXPECT().SaveClone()
-				m.EXPECT().IsUninitialized().Return(true)
-				m.EXPECT().GetObjectMetadata()
-				m.EXPECT().Initialize(conditionsv1.Condition{})
-				m.EXPECT().UpdateStatus(gomock.Any())
-				m.EXPECT().GetObjectMetadata()
-				m.EXPECT().AddFinalizer(gomock.Any()).Return(errors.New("failed to add finalizer"))
-				m.EXPECT().PatchStatus(gomock.Any())
+				m.EXPECT().Default(gomock.Any(), gomock.Any())
+				m.EXPECT().Validate(gomock.Any(), gomock.Any()).Return(nil)
+				m.EXPECT().Initialize(gomock.Any(), gomock.Any(), gomock.Any())
+				m.EXPECT().UpdateStatus(gomock.Any(), gomock.Any()).Return(errors.New("failed to update status"))
+				m.EXPECT().Operate(gomock.Any(), gomock.Any()).Return(ctrl.Result{}, nil)
 			},
 			wantResult: ctrl.Result{Requeue: true},
 			wantErr:    true,
 		},
 		{
-			name: "add finalizer success",
-			reconciler: func(m Controller) *CompositeReconciler {
-				return &CompositeReconciler{
-					Ctrlr:           m,
-					Log:             fakeLogger{},
-					FinalizerName:   "foofinalizer",
-					CleanupStrategy: FinalizerCleanup,
-				}
+			name:         "successful reconcile",
+			existingObjs: []runtime.Object{gameObj},
+			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *CompositeReconciler {
+				cr, _ := NewCompositeReconciler(
+					WithScheme(scheme),
+					WithController(m),
+					WithPrototype(&tdv1alpha1.Game{}),
+					WithClient(cli),
+					WithLogger(fakeLogger{}),
+					WithInitCondition(initCondition),
+				)
+				return cr
 			},
 			expectations: func(m *mocks.MockController) {
-				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance(gomock.Any()).Return(nil)
-				m.EXPECT().Default()
-				m.EXPECT().Validate().Return(nil)
-				m.EXPECT().SaveClone()
-				m.EXPECT().IsUninitialized().Return(true)
-				m.EXPECT().UpdateStatus(gomock.Any())
-				m.EXPECT().GetObjectMetadata()
-				m.EXPECT().Initialize(conditionsv1.Condition{})
-				m.EXPECT().GetObjectMetadata()
-				m.EXPECT().AddFinalizer(gomock.Any())
-				m.EXPECT().PatchStatus(gomock.Any())
-				m.EXPECT().Operate(gomock.Any()).Return(ctrl.Result{}, nil)
+				m.EXPECT().Default(gomock.Any(), gomock.Any())
+				m.EXPECT().Validate(gomock.Any(), gomock.Any()).Return(nil)
+				m.EXPECT().Initialize(gomock.Any(), gomock.Any(), gomock.Any())
+				m.EXPECT().UpdateStatus(gomock.Any(), gomock.Any())
+				m.EXPECT().Operate(gomock.Any(), gomock.Any()).Return(ctrl.Result{}, nil)
 			},
 			wantResult: ctrl.Result{},
 		},
 		{
-			name: "finalizer cleanup failure",
-			reconciler: func(m Controller) *CompositeReconciler {
-				return &CompositeReconciler{
-					Ctrlr:           m,
-					Log:             fakeLogger{},
-					FinalizerName:   "foofinalizer",
-					CleanupStrategy: FinalizerCleanup,
-				}
+			name:         "finalizer based cleanup strategy",
+			existingObjs: []runtime.Object{gameObj},
+			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *CompositeReconciler {
+				cr, _ := NewCompositeReconciler(
+					WithScheme(scheme),
+					WithController(m),
+					WithPrototype(&tdv1alpha1.Game{}),
+					WithClient(cli),
+					WithLogger(fakeLogger{}),
+					WithInitCondition(initCondition),
+					WithFinalizer(testFinalizerName),
+					WithCleanupStrategy(FinalizerCleanup),
+				)
+				return cr
 			},
 			expectations: func(m *mocks.MockController) {
-				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance(gomock.Any()).Return(nil)
-				m.EXPECT().Default()
-				m.EXPECT().Validate().Return(nil)
-				m.EXPECT().SaveClone()
-				m.EXPECT().IsUninitialized().Return(true)
-				m.EXPECT().PatchStatus(gomock.Any())
-				m.EXPECT().UpdateStatus(gomock.Any())
-				m.EXPECT().GetObjectMetadata()
-				m.EXPECT().Initialize(conditionsv1.Condition{})
-				// Create a time and add as delete timestamp.
-				timenow := metav1.Now()
-				metadata := metav1.ObjectMeta{
-					DeletionTimestamp: &timenow,
-					Finalizers:        []string{"foofinalizer"},
-				}
-				m.EXPECT().GetObjectMetadata().Return(metadata)
-				m.EXPECT().Cleanup(gomock.Any()).Return(ctrl.Result{Requeue: true}, errors.New("failed to cleanup"))
+				m.EXPECT().Default(gomock.Any(), gomock.Any())
+				m.EXPECT().Validate(gomock.Any(), gomock.Any()).Return(nil)
+				m.EXPECT().UpdateStatus(gomock.Any(), gomock.Any())
+				m.EXPECT().Initialize(gomock.Any(), gomock.Any(), gomock.Any())
+				m.EXPECT().Operate(gomock.Any(), gomock.Any()).Return(ctrl.Result{}, nil)
+			},
+			wantResult: ctrl.Result{},
+		},
+		{
+			name:         "finalizer cleanup failure",
+			existingObjs: []runtime.Object{gameObjDeleteTimestamp},
+			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *CompositeReconciler {
+				cr, _ := NewCompositeReconciler(
+					WithScheme(scheme),
+					WithController(m),
+					WithPrototype(&tdv1alpha1.Game{}),
+					WithClient(cli),
+					WithLogger(fakeLogger{}),
+					WithInitCondition(initCondition),
+					WithFinalizer(testFinalizerName),
+					WithCleanupStrategy(FinalizerCleanup),
+				)
+				return cr
+			},
+			expectations: func(m *mocks.MockController) {
+				m.EXPECT().Default(gomock.Any(), gomock.Any())
+				m.EXPECT().Validate(gomock.Any(), gomock.Any()).Return(nil)
+				m.EXPECT().UpdateStatus(gomock.Any(), gomock.Any())
+				m.EXPECT().Initialize(gomock.Any(), gomock.Any(), gomock.Any())
+				m.EXPECT().Cleanup(gomock.Any(), gomock.Any()).Return(ctrl.Result{Requeue: true}, errors.New("failed to cleanup"))
 			},
 			wantResult: ctrl.Result{Requeue: true},
 			wantErr:    true,
 		},
 		{
-			name: "finalizer cleanup success",
-			reconciler: func(m Controller) *CompositeReconciler {
-				return &CompositeReconciler{
-					Ctrlr:           m,
-					Log:             fakeLogger{},
-					FinalizerName:   "foofinalizer",
-					CleanupStrategy: FinalizerCleanup,
-				}
+			name:         "finalizer cleanup success",
+			existingObjs: []runtime.Object{gameObjDeleteTimestamp},
+			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *CompositeReconciler {
+				cr, _ := NewCompositeReconciler(
+					WithScheme(scheme),
+					WithController(m),
+					WithPrototype(&tdv1alpha1.Game{}),
+					WithClient(cli),
+					WithLogger(fakeLogger{}),
+					WithInitCondition(initCondition),
+					WithFinalizer(testFinalizerName),
+					WithCleanupStrategy(FinalizerCleanup),
+				)
+				return cr
 			},
 			expectations: func(m *mocks.MockController) {
-				m.EXPECT().InitReconcile(gomock.Any(), ctrl.Request{})
-				m.EXPECT().FetchInstance(gomock.Any()).Return(nil)
-				m.EXPECT().Default()
-				m.EXPECT().Validate().Return(nil)
-				m.EXPECT().SaveClone()
-				m.EXPECT().IsUninitialized().Return(true)
-				m.EXPECT().GetObjectMetadata()
-				m.EXPECT().Initialize(conditionsv1.Condition{})
-				// Create a time and add as delete timestamp.
-				timenow := metav1.Now()
-				metadata := metav1.ObjectMeta{
-					DeletionTimestamp: &timenow,
-					Finalizers:        []string{"foofinalizer"},
-				}
-				m.EXPECT().GetObjectMetadata().Return(metadata)
-				m.EXPECT().Cleanup(gomock.Any())
-				m.EXPECT().UpdateStatus(gomock.Any())
-				m.EXPECT().PatchStatus(gomock.Any())
+				m.EXPECT().Default(gomock.Any(), gomock.Any())
+				m.EXPECT().Validate(gomock.Any(), gomock.Any()).Return(nil)
+				m.EXPECT().Initialize(gomock.Any(), gomock.Any(), gomock.Any())
+				m.EXPECT().Cleanup(gomock.Any(), gomock.Any())
+				m.EXPECT().UpdateStatus(gomock.Any(), gomock.Any())
 			},
 			wantResult: ctrl.Result{},
 		},
@@ -335,12 +339,19 @@ func TestReconcile(t *testing.T) {
 	for _, tc := range testcases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			// Create a fake client with some existing objects.
+			cli := fake.NewFakeClientWithScheme(scheme, tc.existingObjs...)
+
+			// Create a mock controller to be used in the reconciler.
 			mctrl := gomock.NewController(t)
 			defer mctrl.Finish()
 			m := mocks.NewMockController(mctrl)
 			tc.expectations(m)
-			c := tc.reconciler(m)
-			request := ctrl.Request{}
+
+			// Create a reconciler with the mock controller, scheme and client.
+			c := tc.reconciler(m, scheme, cli)
+
+			request := ctrl.Request{NamespacedName: gameNamespacedName}
 			ctx := context.Background()
 
 			res, err := c.Reconcile(ctx, request)

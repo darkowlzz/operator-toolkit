@@ -6,7 +6,9 @@ import (
 	"github.com/go-logr/logr"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // CleanupStrategy is the resource cleanup strategy used by the reconciler.
@@ -35,10 +37,27 @@ type CompositeReconciler struct {
 	CleanupStrategy CleanupStrategy
 	Log             logr.Logger
 	Ctrlr           Controller
+
+	prototype client.Object
+	client    client.Client
+	scheme    *runtime.Scheme
 }
 
 // CompositeReconcilerOptions is used to configure CompositeReconciler.
 type CompositeReconcilerOptions func(*CompositeReconciler)
+
+func WithClient(cli client.Client) CompositeReconcilerOptions {
+	return func(c *CompositeReconciler) {
+		c.client = cli
+	}
+}
+
+// func WithPrototype(obj declarative.DeclarativeObject) CompositeReconcilerOptions {
+func WithPrototype(obj client.Object) CompositeReconcilerOptions {
+	return func(c *CompositeReconciler) {
+		c.prototype = obj
+	}
+}
 
 // WithLogger sets the Logger in a CompositeReconciler.
 func WithLogger(log logr.Logger) CompositeReconcilerOptions {
@@ -74,6 +93,13 @@ func WithFinalizer(finalizer string) CompositeReconcilerOptions {
 func WithCleanupStrategy(cleanupStrat CleanupStrategy) CompositeReconcilerOptions {
 	return func(c *CompositeReconciler) {
 		c.CleanupStrategy = cleanupStrat
+	}
+}
+
+// WithScheme sets the runtime Scheme of the CompositeReconciler.
+func WithScheme(scheme *runtime.Scheme) CompositeReconcilerOptions {
+	return func(c *CompositeReconciler) {
+		c.scheme = scheme
 	}
 }
 

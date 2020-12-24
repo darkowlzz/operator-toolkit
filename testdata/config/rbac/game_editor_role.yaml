@@ -1,0 +1,24 @@
+# permissions for end users to edit games.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: game-editor-role
+rules:
+- apiGroups:
+  - app.example.com
+  resources:
+  - games
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - app.example.com
+  resources:
+  - games/status
+  verbs:
+  - get
