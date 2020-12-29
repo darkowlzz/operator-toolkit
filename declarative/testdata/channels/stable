@@ -1,0 +1,5 @@
+manifests:
+- name: guestbook
+  version: 0.1.0
+- name: registry
+  version: 0.3.0
