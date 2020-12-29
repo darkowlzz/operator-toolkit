@@ -13,7 +13,7 @@ import (
 
 func TestSetOwnerReference(t *testing.T) {
 	// Create an in-memory filesystem and load the packages in it.
-	fs := loader.ManifestFileSystem{filesys.MakeFsInMemory()}
+	fs := loader.ManifestFileSystem{FileSystem: filesys.MakeFsInMemory()}
 	err := loader.LoadPackages(fs, "../testdata/channels", "")
 	assert.Nil(t, err)
 
@@ -71,7 +71,7 @@ metadata:
 
 func TestReplicaTransform(t *testing.T) {
 	// Create an in-memory filesystem and load the packages in it.
-	fs := loader.ManifestFileSystem{filesys.MakeFsInMemory()}
+	fs := loader.ManifestFileSystem{FileSystem: filesys.MakeFsInMemory()}
 	err := loader.LoadPackages(fs, "../testdata/channels", "")
 	assert.Nil(t, err)
 
@@ -102,7 +102,7 @@ spec:
 
 func TestTransform(t *testing.T) {
 	// Create an in-memory filesystem and load the packages in it.
-	fs := loader.ManifestFileSystem{filesys.MakeFsInMemory()}
+	fs := loader.ManifestFileSystem{FileSystem: filesys.MakeFsInMemory()}
 	err := loader.LoadPackages(fs, "../testdata/channels", "")
 	assert.Nil(t, err)
 

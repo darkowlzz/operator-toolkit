@@ -42,7 +42,7 @@ metadata:
   name: test-frontend
 `
 	// Create an in-memory filesystem and load the packages in it.
-	fs := loader.ManifestFileSystem{filesys.MakeFsInMemory()}
+	fs := loader.ManifestFileSystem{FileSystem: filesys.MakeFsInMemory()}
 	err := loader.LoadPackages(fs, "../testdata/channels", "")
 	assert.Nil(t, err)
 

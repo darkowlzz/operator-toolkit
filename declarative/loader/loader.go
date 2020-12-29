@@ -131,26 +131,37 @@ func (mfs *ManifestFileSystem) CopyDirectory(srcDir, dest string) error {
 }
 
 // Copy reads a file from disk and copies it into manifest filesystem.
-func (mfs *ManifestFileSystem) Copy(srcFile, dstFile string) error {
-	out, err := mfs.Create(dstFile)
-	if err != nil {
-		return err
+func (mfs *ManifestFileSystem) Copy(srcFile, dstFile string) (err error) {
+	out, cErr := mfs.Create(dstFile)
+	if cErr != nil {
+		err = cErr
+		return
 	}
 
-	defer out.Close()
+	defer func() {
+		if cErr := out.Close(); cErr != nil {
+			err = cErr
+		}
+	}()
 
-	in, err := os.Open(srcFile)
-	defer in.Close()
-	if err != nil {
-		return err
+	in, oErr := os.Open(srcFile)
+	defer func() {
+		if cErr := in.Close(); cErr != nil {
+			err = cErr
+		}
+	}()
+	if oErr != nil {
+		err = oErr
+		return
 	}
 
-	_, err = io.Copy(out, in)
-	if err != nil {
-		return err
+	_, cErr = io.Copy(out, in)
+	if cErr != nil {
+		err = cErr
+		return
 	}
 
-	return nil
+	return
 }
 
 // CreateIfNotExists creates a path if not exists.

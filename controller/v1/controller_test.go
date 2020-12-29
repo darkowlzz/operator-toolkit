@@ -10,10 +10,8 @@ import (
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -22,15 +20,6 @@ import (
 	"github.com/darkowlzz/composite-reconciler/mocks"
 	tdv1alpha1 "github.com/darkowlzz/composite-reconciler/testdata/api/v1alpha1"
 )
-
-// NotFoundError returns a k8s object not found error.
-func NotFoundError() error {
-	sch := schema.GroupResource{
-		Group:    "testgroup",
-		Resource: "testresource",
-	}
-	return apierrors.NewNotFound(sch, "testobj")
-}
 
 type fakeLogger struct{}
 
@@ -340,7 +329,10 @@ func TestReconcile(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			// Create a fake client with some existing objects.
-			cli := fake.NewFakeClientWithScheme(scheme, tc.existingObjs...)
+			cli := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithRuntimeObjects(tc.existingObjs...).
+				Build()
 
 			// Create a mock controller to be used in the reconciler.
 			mctrl := gomock.NewController(t)
