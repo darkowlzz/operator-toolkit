@@ -4,11 +4,70 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/kustomize/api/filesys"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 
 	"github.com/darkowlzz/composite-reconciler/declarative/loader"
 )
+
+func TestSetOwnerReference(t *testing.T) {
+	// Create an in-memory filesystem and load the packages in it.
+	fs := loader.ManifestFileSystem{filesys.MakeFsInMemory()}
+	err := loader.LoadPackages(fs, "../testdata/channels", "")
+	assert.Nil(t, err)
+
+	targetFile := "registry/db.yaml"
+
+	ownerRefs := []metav1.OwnerReference{
+		metav1.OwnerReference{
+			APIVersion: "someapi/v1",
+			Kind:       "Somekind",
+			Name:       "somename",
+			UID:        "17d16671-513f-4026-9302-904fe90601cf",
+		},
+		metav1.OwnerReference{
+			APIVersion: "someotherapi/v1",
+			Kind:       "SomekindX",
+			Name:       "somenameX",
+			UID:        "58e31192-513f-4026-9302-904fe90601ca",
+		},
+	}
+
+	wantManifest := `apiVersion: example.com/v1
+kind: DB
+metadata:
+  name: test-db
+  ownerReferences:
+    - apiVersion: someapi/v1
+      blockOwnerDeletion: false
+      controller: false
+      kind: Somekind
+      name: somename
+      uid: 17d16671-513f-4026-9302-904fe90601cf
+    - apiVersion: someotherapi/v1
+      blockOwnerDeletion: false
+      controller: false
+      kind: SomekindX
+      name: somenameX
+      uid: 58e31192-513f-4026-9302-904fe90601ca
+`
+
+	manifestTransform := ManifestTransform{
+		targetFile: []TransformFunc{
+			SetOwnerReference(ownerRefs),
+		},
+	}
+
+	err = Transform(fs, manifestTransform)
+	assert.Nil(t, err)
+
+	// Read the manifest and verify the result.
+	b, err := fs.ReadFile(targetFile)
+	assert.Nil(t, err)
+	assert.Equal(t, wantManifest, string(b))
+
+}
 
 func TestReplicaTransform(t *testing.T) {
 	// Create an in-memory filesystem and load the packages in it.

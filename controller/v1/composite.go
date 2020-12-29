@@ -46,13 +46,14 @@ type CompositeReconciler struct {
 // CompositeReconcilerOptions is used to configure CompositeReconciler.
 type CompositeReconcilerOptions func(*CompositeReconciler)
 
+// WithClient sets the k8s client in the reconciler.
 func WithClient(cli client.Client) CompositeReconcilerOptions {
 	return func(c *CompositeReconciler) {
 		c.client = cli
 	}
 }
 
-// func WithPrototype(obj declarative.DeclarativeObject) CompositeReconcilerOptions {
+// WithPrototype sets a prototype of the object that's reconciled.
 func WithPrototype(obj client.Object) CompositeReconcilerOptions {
 	return func(c *CompositeReconciler) {
 		c.prototype = obj

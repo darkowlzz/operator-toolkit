@@ -2,8 +2,12 @@ package transform
 
 import (
 	"fmt"
+	"html/template"
 	"strconv"
+	"strings"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 
 	"github.com/darkowlzz/composite-reconciler/declarative/loader"
@@ -104,12 +108,94 @@ func AddAnnotationsFunc(annotations map[string]string) TransformFunc {
 }
 
 // SetReplicaFunc returns a TransformFunc that sets the replicas
-// (spec.replicas)in a given object.
+// (spec.replicas) in a given object.
 func SetReplicaFunc(replica int) TransformFunc {
 	return func(obj *yaml.RNode) error {
 		return obj.PipeE(
 			yaml.LookupCreate(yaml.ScalarNode, "spec", "replicas"),
 			yaml.Set(yaml.NewScalarRNode(strconv.Itoa(replica))),
+		)
+	}
+}
+
+// ownerRefTemplate is a template for creating OwnerReference.
+const ownerRefTemplate = `
+- apiVersion: {{.APIVersion}}
+  blockOwnerDeletion: {{.BlockOwnerDeletion}}
+  controller: {{.Controller}}
+  kind: {{.Kind}}
+  name: {{.Name}}
+  uid: {{.UID}}
+`
+
+// OwnerRefTemplateParam stores the data for the OwnerReference template.
+type OwnerRefTemplateParam struct {
+	APIVersion         string
+	Kind               string
+	Name               string
+	UID                types.UID
+	Controller         bool
+	BlockOwnerDeletion bool
+}
+
+// GetOwnerRefTemplateParamFor returns a OwnerRefTemplateParam for a given
+// OwnerReference.
+func GetOwnerRefTemplateParamFor(ownerRef metav1.OwnerReference) OwnerRefTemplateParam {
+	var controller, blockOwnerDeletion bool
+	if ownerRef.Controller != nil {
+		controller = *ownerRef.Controller
+	}
+	if ownerRef.BlockOwnerDeletion != nil {
+		blockOwnerDeletion = *ownerRef.BlockOwnerDeletion
+	}
+
+	return OwnerRefTemplateParam{
+		APIVersion:         ownerRef.APIVersion,
+		Kind:               ownerRef.Kind,
+		Name:               ownerRef.Name,
+		UID:                ownerRef.UID,
+		Controller:         controller,
+		BlockOwnerDeletion: blockOwnerDeletion,
+	}
+}
+
+// SetOwnerReference returns a TransformFunc that sets the ownerReferences in a
+// given object.
+func SetOwnerReference(ownerRefs []metav1.OwnerReference) TransformFunc {
+	return func(obj *yaml.RNode) error {
+		tmpl, err := template.New("ownerref").Parse(ownerRefTemplate)
+		if err != nil {
+			return fmt.Errorf("failed parsing OwnerReference template: %w", err)
+		}
+
+		// Store all the string owner references in one string variable.
+		var stringOwnerRefs strings.Builder
+
+		// Convert OwnerRefs into string values.
+		for _, ownerRef := range ownerRefs {
+			var orResult strings.Builder
+			// Get template param and execute the template.
+			ownerRefParam := GetOwnerRefTemplateParamFor(ownerRef)
+			if err := tmpl.Execute(&orResult, ownerRefParam); err != nil {
+				return fmt.Errorf("failed to execute OwnerReference template: %w", err)
+			}
+			// Write the result into the owner ref collection.
+			_, err := stringOwnerRefs.WriteString(orResult.String())
+			if err != nil {
+				return fmt.Errorf("failed appending OwnerReference: %w", err)
+			}
+		}
+
+		// Parse the string ownerRefs.
+		parsedOR, err := yaml.Parse(stringOwnerRefs.String())
+		if err != nil {
+			return fmt.Errorf("failed to parse string OwnerReferences: %w", err)
+		}
+
+		// Write the ownerReferences in metadata.ownerReferences of the object.
+		return obj.PipeE(
+			yaml.LookupCreate(yaml.SequenceNode, "metadata"),
+			yaml.SetField("ownerReferences", parsedOR),
 		)
 	}
 }
