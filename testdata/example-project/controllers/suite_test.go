@@ -30,7 +30,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	appv1alpha1 "github.com/darkowlzz/composite-reconciler/testdata/api/v1alpha1"
+	appv1alpha1 "github.com/darkowlzz/composite-reconciler/testdata/example-project/api/v1alpha1"
 	//+kubebuilder:scaffold:imports
 )
 
