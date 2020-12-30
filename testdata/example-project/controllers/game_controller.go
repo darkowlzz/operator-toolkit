@@ -27,9 +27,7 @@ import (
 
 	controllerv1 "github.com/darkowlzz/composite-reconciler/controller/v1"
 	"github.com/darkowlzz/composite-reconciler/declarative/loader"
-	operatorv1 "github.com/darkowlzz/composite-reconciler/operator/v1"
 	"github.com/darkowlzz/composite-reconciler/operator/v1/executor"
-	"github.com/darkowlzz/composite-reconciler/operator/v1/operand"
 	appv1alpha1 "github.com/darkowlzz/composite-reconciler/testdata/example-project/api/v1alpha1"
 	"github.com/darkowlzz/composite-reconciler/testdata/example-project/controllers/game"
 )
@@ -76,25 +74,10 @@ func (r *GameReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return fmt.Errorf("failed to load channel packages: %w", err)
 	}
 
-	// TODO: Move the operand and operator creation into a separate function in
-	// their package, accepting a manager, filesystem and other options.
-	// Create the operands.
-	configmapOp := game.NewConfigmapOperand("configmap-operand", mgr.GetClient(), []string{}, operand.RequeueOnError, fs)
-
-	// Create a CompositeOperator using the operands.
-	co, err := operatorv1.NewCompositeOperator(
-		operatorv1.WithEventRecorder(mgr.GetEventRecorderFor("game-reconciler")),
-		operatorv1.WithExecutionStrategy(executor.Parallel),
-		operatorv1.WithOperands(configmapOp),
-	)
+	// TODO: Expose the executor strategy option via SetupWithManager.
+	gc, err := game.NewGameController(mgr, fs, executor.Parallel)
 	if err != nil {
-		return fmt.Errorf("failed to create new CompositeOperator: %w", err)
-	}
-
-	// Create a controller that implements the CompositeReconciler controller
-	// interface with a CompositeOperator.
-	gc := &game.GameController{
-		Operator: co,
+		return err
 	}
 
 	// Initialize the reconciler.
