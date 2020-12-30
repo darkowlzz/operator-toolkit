@@ -32,19 +32,26 @@ const (
 
 // CompositeReconciler defines a composite reconciler.
 type CompositeReconciler struct {
-	InitCondition   conditionsv1.Condition
-	FinalizerName   string
-	CleanupStrategy CleanupStrategy
-	Log             logr.Logger
-	Ctrlr           Controller
-
-	prototype client.Object
-	client    client.Client
-	scheme    *runtime.Scheme
+	name            string
+	initCondition   conditionsv1.Condition
+	finalizerName   string
+	cleanupStrategy CleanupStrategy
+	log             logr.Logger
+	ctrlr           Controller
+	prototype       client.Object
+	client          client.Client
+	scheme          *runtime.Scheme
 }
 
 // CompositeReconcilerOptions is used to configure CompositeReconciler.
 type CompositeReconcilerOptions func(*CompositeReconciler)
+
+// WithName sets the name of the CompositeReconciler.
+func WithName(name string) CompositeReconcilerOptions {
+	return func(c *CompositeReconciler) {
+		c.name = name
+	}
+}
 
 // WithClient sets the k8s client in the reconciler.
 func WithClient(cli client.Client) CompositeReconcilerOptions {
@@ -63,14 +70,14 @@ func WithPrototype(obj client.Object) CompositeReconcilerOptions {
 // WithLogger sets the Logger in a CompositeReconciler.
 func WithLogger(log logr.Logger) CompositeReconcilerOptions {
 	return func(c *CompositeReconciler) {
-		c.Log = log
+		c.log = log
 	}
 }
 
 // WithController sets the Controller in a CompositeReconciler.
 func WithController(ctrlr Controller) CompositeReconcilerOptions {
 	return func(c *CompositeReconciler) {
-		c.Ctrlr = ctrlr
+		c.ctrlr = ctrlr
 	}
 }
 
@@ -78,7 +85,7 @@ func WithController(ctrlr Controller) CompositeReconcilerOptions {
 // CompositeReconciler on a resource object.
 func WithInitCondition(cndn conditionsv1.Condition) CompositeReconcilerOptions {
 	return func(c *CompositeReconciler) {
-		c.InitCondition = cndn
+		c.initCondition = cndn
 	}
 }
 
@@ -86,14 +93,14 @@ func WithInitCondition(cndn conditionsv1.Condition) CompositeReconcilerOptions {
 // CompositeReconciler.
 func WithFinalizer(finalizer string) CompositeReconcilerOptions {
 	return func(c *CompositeReconciler) {
-		c.FinalizerName = finalizer
+		c.finalizerName = finalizer
 	}
 }
 
 // WithCleanupStrategy sets the CleanupStrategy of the CompositeReconciler.
 func WithCleanupStrategy(cleanupStrat CleanupStrategy) CompositeReconcilerOptions {
 	return func(c *CompositeReconciler) {
-		c.CleanupStrategy = cleanupStrat
+		c.cleanupStrategy = cleanupStrat
 	}
 }
 
@@ -104,24 +111,42 @@ func WithScheme(scheme *runtime.Scheme) CompositeReconcilerOptions {
 	}
 }
 
-// NewCompositeReconciler creates a new CompositeReconciler with defaults,
-// overridden by the provided options.
-func NewCompositeReconciler(opts ...CompositeReconcilerOptions) (*CompositeReconciler, error) {
-	cr := &CompositeReconciler{
-		Log:             ctrl.Log,
-		InitCondition:   DefaultInitCondition,
-		CleanupStrategy: OwnerReferenceCleanup,
+// Init initializes the CompositeReconciler for a given Object with the given
+// options.
+func (c *CompositeReconciler) Init(mgr ctrl.Manager, prototype client.Object, opts ...CompositeReconcilerOptions) error {
+	// Use manager if provided. This is helpful in tests to provide explicit
+	// client and scheme without a manager.
+	if mgr != nil {
+		c.client = mgr.GetClient()
+		c.scheme = mgr.GetScheme()
 	}
 
+	// Use prototype if provided.
+	if prototype != nil {
+		c.prototype = prototype
+	}
+
+	// Add defaults.
+	c.log = ctrl.Log
+	c.initCondition = DefaultInitCondition
+	c.cleanupStrategy = OwnerReferenceCleanup
+
+	// Run the options to override the defaults.
 	for _, opt := range opts {
-		opt(cr)
+		opt(c)
 	}
 
-	if cr.Ctrlr == nil {
-		return nil, fmt.Errorf("must provide a Controller to the CompositeReconciler")
+	// If a name is set, log it as the reconciler name.
+	if c.name != "" {
+		c.log = c.log.WithValues("reconciler", c.name)
 	}
 
-	return cr, nil
+	// Perform validation.
+	if c.ctrlr == nil {
+		return fmt.Errorf("must provide a Controller to the CompositeReconciler")
+	}
+
+	return nil
 }
 
 // DefaultInitCondition is the default init condition used by the composite

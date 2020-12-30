@@ -20,7 +20,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	ctx, span := tr.Start(ctx, "reconcile")
 	defer span.End()
 
-	controller := c.Ctrlr
+	controller := c.ctrlr
 
 	// instance := c.prototype.DeepCopyObject().(declarative.DeclarativeObject)
 	instance := c.prototype.DeepCopyObject().(client.Object)
@@ -37,7 +37,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	span.AddEvent("Validate")
 	if valErr := controller.Validate(ctx, instance); valErr != nil {
 		reterr = valErr
-		c.Log.Info("object validation failed", "error", valErr)
+		c.log.Info("object validation failed", "error", valErr)
 		return
 	}
 
@@ -53,9 +53,9 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// Initialize the instance if not initialized.
 	if !init {
 		span.AddEvent("Initialize instance")
-		c.Log.Info("initializing", "instance", instance.GetName())
-		if initErr := controller.Initialize(ctx, instance, c.InitCondition); initErr != nil {
-			c.Log.Info("initialization failed", "error", initErr)
+		c.log.Info("initializing", "instance", instance.GetName())
+		if initErr := controller.Initialize(ctx, instance, c.initCondition); initErr != nil {
+			c.log.Info("initialization failed", "error", initErr)
 			reterr = initErr
 			return
 		}
@@ -92,7 +92,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}()
 
 	// If the cleanup strategy is finalizer based, call the cleanup handler.
-	if c.CleanupStrategy == FinalizerCleanup {
+	if c.cleanupStrategy == FinalizerCleanup {
 		span.AddEvent("Trigger cleanup")
 		delEnabled, cResult, cErr := c.cleanupHandler(ctx, instance)
 		// If the deletion of the target object has started, return with the
@@ -108,7 +108,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	span.AddEvent("Run Operate")
 	result, reterr = controller.Operate(ctx, instance)
 	if reterr != nil {
-		c.Log.Info("failed to finish Operation", "error", reterr)
+		c.log.Info("failed to finish Operation", "error", reterr)
 	}
 
 	return
@@ -121,13 +121,13 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 // of this function know that the cleanup process has started.
 func (c *CompositeReconciler) cleanupHandler(ctx context.Context, obj client.Object) (delEnabled bool, result ctrl.Result, reterr error) {
 	if obj.GetDeletionTimestamp().IsZero() {
-		AddFinalizer(obj, c.FinalizerName)
+		AddFinalizer(obj, c.finalizerName)
 	} else {
 		delEnabled = true
-		if contains(obj.GetFinalizers(), c.FinalizerName) {
-			result, reterr = c.Ctrlr.Cleanup(ctx, obj)
+		if contains(obj.GetFinalizers(), c.finalizerName) {
+			result, reterr = c.ctrlr.Cleanup(ctx, obj)
 			if reterr != nil {
-				c.Log.Info("failed to cleanup", "error", reterr)
+				c.log.Info("failed to cleanup", "error", reterr)
 			}
 		}
 	}

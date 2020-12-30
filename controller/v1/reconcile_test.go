@@ -68,7 +68,8 @@ func TestIsInitialized(t *testing.T) {
 			defer mctrl.Finish()
 			m := mocks.NewMockController(mctrl)
 
-			cr, err := NewCompositeReconciler(
+			cr := CompositeReconciler{}
+			err := cr.Init(nil, nil,
 				WithInitCondition(initCondition),
 				WithScheme(scheme),
 				WithController(m),
@@ -186,7 +187,8 @@ func TestCleanupHandler(t *testing.T) {
 			m := mocks.NewMockController(mctrl)
 			tc.expectations(m)
 
-			cr, err := NewCompositeReconciler(
+			cr := CompositeReconciler{}
+			err := cr.Init(nil, nil,
 				WithScheme(scheme),
 				WithFinalizer(finalizerName),
 				WithController(m),

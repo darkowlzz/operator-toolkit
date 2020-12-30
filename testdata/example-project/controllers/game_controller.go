@@ -97,22 +97,17 @@ func (r *GameReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Operator: co,
 	}
 
-	// TODO: Replace this New* function with an Init() function, similar to the
-	// addons pattern reconciler.
-	// Create a CompositeReconciler and embed it into the GameReconciler.
-	cr, err := controllerv1.NewCompositeReconciler(
-		controllerv1.WithPrototype(&appv1alpha1.Game{}),
+	// Initialize the reconciler.
+	err = r.CompositeReconciler.Init(mgr, &appv1alpha1.Game{},
+		controllerv1.WithName("game-controller"),
 		controllerv1.WithController(gc),
-		controllerv1.WithClient(mgr.GetClient()),
-		controllerv1.WithScheme(mgr.GetScheme()),
 		controllerv1.WithCleanupStrategy(controllerv1.OwnerReferenceCleanup),
 		controllerv1.WithInitCondition(controllerv1.DefaultInitCondition),
-		controllerv1.WithLogger(r.Log.WithValues("component", "composite-reconciler")),
+		controllerv1.WithLogger(r.Log),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create new CompositeReconciler: %w", err)
 	}
-	r.CompositeReconciler = *cr
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&appv1alpha1.Game{}).

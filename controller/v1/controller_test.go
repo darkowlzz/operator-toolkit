@@ -76,10 +76,10 @@ func TestReconcile(t *testing.T) {
 		{
 			name: "instance not found",
 			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *CompositeReconciler {
-				cr, _ := NewCompositeReconciler(
+				cr := &CompositeReconciler{}
+				_ = cr.Init(nil, &tdv1alpha1.Game{},
 					WithScheme(scheme),
 					WithController(m),
-					WithPrototype(&tdv1alpha1.Game{}),
 					WithClient(cli),
 				)
 				return cr
@@ -91,10 +91,10 @@ func TestReconcile(t *testing.T) {
 			name:         "validation failure",
 			existingObjs: []runtime.Object{gameObj},
 			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *CompositeReconciler {
-				cr, _ := NewCompositeReconciler(
+				cr := &CompositeReconciler{}
+				_ = cr.Init(nil, &tdv1alpha1.Game{},
 					WithScheme(scheme),
 					WithController(m),
-					WithPrototype(&tdv1alpha1.Game{}),
 					WithClient(cli),
 					WithLogger(fakeLogger{}),
 				)
@@ -111,10 +111,10 @@ func TestReconcile(t *testing.T) {
 			name:         "init failure",
 			existingObjs: []runtime.Object{gameObj},
 			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *CompositeReconciler {
-				cr, _ := NewCompositeReconciler(
+				cr := &CompositeReconciler{}
+				_ = cr.Init(nil, &tdv1alpha1.Game{},
 					WithScheme(scheme),
 					WithController(m),
-					WithPrototype(&tdv1alpha1.Game{}),
 					WithClient(cli),
 					WithLogger(fakeLogger{}),
 					WithInitCondition(initCondition),
@@ -133,10 +133,10 @@ func TestReconcile(t *testing.T) {
 			name:         "fetch status failure",
 			existingObjs: []runtime.Object{gameObj},
 			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *CompositeReconciler {
-				cr, _ := NewCompositeReconciler(
+				cr := &CompositeReconciler{}
+				_ = cr.Init(nil, &tdv1alpha1.Game{},
 					WithScheme(scheme),
 					WithController(m),
-					WithPrototype(&tdv1alpha1.Game{}),
 					WithClient(cli),
 					WithLogger(fakeLogger{}),
 					WithInitCondition(initCondition),
@@ -157,10 +157,10 @@ func TestReconcile(t *testing.T) {
 			name:         "operate failure",
 			existingObjs: []runtime.Object{gameObj},
 			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *CompositeReconciler {
-				cr, _ := NewCompositeReconciler(
+				cr := &CompositeReconciler{}
+				_ = cr.Init(nil, &tdv1alpha1.Game{},
 					WithScheme(scheme),
 					WithController(m),
-					WithPrototype(&tdv1alpha1.Game{}),
 					WithClient(cli),
 					WithLogger(fakeLogger{}),
 					WithInitCondition(initCondition),
@@ -181,10 +181,10 @@ func TestReconcile(t *testing.T) {
 			name:         "operate successful - requeue",
 			existingObjs: []runtime.Object{gameObj},
 			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *CompositeReconciler {
-				cr, _ := NewCompositeReconciler(
+				cr := &CompositeReconciler{}
+				_ = cr.Init(nil, &tdv1alpha1.Game{},
 					WithScheme(scheme),
 					WithController(m),
-					WithPrototype(&tdv1alpha1.Game{}),
 					WithClient(cli),
 					WithLogger(fakeLogger{}),
 					WithInitCondition(initCondition),
@@ -204,10 +204,10 @@ func TestReconcile(t *testing.T) {
 			name:         "updatestatus failure",
 			existingObjs: []runtime.Object{gameObj},
 			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *CompositeReconciler {
-				cr, _ := NewCompositeReconciler(
+				cr := &CompositeReconciler{}
+				_ = cr.Init(nil, &tdv1alpha1.Game{},
 					WithScheme(scheme),
 					WithController(m),
-					WithPrototype(&tdv1alpha1.Game{}),
 					WithClient(cli),
 					WithLogger(fakeLogger{}),
 					WithInitCondition(initCondition),
@@ -228,10 +228,10 @@ func TestReconcile(t *testing.T) {
 			name:         "successful reconcile",
 			existingObjs: []runtime.Object{gameObj},
 			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *CompositeReconciler {
-				cr, _ := NewCompositeReconciler(
+				cr := &CompositeReconciler{}
+				_ = cr.Init(nil, &tdv1alpha1.Game{},
 					WithScheme(scheme),
 					WithController(m),
-					WithPrototype(&tdv1alpha1.Game{}),
 					WithClient(cli),
 					WithLogger(fakeLogger{}),
 					WithInitCondition(initCondition),
@@ -251,10 +251,10 @@ func TestReconcile(t *testing.T) {
 			name:         "finalizer based cleanup strategy",
 			existingObjs: []runtime.Object{gameObj},
 			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *CompositeReconciler {
-				cr, _ := NewCompositeReconciler(
+				cr := &CompositeReconciler{}
+				_ = cr.Init(nil, &tdv1alpha1.Game{},
 					WithScheme(scheme),
 					WithController(m),
-					WithPrototype(&tdv1alpha1.Game{}),
 					WithClient(cli),
 					WithLogger(fakeLogger{}),
 					WithInitCondition(initCondition),
@@ -276,10 +276,10 @@ func TestReconcile(t *testing.T) {
 			name:         "finalizer cleanup failure",
 			existingObjs: []runtime.Object{gameObjDeleteTimestamp},
 			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *CompositeReconciler {
-				cr, _ := NewCompositeReconciler(
+				cr := &CompositeReconciler{}
+				_ = cr.Init(nil, &tdv1alpha1.Game{},
 					WithScheme(scheme),
 					WithController(m),
-					WithPrototype(&tdv1alpha1.Game{}),
 					WithClient(cli),
 					WithLogger(fakeLogger{}),
 					WithInitCondition(initCondition),
@@ -302,10 +302,10 @@ func TestReconcile(t *testing.T) {
 			name:         "finalizer cleanup success",
 			existingObjs: []runtime.Object{gameObjDeleteTimestamp},
 			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *CompositeReconciler {
-				cr, _ := NewCompositeReconciler(
+				cr := &CompositeReconciler{}
+				_ = cr.Init(nil, &tdv1alpha1.Game{},
 					WithScheme(scheme),
 					WithController(m),
-					WithPrototype(&tdv1alpha1.Game{}),
 					WithClient(cli),
 					WithLogger(fakeLogger{}),
 					WithInitCondition(initCondition),
