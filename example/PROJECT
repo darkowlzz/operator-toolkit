@@ -1,7 +1,7 @@
 domain: example.com
 layout: go.kubebuilder.io/v3
-projectName: example-project
-repo: github.com/darkowlzz/composite-reconciler/testdata/example-project
+projectName: example
+repo: github.com/darkowlzz/composite-reconciler/example
 resources:
 - api:
     crdVersion: v1

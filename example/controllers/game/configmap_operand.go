@@ -12,8 +12,8 @@ import (
 	"github.com/darkowlzz/composite-reconciler/declarative/kustomize"
 	"github.com/darkowlzz/composite-reconciler/declarative/transform"
 	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
+	appv1alpha1 "github.com/darkowlzz/composite-reconciler/example/api/v1alpha1"
 	"github.com/darkowlzz/composite-reconciler/operator/v1/operand"
-	appv1alpha1 "github.com/darkowlzz/composite-reconciler/testdata/example-project/api/v1alpha1"
 )
 
 // configmapTemplateParams is used to store the data used to populate the

@@ -1,4 +1,4 @@
-module github.com/darkowlzz/composite-reconciler/testdata/example-project
+module github.com/darkowlzz/composite-reconciler/example
 
 go 1.15
 
@@ -15,4 +15,4 @@ require (
 	sigs.k8s.io/kustomize/api v0.7.0
 )
 
-replace github.com/darkowlzz/composite-reconciler v0.0.0 => ../../
+replace github.com/darkowlzz/composite-reconciler v0.0.0 => ../

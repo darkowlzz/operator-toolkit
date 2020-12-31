@@ -26,9 +26,9 @@ import (
 
 	controllerv1 "github.com/darkowlzz/composite-reconciler/controller/v1"
 	"github.com/darkowlzz/composite-reconciler/declarative/loader"
+	appv1alpha1 "github.com/darkowlzz/composite-reconciler/example/api/v1alpha1"
+	"github.com/darkowlzz/composite-reconciler/example/controllers/game"
 	"github.com/darkowlzz/composite-reconciler/operator/v1/executor"
-	appv1alpha1 "github.com/darkowlzz/composite-reconciler/testdata/example-project/api/v1alpha1"
-	"github.com/darkowlzz/composite-reconciler/testdata/example-project/controllers/game"
 )
 
 // GameReconciler reconciles a Game object

@@ -31,8 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	appv1alpha1 "github.com/darkowlzz/composite-reconciler/testdata/example-project/api/v1alpha1"
-	"github.com/darkowlzz/composite-reconciler/testdata/example-project/controllers"
+	appv1alpha1 "github.com/darkowlzz/composite-reconciler/example/api/v1alpha1"
+	"github.com/darkowlzz/composite-reconciler/example/controllers"
 	//+kubebuilder:scaffold:imports
 )
 
