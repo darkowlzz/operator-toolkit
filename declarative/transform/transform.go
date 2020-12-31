@@ -24,7 +24,7 @@ type ManifestTransform map[string][]TransformFunc
 // AddLabels takes a filesystem that contains a manifest to be transformed,
 // path to the manifest file and a label to be added, and modifies the manifest
 // file to add the labels.
-func Transform(fs loader.ManifestFileSystem, manifestTransform ManifestTransform) error {
+func Transform(fs *loader.ManifestFileSystem, manifestTransform ManifestTransform) error {
 	for manifest, transforms := range manifestTransform {
 		// Read and convert the manifest into a resource node.
 		o, err := fs.ReadFile(manifest)

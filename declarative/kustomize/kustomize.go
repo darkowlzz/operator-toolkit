@@ -11,7 +11,7 @@ const kustomizationFile string = "kustomization.yaml"
 // Kustomize takes a filesystem and a kustomization configuration and
 // runs the kustomization on the filesystem. It returns the result of
 // kustomization.
-func Kustomize(fs loader.ManifestFileSystem, kustom []byte) (result []byte, err error) {
+func Kustomize(fs *loader.ManifestFileSystem, kustom []byte) (result []byte, err error) {
 	// Create a kustomization file with the given content.
 	if fErr := fs.WriteFile(kustomizationFile, kustom); fErr != nil {
 		err = fErr

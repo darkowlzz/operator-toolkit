@@ -36,7 +36,7 @@ type ConfigmapOperand struct {
 	client          client.Client
 	requires        []string
 	requeueStrategy operand.RequeueStrategy
-	fs              loader.ManifestFileSystem
+	fs              *loader.ManifestFileSystem
 }
 
 var _ operand.Operand = &ConfigmapOperand{}
@@ -99,7 +99,7 @@ func NewConfigmapOperand(
 	client client.Client,
 	requires []string,
 	requeueStrategy operand.RequeueStrategy,
-	fs loader.ManifestFileSystem,
+	fs *loader.ManifestFileSystem,
 ) *ConfigmapOperand {
 	return &ConfigmapOperand{
 		name:            name,

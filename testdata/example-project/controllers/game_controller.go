@@ -23,7 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/kustomize/api/filesys"
 
 	controllerv1 "github.com/darkowlzz/composite-reconciler/controller/v1"
 	"github.com/darkowlzz/composite-reconciler/declarative/loader"
@@ -64,14 +63,10 @@ type GameReconciler struct {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *GameReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	// TODO: Move filesystem creation and package loading into a helper
-	// function.
-	// Setup manifests in an in-memory filesystem.
-	fs := loader.ManifestFileSystem{FileSystem: filesys.MakeFsInMemory()}
-	// Use default channel.
-	err := loader.LoadPackages(fs, "channels", "stable")
+	// Load manifests in an in-memory filesystem.
+	fs, err := loader.NewLoadedManifestFileSystem("channels", "stable")
 	if err != nil {
-		return fmt.Errorf("failed to load channel packages: %w", err)
+		return fmt.Errorf("failed to create loaded ManifestFileSystem: %w", err)
 	}
 
 	// TODO: Expose the executor strategy option via SetupWithManager.

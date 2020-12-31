@@ -5,13 +5,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"sigs.k8s.io/kustomize/api/filesys"
 )
 
 func TestLoadPackage(t *testing.T) {
 	// Create an in-memory filesystem and load the packages in it.
-	fs := ManifestFileSystem{filesys.MakeFsInMemory()}
-	err := LoadPackages(fs, "../testdata/channels", "")
+	fs, err := NewLoadedManifestFileSystem("../testdata/channels", "")
 	assert.Nil(t, err)
 
 	wantSA, err := ioutil.ReadFile("../testdata/channels/packages/guestbook/0.1.0/service_account.yaml")

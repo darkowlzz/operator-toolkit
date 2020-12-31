@@ -5,7 +5,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/kustomize/api/filesys"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 
 	"github.com/darkowlzz/composite-reconciler/declarative/loader"
@@ -13,8 +12,7 @@ import (
 
 func TestSetOwnerReference(t *testing.T) {
 	// Create an in-memory filesystem and load the packages in it.
-	fs := loader.ManifestFileSystem{FileSystem: filesys.MakeFsInMemory()}
-	err := loader.LoadPackages(fs, "../testdata/channels", "")
+	fs, err := loader.NewLoadedManifestFileSystem("../testdata/channels", "")
 	assert.Nil(t, err)
 
 	targetFile := "registry/db.yaml"
@@ -71,8 +69,7 @@ metadata:
 
 func TestReplicaTransform(t *testing.T) {
 	// Create an in-memory filesystem and load the packages in it.
-	fs := loader.ManifestFileSystem{FileSystem: filesys.MakeFsInMemory()}
-	err := loader.LoadPackages(fs, "../testdata/channels", "")
+	fs, err := loader.NewLoadedManifestFileSystem("../testdata/channels", "")
 	assert.Nil(t, err)
 
 	targetFile := "registry/db.yaml"
@@ -102,8 +99,7 @@ spec:
 
 func TestTransform(t *testing.T) {
 	// Create an in-memory filesystem and load the packages in it.
-	fs := loader.ManifestFileSystem{FileSystem: filesys.MakeFsInMemory()}
-	err := loader.LoadPackages(fs, "../testdata/channels", "")
+	fs, err := loader.NewLoadedManifestFileSystem("../testdata/channels", "")
 	assert.Nil(t, err)
 
 	// Labels to apply.
@@ -139,7 +135,7 @@ func TestTransform(t *testing.T) {
 	checkLabelsAndAnnotations(t, fs, targetFileB, labels, nil)
 }
 
-func checkLabelsAndAnnotations(t *testing.T, fs loader.ManifestFileSystem, file string, labels, annotations map[string]string) {
+func checkLabelsAndAnnotations(t *testing.T, fs *loader.ManifestFileSystem, file string, labels, annotations map[string]string) {
 	// Read the file and check the results.
 	b, err := fs.ReadFile(file)
 	assert.Nil(t, err)

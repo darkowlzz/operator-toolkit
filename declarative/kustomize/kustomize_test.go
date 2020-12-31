@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"sigs.k8s.io/kustomize/api/filesys"
 
 	"github.com/darkowlzz/composite-reconciler/declarative/loader"
 )
@@ -42,8 +41,7 @@ metadata:
   name: test-frontend
 `
 	// Create an in-memory filesystem and load the packages in it.
-	fs := loader.ManifestFileSystem{FileSystem: filesys.MakeFsInMemory()}
-	err := loader.LoadPackages(fs, "../testdata/channels", "")
+	fs, err := loader.NewLoadedManifestFileSystem("../testdata/channels", "")
 	assert.Nil(t, err)
 
 	m, err := Kustomize(fs, []byte(kustomization))
