@@ -8,9 +8,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/kustomize/api/filesys"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
-
-	"github.com/darkowlzz/composite-reconciler/declarative/loader"
 )
 
 // TransformFunc is the type of a transform function. A transformation must
@@ -24,7 +23,7 @@ type ManifestTransform map[string][]TransformFunc
 // AddLabels takes a filesystem that contains a manifest to be transformed,
 // path to the manifest file and a label to be added, and modifies the manifest
 // file to add the labels.
-func Transform(fs *loader.ManifestFileSystem, manifestTransform ManifestTransform) error {
+func Transform(fs filesys.FileSystem, manifestTransform ManifestTransform) error {
 	for manifest, transforms := range manifestTransform {
 		// Read and convert the manifest into a resource node.
 		o, err := fs.ReadFile(manifest)

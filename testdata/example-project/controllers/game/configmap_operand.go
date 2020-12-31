@@ -7,9 +7,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kubebuilder-declarative-pattern/pkg/patterns/declarative/pkg/applier"
+	"sigs.k8s.io/kustomize/api/filesys"
 
 	"github.com/darkowlzz/composite-reconciler/declarative/kustomize"
-	"github.com/darkowlzz/composite-reconciler/declarative/loader"
 	"github.com/darkowlzz/composite-reconciler/declarative/transform"
 	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
 	"github.com/darkowlzz/composite-reconciler/operator/v1/operand"
@@ -32,7 +32,7 @@ type ConfigmapOperand struct {
 	client          client.Client
 	requires        []string
 	requeueStrategy operand.RequeueStrategy
-	fs              *loader.ManifestFileSystem
+	fs              filesys.FileSystem
 }
 
 var _ operand.Operand = &ConfigmapOperand{}
@@ -90,7 +90,7 @@ func NewConfigmapOperand(
 	client client.Client,
 	requires []string,
 	requeueStrategy operand.RequeueStrategy,
-	fs *loader.ManifestFileSystem,
+	fs filesys.FileSystem,
 ) *ConfigmapOperand {
 	return &ConfigmapOperand{
 		name:            name,
