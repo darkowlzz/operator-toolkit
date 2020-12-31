@@ -1,6 +1,10 @@
 package kustomize
 
 import (
+	"fmt"
+	"html/template"
+	"strings"
+
 	"sigs.k8s.io/kustomize/api/krusty"
 
 	"github.com/darkowlzz/composite-reconciler/declarative/loader"
@@ -35,4 +39,35 @@ func Kustomize(fs *loader.ManifestFileSystem, kustom []byte) (result []byte, err
 	}
 
 	return m.AsYaml()
+}
+
+// RenderKustomizationTemplate reads a template from the given filesystem in
+// the given path and renders it with the given data.
+func RenderKustomizationTemplate(fs *loader.ManifestFileSystem, path string, data interface{}) ([]byte, error) {
+	templateContent, err := fs.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read template file %q: %w", path, err)
+	}
+
+	var result strings.Builder
+	tmpl, err := template.New("kustomization").Parse(string(templateContent))
+	if err != nil {
+		return nil, fmt.Errorf("error parsing template %q: %w", path, err)
+	}
+	if err := tmpl.Execute(&result, data); err != nil {
+		return nil, fmt.Errorf("error executing template %q: %w", path, err)
+	}
+
+	return []byte(result.String()), nil
+}
+
+// RenderTemplateAndKustomize renders the kustomization template and runs
+// kustomization.
+func RenderTemplateAndKustomize(fs *loader.ManifestFileSystem, path string, data interface{}) ([]byte, error) {
+	m, err := RenderKustomizationTemplate(fs, path, data)
+	if err != nil {
+		return nil, err
+	}
+
+	return Kustomize(fs, m)
 }

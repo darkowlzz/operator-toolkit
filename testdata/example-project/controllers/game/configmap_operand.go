@@ -3,8 +3,6 @@ package game
 import (
 	"context"
 	"fmt"
-	"html/template"
-	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -15,6 +13,7 @@ import (
 	"github.com/darkowlzz/composite-reconciler/declarative/transform"
 	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
 	"github.com/darkowlzz/composite-reconciler/operator/v1/operand"
+	appv1alpha1 "github.com/darkowlzz/composite-reconciler/testdata/example-project/api/v1alpha1"
 )
 
 // configmapTemplateParams is used to store the data used to populate the
@@ -23,12 +22,9 @@ type configmapTemplateParams struct {
 	Namespace string
 }
 
-const configmapTemplate = `
-namespace: {{.Namespace}}
-
-resources:
-  - configmap/configmap.yaml
-`
+// configmapTemplatePath contains the kustomization template for Configmap
+// operand.
+const configmapTemplatePath = "templates/configmap.tmpl"
 
 // ConfigmapOperand implements an operand for ConfigMap.
 type ConfigmapOperand struct {
@@ -49,8 +45,13 @@ func (c *ConfigmapOperand) ReadyCheck(ctx context.Context, obj client.Object) (b
 }
 
 func (c *ConfigmapOperand) Ensure(ctx context.Context, obj client.Object, ownerRef metav1.OwnerReference) (eventv1.ReconcilerEvent, error) {
+	game, ok := obj.(*appv1alpha1.Game)
+	if !ok {
+		return nil, fmt.Errorf("failed to convert %v to Game", obj)
+	}
+
 	// Populate the configmap template params.
-	templateParams := configmapTemplateParams{Namespace: obj.GetNamespace()}
+	templateParams := configmapTemplateParams{Namespace: game.GetNamespace()}
 
 	// Create a ManifestTransform with all the transformations and run
 	// transforms.
@@ -64,19 +65,9 @@ func (c *ConfigmapOperand) Ensure(ctx context.Context, obj client.Object, ownerR
 		return nil, fmt.Errorf("error while transforming: %w", err)
 	}
 
-	// TODO: Move this template rendering into a helper function.
-	// Render the kustomization template.
-	var kResult strings.Builder
-	tmpl, err := template.New("configmap").Parse(configmapTemplate)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing template: %w", err)
-	}
-	if err := tmpl.Execute(&kResult, templateParams); err != nil {
-		return nil, fmt.Errorf("error executing template: %w", err)
-	}
-
-	// Run kustomization with the template to obtain the final manifest.
-	m, err := kustomize.Kustomize(c.fs, []byte(kResult.String()))
+	// Render the kustomization template with the templateParams and get the
+	// kustomized manifest.
+	m, err := kustomize.RenderTemplateAndKustomize(c.fs, configmapTemplatePath, templateParams)
 	if err != nil {
 		return nil, fmt.Errorf("error kustomizing: %w", err)
 	}
