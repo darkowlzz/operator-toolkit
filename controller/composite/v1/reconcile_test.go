@@ -14,8 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/darkowlzz/composite-reconciler/mocks"
-	tdv1alpha1 "github.com/darkowlzz/composite-reconciler/testdata/api/v1alpha1"
+	"github.com/darkowlzz/operator-toolkit/controller/composite/v1/mocks"
+	tdv1alpha1 "github.com/darkowlzz/operator-toolkit/testdata/api/v1alpha1"
 )
 
 func TestIsInitialized(t *testing.T) {

@@ -24,11 +24,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	controllerv1 "github.com/darkowlzz/composite-reconciler/controller/v1"
-	"github.com/darkowlzz/composite-reconciler/declarative/loader"
-	appv1alpha1 "github.com/darkowlzz/composite-reconciler/example/api/v1alpha1"
-	"github.com/darkowlzz/composite-reconciler/example/controllers/game"
-	"github.com/darkowlzz/composite-reconciler/operator/v1/executor"
+	compositev1 "github.com/darkowlzz/operator-toolkit/controller/composite/v1"
+	"github.com/darkowlzz/operator-toolkit/declarative/loader"
+	appv1alpha1 "github.com/darkowlzz/operator-toolkit/example/api/v1alpha1"
+	"github.com/darkowlzz/operator-toolkit/example/controllers/game"
+	"github.com/darkowlzz/operator-toolkit/operator/v1/executor"
 )
 
 // GameReconciler reconciles a Game object
@@ -37,7 +37,7 @@ type GameReconciler struct {
 	Log    logr.Logger
 	Scheme *runtime.Scheme
 
-	controllerv1.CompositeReconciler
+	compositev1.CompositeReconciler
 }
 
 //+kubebuilder:rbac:groups=app.example.com,resources=games,verbs=get;list;watch;create;update;patch;delete
@@ -77,11 +77,11 @@ func (r *GameReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	// Initialize the reconciler.
 	err = r.CompositeReconciler.Init(mgr, &appv1alpha1.Game{},
-		controllerv1.WithName("game-controller"),
-		controllerv1.WithController(gc),
-		controllerv1.WithCleanupStrategy(controllerv1.OwnerReferenceCleanup),
-		controllerv1.WithInitCondition(controllerv1.DefaultInitCondition),
-		controllerv1.WithLogger(r.Log),
+		compositev1.WithName("game-controller"),
+		compositev1.WithController(gc),
+		compositev1.WithCleanupStrategy(compositev1.OwnerReferenceCleanup),
+		compositev1.WithInitCondition(compositev1.DefaultInitCondition),
+		compositev1.WithLogger(r.Log),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create new CompositeReconciler: %w", err)

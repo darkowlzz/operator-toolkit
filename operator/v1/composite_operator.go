@@ -10,9 +10,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/darkowlzz/composite-reconciler/operator/v1/dag"
-	"github.com/darkowlzz/composite-reconciler/operator/v1/executor"
-	"github.com/darkowlzz/composite-reconciler/operator/v1/operand"
+	"github.com/darkowlzz/operator-toolkit/operator/v1/dag"
+	"github.com/darkowlzz/operator-toolkit/operator/v1/executor"
+	"github.com/darkowlzz/operator-toolkit/operator/v1/operand"
 )
 
 // CompositeOperator contains all the operands and the relationship between

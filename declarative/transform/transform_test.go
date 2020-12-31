@@ -7,7 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 
-	"github.com/darkowlzz/composite-reconciler/declarative/loader"
+	"github.com/darkowlzz/operator-toolkit/declarative/loader"
 )
 
 func TestSetOwnerReference(t *testing.T) {

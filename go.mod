@@ -1,8 +1,9 @@
-module github.com/darkowlzz/composite-reconciler
+module github.com/darkowlzz/operator-toolkit
 
 go 1.15
 
 require (
+	github.com/darkowlzz/composite-reconciler v0.0.0-20201231135222-9d92eb526d3e
 	github.com/go-logr/logr v0.3.0
 	github.com/golang/mock v1.4.4
 	github.com/goombaio/dag v0.0.0-20181006234417-a8874b1f72ff

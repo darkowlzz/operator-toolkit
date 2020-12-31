@@ -17,8 +17,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/darkowlzz/composite-reconciler/mocks"
-	tdv1alpha1 "github.com/darkowlzz/composite-reconciler/testdata/api/v1alpha1"
+	"github.com/darkowlzz/operator-toolkit/controller/composite/v1/mocks"
+	tdv1alpha1 "github.com/darkowlzz/operator-toolkit/testdata/api/v1alpha1"
 )
 
 type fakeLogger struct{}

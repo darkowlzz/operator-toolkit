@@ -1,6 +1,6 @@
 package operand
 
-//go:generate mockgen -destination=../../../mocks/mock_operand.go -package=mocks github.com/darkowlzz/composite-reconciler/operator/v1/operand Operand
+//go:generate mockgen -destination=mocks/mock_operand.go -package=mocks github.com/darkowlzz/operator-toolkit/operator/v1/operand Operand
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
+	eventv1 "github.com/darkowlzz/operator-toolkit/event/v1"
 )
 
 // RequeueStrategy defines the requeue strategy of an operand.

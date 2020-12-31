@@ -1,6 +1,6 @@
 package v1
 
-//go:generate mockgen -destination=../../mocks/mock_reconciler.go -package=mocks github.com/darkowlzz/composite-reconciler/controller/v1 Controller
+//go:generate mockgen -destination=mocks/mock_reconciler.go -package=mocks github.com/darkowlzz/operator-toolkit/controller/composite/v1 Controller
 
 import (
 	"context"

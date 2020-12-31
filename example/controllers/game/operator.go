@@ -3,9 +3,9 @@ package game
 import (
 	"fmt"
 
-	operatorv1 "github.com/darkowlzz/composite-reconciler/operator/v1"
-	"github.com/darkowlzz/composite-reconciler/operator/v1/executor"
-	"github.com/darkowlzz/composite-reconciler/operator/v1/operand"
+	operatorv1 "github.com/darkowlzz/operator-toolkit/operator/v1"
+	"github.com/darkowlzz/operator-toolkit/operator/v1/executor"
+	"github.com/darkowlzz/operator-toolkit/operator/v1/operand"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/kustomize/api/filesys"
 )

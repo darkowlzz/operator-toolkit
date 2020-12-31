@@ -9,11 +9,11 @@ import (
 	"sigs.k8s.io/kubebuilder-declarative-pattern/pkg/patterns/declarative/pkg/applier"
 	"sigs.k8s.io/kustomize/api/filesys"
 
-	"github.com/darkowlzz/composite-reconciler/declarative/kustomize"
-	"github.com/darkowlzz/composite-reconciler/declarative/transform"
-	eventv1 "github.com/darkowlzz/composite-reconciler/event/v1"
-	appv1alpha1 "github.com/darkowlzz/composite-reconciler/example/api/v1alpha1"
-	"github.com/darkowlzz/composite-reconciler/operator/v1/operand"
+	"github.com/darkowlzz/operator-toolkit/declarative/kustomize"
+	"github.com/darkowlzz/operator-toolkit/declarative/transform"
+	eventv1 "github.com/darkowlzz/operator-toolkit/event/v1"
+	appv1alpha1 "github.com/darkowlzz/operator-toolkit/example/api/v1alpha1"
+	"github.com/darkowlzz/operator-toolkit/operator/v1/operand"
 )
 
 // configmapTemplateParams is used to store the data used to populate the

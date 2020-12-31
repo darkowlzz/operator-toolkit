@@ -1,9 +1,9 @@
-module github.com/darkowlzz/composite-reconciler/example
+module github.com/darkowlzz/operator-toolkit/example
 
 go 1.15
 
 require (
-	github.com/darkowlzz/composite-reconciler v0.0.0
+	github.com/darkowlzz/operator-toolkit v0.0.0
 	github.com/go-logr/logr v0.3.0
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
@@ -15,4 +15,4 @@ require (
 	sigs.k8s.io/kustomize/api v0.7.0
 )
 
-replace github.com/darkowlzz/composite-reconciler v0.0.0 => ../
+replace github.com/darkowlzz/operator-toolkit v0.0.0 => ../

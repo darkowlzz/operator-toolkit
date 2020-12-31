@@ -3,7 +3,7 @@ package dag
 import (
 	"github.com/goombaio/dag"
 
-	"github.com/darkowlzz/composite-reconciler/operator/v1/operand"
+	"github.com/darkowlzz/operator-toolkit/operator/v1/operand"
 )
 
 // OperandDAG is a directed acyclic graph representation of the opereand

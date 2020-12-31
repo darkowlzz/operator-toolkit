@@ -7,8 +7,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	controllerv1 "github.com/darkowlzz/composite-reconciler/controller/v1"
-	operatorv1 "github.com/darkowlzz/composite-reconciler/operator/v1"
+	compositev1 "github.com/darkowlzz/operator-toolkit/controller/composite/v1"
+	operatorv1 "github.com/darkowlzz/operator-toolkit/operator/v1"
 )
 
 // GameController is a controller that implements the CompositeReconciler
@@ -17,7 +17,7 @@ type GameController struct {
 	Operator operatorv1.Operator
 }
 
-var _ controllerv1.Controller = &GameController{}
+var _ compositev1.Controller = &GameController{}
 
 func (gc *GameController) Default(context.Context, client.Object) {}
 
@@ -28,7 +28,7 @@ func (gc *GameController) Initialize(context.Context, client.Object, conditionsv
 }
 
 func (gc *GameController) Operate(ctx context.Context, obj client.Object) (result ctrl.Result, err error) {
-	return gc.Operator.Ensure(ctx, obj, controllerv1.OwnerReferenceFromObject(obj))
+	return gc.Operator.Ensure(ctx, obj, compositev1.OwnerReferenceFromObject(obj))
 }
 
 func (gc *GameController) Cleanup(context.Context, client.Object) (result ctrl.Result, err error) {

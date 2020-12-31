@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/darkowlzz/composite-reconciler/declarative/loader"
+	"github.com/darkowlzz/operator-toolkit/declarative/loader"
 )
 
 func TestKustomize(t *testing.T) {

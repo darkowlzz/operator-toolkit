@@ -5,8 +5,8 @@ import (
 
 	"github.com/golang/mock/gomock"
 
-	"github.com/darkowlzz/composite-reconciler/mocks"
-	"github.com/darkowlzz/composite-reconciler/operator/v1/operand"
+	"github.com/darkowlzz/operator-toolkit/operator/v1/operand"
+	"github.com/darkowlzz/operator-toolkit/operator/v1/operand/mocks"
 )
 
 func TestDAG(t *testing.T) {
