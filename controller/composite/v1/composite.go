@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/kubebuilder-declarative-pattern/pkg/patterns/declarative"
 )
 
 // CleanupStrategy is the resource cleanup strategy used by the reconciler.
@@ -41,6 +42,7 @@ type CompositeReconciler struct {
 	prototype       client.Object
 	client          client.Client
 	scheme          *runtime.Scheme
+	sink            declarative.Sink
 }
 
 // CompositeReconcilerOptions is used to configure CompositeReconciler.

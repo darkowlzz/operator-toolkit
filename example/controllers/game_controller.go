@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/kubebuilder-declarative-pattern/pkg/patterns/declarative"
 
 	compositev1 "github.com/darkowlzz/operator-toolkit/controller/composite/v1"
 	"github.com/darkowlzz/operator-toolkit/declarative/loader"
@@ -63,6 +64,8 @@ type GameReconciler struct {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *GameReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	watchLabels := declarative.SourceLabel(mgr.GetScheme())
+
 	// Load manifests in an in-memory filesystem.
 	fs, err := loader.NewLoadedManifestFileSystem("channels", "stable")
 	if err != nil {
@@ -70,7 +73,7 @@ func (r *GameReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	// TODO: Expose the executor strategy option via SetupWithManager.
-	gc, err := game.NewGameController(mgr, fs, executor.Parallel)
+	gc, err := game.NewGameController(mgr, fs, executor.Parallel, watchLabels)
 	if err != nil {
 		return err
 	}

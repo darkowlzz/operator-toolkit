@@ -6,6 +6,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/kubebuilder-declarative-pattern/pkg/patterns/declarative"
 	"sigs.k8s.io/kubebuilder-declarative-pattern/pkg/patterns/declarative/pkg/applier"
 	"sigs.k8s.io/kustomize/api/filesys"
 
@@ -33,6 +34,7 @@ type ConfigmapOperand struct {
 	requires        []string
 	requeueStrategy operand.RequeueStrategy
 	fs              filesys.FileSystem
+	labelMaker      declarative.LabelMaker
 }
 
 var _ operand.Operand = &ConfigmapOperand{}
@@ -65,9 +67,12 @@ func (c *ConfigmapOperand) Ensure(ctx context.Context, obj client.Object, ownerR
 		return nil, fmt.Errorf("error while transforming: %w", err)
 	}
 
+	// Create common labels to be applied to all the objects.
+	commonLabels := c.labelMaker(ctx, obj)
+
 	// Render the kustomization template with the templateParams and get the
 	// kustomized manifest.
-	m, err := kustomize.RenderTemplateAndKustomize(c.fs, configmapTemplatePath, templateParams)
+	m, err := kustomize.RenderTemplateAndKustomize(c.fs, configmapTemplatePath, templateParams, commonLabels)
 	if err != nil {
 		return nil, fmt.Errorf("error kustomizing: %w", err)
 	}
@@ -91,6 +96,7 @@ func NewConfigmapOperand(
 	requires []string,
 	requeueStrategy operand.RequeueStrategy,
 	fs filesys.FileSystem,
+	labelMaker declarative.LabelMaker,
 ) *ConfigmapOperand {
 	return &ConfigmapOperand{
 		name:            name,
@@ -98,5 +104,6 @@ func NewConfigmapOperand(
 		requires:        requires,
 		requeueStrategy: requeueStrategy,
 		fs:              fs,
+		labelMaker:      labelMaker,
 	}
 }
