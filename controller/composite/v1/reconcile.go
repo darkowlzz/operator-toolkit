@@ -22,7 +22,6 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	controller := c.ctrlr
 
-	// instance := c.prototype.DeepCopyObject().(declarative.DeclarativeObject)
 	instance := c.prototype.DeepCopyObject().(client.Object)
 	if getErr := c.client.Get(ctx, req.NamespacedName, instance); getErr != nil {
 		reterr = client.IgnoreNotFound(getErr)

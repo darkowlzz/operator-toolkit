@@ -10,8 +10,11 @@ operators.
 #### controller
 
 `controller` package provides tools to implement certain controller patterns.
-`controller/composite` package contains interface and types to implement the
-composite controller pattern.
+
+- `controller/composite` package contains interface and types to implement the
+    composite controller pattern.
+- `controller/external-object-sync` package contains interface and types to
+    implement the external object sync pattern.
 
 #### operator
 
