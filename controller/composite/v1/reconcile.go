@@ -12,6 +12,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // Reconcile implements the composite controller reconciliation.
@@ -120,7 +121,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 // of this function know that the cleanup process has started.
 func (c *CompositeReconciler) cleanupHandler(ctx context.Context, obj client.Object) (delEnabled bool, result ctrl.Result, reterr error) {
 	if obj.GetDeletionTimestamp().IsZero() {
-		AddFinalizer(obj, c.finalizerName)
+		controllerutil.AddFinalizer(obj, c.finalizerName)
 	} else {
 		delEnabled = true
 		if contains(obj.GetFinalizers(), c.finalizerName) {
