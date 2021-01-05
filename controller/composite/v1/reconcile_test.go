@@ -7,9 +7,7 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	"github.com/stretchr/testify/assert"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -22,13 +20,6 @@ func TestIsInitialized(t *testing.T) {
 	// Create a scheme with testdata scheme info.
 	scheme := runtime.NewScheme()
 	assert.Nil(t, tdv1alpha1.AddToScheme(scheme))
-
-	initCondition := conditionsv1.Condition{
-		Type:    conditionsv1.ConditionProgressing,
-		Status:  corev1.ConditionTrue,
-		Reason:  "Initializing",
-		Message: "Initializing",
-	}
 
 	cases := []struct {
 		name     string
@@ -44,7 +35,7 @@ func TestIsInitialized(t *testing.T) {
 			name: "initialized empty status conditions",
 			obj: &tdv1alpha1.Game{
 				Status: tdv1alpha1.GameStatus{
-					Conditions: []conditionsv1.Condition{},
+					Conditions: []metav1.Condition{},
 				},
 			},
 			wantInit: false,
@@ -53,7 +44,7 @@ func TestIsInitialized(t *testing.T) {
 			name: "initialized status conditions",
 			obj: &tdv1alpha1.Game{
 				Status: tdv1alpha1.GameStatus{
-					Conditions: []conditionsv1.Condition{initCondition},
+					Conditions: []metav1.Condition{DefaultInitCondition},
 				},
 			},
 			wantInit: true,
@@ -70,7 +61,7 @@ func TestIsInitialized(t *testing.T) {
 
 			cr := CompositeReconciler{}
 			err := cr.Init(nil, nil,
-				WithInitCondition(initCondition),
+				WithInitCondition(DefaultInitCondition),
 				WithScheme(scheme),
 				WithController(m),
 			)

@@ -7,9 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
-	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	"github.com/stretchr/testify/assert"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -31,13 +29,6 @@ func (f fakeLogger) WithValues(keysAndValues ...interface{}) logr.Logger       {
 func (f fakeLogger) WithName(name string) logr.Logger                          { return f }
 
 func TestReconcile(t *testing.T) {
-	initCondition := conditionsv1.Condition{
-		Type:    conditionsv1.ConditionProgressing,
-		Status:  corev1.ConditionTrue,
-		Reason:  "Initializing",
-		Message: "Initializing",
-	}
-
 	testFinalizerName := "foofinalizer"
 
 	// Create a scheme with testdata scheme info.
@@ -117,7 +108,7 @@ func TestReconcile(t *testing.T) {
 					WithController(m),
 					WithClient(cli),
 					WithLogger(fakeLogger{}),
-					WithInitCondition(initCondition),
+					WithInitCondition(DefaultInitCondition),
 				)
 				return cr
 			},
@@ -139,7 +130,7 @@ func TestReconcile(t *testing.T) {
 					WithController(m),
 					WithClient(cli),
 					WithLogger(fakeLogger{}),
-					WithInitCondition(initCondition),
+					WithInitCondition(DefaultInitCondition),
 				)
 				return cr
 			},
@@ -163,7 +154,7 @@ func TestReconcile(t *testing.T) {
 					WithController(m),
 					WithClient(cli),
 					WithLogger(fakeLogger{}),
-					WithInitCondition(initCondition),
+					WithInitCondition(DefaultInitCondition),
 				)
 				return cr
 			},
@@ -187,7 +178,7 @@ func TestReconcile(t *testing.T) {
 					WithController(m),
 					WithClient(cli),
 					WithLogger(fakeLogger{}),
-					WithInitCondition(initCondition),
+					WithInitCondition(DefaultInitCondition),
 				)
 				return cr
 			},
@@ -210,7 +201,7 @@ func TestReconcile(t *testing.T) {
 					WithController(m),
 					WithClient(cli),
 					WithLogger(fakeLogger{}),
-					WithInitCondition(initCondition),
+					WithInitCondition(DefaultInitCondition),
 				)
 				return cr
 			},
@@ -234,7 +225,7 @@ func TestReconcile(t *testing.T) {
 					WithController(m),
 					WithClient(cli),
 					WithLogger(fakeLogger{}),
-					WithInitCondition(initCondition),
+					WithInitCondition(DefaultInitCondition),
 				)
 				return cr
 			},
@@ -257,7 +248,7 @@ func TestReconcile(t *testing.T) {
 					WithController(m),
 					WithClient(cli),
 					WithLogger(fakeLogger{}),
-					WithInitCondition(initCondition),
+					WithInitCondition(DefaultInitCondition),
 					WithFinalizer(testFinalizerName),
 					WithCleanupStrategy(FinalizerCleanup),
 				)
@@ -282,7 +273,7 @@ func TestReconcile(t *testing.T) {
 					WithController(m),
 					WithClient(cli),
 					WithLogger(fakeLogger{}),
-					WithInitCondition(initCondition),
+					WithInitCondition(DefaultInitCondition),
 					WithFinalizer(testFinalizerName),
 					WithCleanupStrategy(FinalizerCleanup),
 				)
@@ -308,7 +299,7 @@ func TestReconcile(t *testing.T) {
 					WithController(m),
 					WithClient(cli),
 					WithLogger(fakeLogger{}),
-					WithInitCondition(initCondition),
+					WithInitCondition(DefaultInitCondition),
 					WithFinalizer(testFinalizerName),
 					WithCleanupStrategy(FinalizerCleanup),
 				)

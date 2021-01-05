@@ -5,7 +5,7 @@ package v1
 import (
 	"context"
 
-	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -26,7 +26,7 @@ type Controller interface {
 	// Initialize sets the provided initialization condition on the object
 	// status. This helps some operations in Operation() know about the
 	// creation phase and run initialization specific operations.
-	Initialize(context.Context, client.Object, conditionsv1.Condition) error
+	Initialize(context.Context, client.Object, metav1.Condition) error
 
 	// UpdateStatus queries the status of the child objects and based on them,
 	// sets the status of the primary object instance. It doesn't save the

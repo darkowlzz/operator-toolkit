@@ -1,14 +1,13 @@
 package v1
 
 import (
-	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // DefaultIsUninitialized performs uninitialized check on an object based on
 // the status conditions.
-func DefaultIsUninitialized(conditions []conditionsv1.Condition) bool {
+func DefaultIsUninitialized(conditions []metav1.Condition) bool {
 	return conditions == nil
 }
 

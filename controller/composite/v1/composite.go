@@ -4,8 +4,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
-	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -33,7 +32,7 @@ const (
 // CompositeReconciler defines a composite reconciler.
 type CompositeReconciler struct {
 	name            string
-	initCondition   conditionsv1.Condition
+	initCondition   metav1.Condition
 	finalizerName   string
 	cleanupStrategy CleanupStrategy
 	log             logr.Logger
@@ -83,7 +82,7 @@ func WithController(ctrlr Controller) CompositeReconcilerOptions {
 
 // WithInitCondition sets the initial status Condition to be used by the
 // CompositeReconciler on a resource object.
-func WithInitCondition(cndn conditionsv1.Condition) CompositeReconcilerOptions {
+func WithInitCondition(cndn metav1.Condition) CompositeReconcilerOptions {
 	return func(c *CompositeReconciler) {
 		c.initCondition = cndn
 	}
@@ -151,9 +150,9 @@ func (c *CompositeReconciler) Init(mgr ctrl.Manager, prototype client.Object, op
 
 // DefaultInitCondition is the default init condition used by the composite
 // reconciler to add to the status of a new resource.
-var DefaultInitCondition conditionsv1.Condition = conditionsv1.Condition{
-	Type:    conditionsv1.ConditionProgressing,
-	Status:  corev1.ConditionTrue,
+var DefaultInitCondition metav1.Condition = metav1.Condition{
+	Type:    "Progressing",
+	Status:  metav1.ConditionTrue,
 	Reason:  "Initializing",
 	Message: "Component initializing",
 }

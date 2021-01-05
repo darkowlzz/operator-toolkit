@@ -7,7 +7,7 @@ package mocks
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	v1 "github.com/openshift/custom-resource-status/conditions/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	reflect "reflect"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 	reconcile "sigs.k8s.io/controller-runtime/pkg/reconcile"
