@@ -1,6 +1,7 @@
 package transform
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -113,6 +114,15 @@ func TestTransform(t *testing.T) {
 		"annot2": "anot-val2",
 	}
 
+	wantOwnerRefs := `
+    - apiVersion: some-api-version
+      blockOwnerDeletion: false
+      controller: false
+      kind: some-kind
+      name: some-name
+      uid: 58e31192-513f-4026-9302-904fe90601ca
+`
+
 	targetFileA := "guestbook/role.yaml"
 	targetFileB := "registry/db.yaml"
 
@@ -127,15 +137,25 @@ func TestTransform(t *testing.T) {
 		},
 	}
 
-	// Run transform.
-	err = Transform(fs, manifestTransform)
+	// Create owner refs for using SetOwnerReference as a common transform.
+	ownerRefs := []metav1.OwnerReference{
+		{
+			APIVersion: "some-api-version",
+			Kind:       "some-kind",
+			Name:       "some-name",
+			UID:        "58e31192-513f-4026-9302-904fe90601ca",
+		},
+	}
+
+	// Run transform with common transform.
+	err = Transform(fs, manifestTransform, SetOwnerReference(ownerRefs))
 	assert.Nil(t, err)
 
-	checkLabelsAndAnnotations(t, fs, targetFileA, labels, annotations)
-	checkLabelsAndAnnotations(t, fs, targetFileB, labels, nil)
+	checkLabelsAnnotationsAndOwnerRefs(t, fs, targetFileA, labels, annotations, wantOwnerRefs)
+	checkLabelsAnnotationsAndOwnerRefs(t, fs, targetFileB, labels, nil, wantOwnerRefs)
 }
 
-func checkLabelsAndAnnotations(t *testing.T, fs *loader.ManifestFileSystem, file string, labels, annotations map[string]string) {
+func checkLabelsAnnotationsAndOwnerRefs(t *testing.T, fs *loader.ManifestFileSystem, file string, labels, annotations map[string]string, ownerRefs string) {
 	// Read the file and check the results.
 	b, err := fs.ReadFile(file)
 	assert.Nil(t, err)
@@ -155,4 +175,9 @@ func checkLabelsAndAnnotations(t *testing.T, fs *loader.ManifestFileSystem, file
 	for k, v := range annotations {
 		assert.Equal(t, v, a[k])
 	}
+
+	// NOTE: kyaml RNode objects don't have a method to get the owner
+	// reference. Perform string comparion for now. It may be possible to do a
+	// lookup of the metadata field and get owner reference for comparison.
+	assert.True(t, strings.Contains(string(b), ownerRefs))
 }

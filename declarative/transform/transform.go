@@ -20,10 +20,10 @@ type TransformFunc func(*yaml.RNode) error
 // needs to be run on the manifest.
 type ManifestTransform map[string][]TransformFunc
 
-// AddLabels takes a filesystem that contains a manifest to be transformed,
-// path to the manifest file and a label to be added, and modifies the manifest
-// file to add the labels.
-func Transform(fs filesys.FileSystem, manifestTransform ManifestTransform) error {
+// Transform takes a Filesystem, a ManifestTransform and a set of common
+// transforms to be applied on all the manifests, and transforms all the
+// manifests.
+func Transform(fs filesys.FileSystem, manifestTransform ManifestTransform, commonTransforms ...TransformFunc) error {
 	for manifest, transforms := range manifestTransform {
 		// Read and convert the manifest into a resource node.
 		o, err := fs.ReadFile(manifest)
@@ -37,6 +37,13 @@ func Transform(fs filesys.FileSystem, manifestTransform ManifestTransform) error
 
 		// Run the transformations.
 		for _, t := range transforms {
+			if err := t(obj); err != nil {
+				return fmt.Errorf("failed to transform %q: %w", manifest, err)
+			}
+		}
+
+		// Run the common transforms.
+		for _, t := range commonTransforms {
 			if err := t(obj); err != nil {
 				return fmt.Errorf("failed to transform %q: %w", manifest, err)
 			}
