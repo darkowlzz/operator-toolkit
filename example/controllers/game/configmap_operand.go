@@ -6,15 +6,19 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/kubebuilder-declarative-pattern/pkg/patterns/declarative/pkg/applier"
 	"sigs.k8s.io/kustomize/api/filesys"
 
+	"github.com/darkowlzz/operator-toolkit/declarative"
 	"github.com/darkowlzz/operator-toolkit/declarative/kustomize"
 	"github.com/darkowlzz/operator-toolkit/declarative/transform"
 	eventv1 "github.com/darkowlzz/operator-toolkit/event/v1"
 	appv1alpha1 "github.com/darkowlzz/operator-toolkit/example/api/v1alpha1"
 	"github.com/darkowlzz/operator-toolkit/operator/v1/operand"
 )
+
+// manifestPackage is the name of the package that contains manifests for the
+// operand.
+const manifestPackage = "configmap"
 
 // ConfigmapOperand implements an operand for ConfigMap.
 type ConfigmapOperand struct {
@@ -48,26 +52,11 @@ func (c *ConfigmapOperand) Ensure(ctx context.Context, obj client.Object, ownerR
 			transform.SetOwnerReference([]metav1.OwnerReference{ownerRef}),
 		},
 	}
-	if err := transform.Transform(c.fs, manifestTransform); err != nil {
-		return nil, fmt.Errorf("error while transforming: %w", err)
-	}
 
 	// Mutate kustomization file with object attributes.
 	kMutate := []kustomize.MutateFunc{kustomize.AddNamespace(game.GetNamespace())}
 
-	// Run mutation and kustomization to obtain the final manifest.
-	m, err := kustomize.MutateAndKustomize(c.fs, kMutate, "configmap")
-	if err != nil {
-		return nil, fmt.Errorf("error mutating and kustomizing: %w", err)
-	}
-
-	// Apply the manifest.
-	kubectl := applier.NewDirectApplier()
-	if err := kubectl.Apply(ctx, obj.GetNamespace(), string(m), false); err != nil {
-		return nil, fmt.Errorf("error applying manifests: %w", err)
-	}
-
-	return nil, nil
+	return nil, declarative.BuildAndApply(ctx, c.fs, manifestPackage, game.GetNamespace(), manifestTransform, kMutate)
 }
 
 func (c *ConfigmapOperand) Delete(ctx context.Context, obj client.Object) (eventv1.ReconcilerEvent, error) {
