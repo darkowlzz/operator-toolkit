@@ -16,16 +16,6 @@ import (
 	"github.com/darkowlzz/operator-toolkit/operator/v1/operand"
 )
 
-// configmapTemplateParams is used to store the data used to populate the
-// kustomization template.
-type configmapTemplateParams struct {
-	Namespace string
-}
-
-// configmapTemplatePath contains the kustomization template for Configmap
-// operand.
-const configmapTemplatePath = "templates/configmap.tmpl"
-
 // ConfigmapOperand implements an operand for ConfigMap.
 type ConfigmapOperand struct {
 	name            string
@@ -50,9 +40,6 @@ func (c *ConfigmapOperand) Ensure(ctx context.Context, obj client.Object, ownerR
 		return nil, fmt.Errorf("failed to convert %v to Game", obj)
 	}
 
-	// Populate the configmap template params.
-	templateParams := configmapTemplateParams{Namespace: game.GetNamespace()}
-
 	// Create a ManifestTransform with all the transformations and run
 	// transforms.
 	manifestTransform := transform.ManifestTransform{
@@ -65,11 +52,13 @@ func (c *ConfigmapOperand) Ensure(ctx context.Context, obj client.Object, ownerR
 		return nil, fmt.Errorf("error while transforming: %w", err)
 	}
 
-	// Render the kustomization template with the templateParams and get the
-	// kustomized manifest.
-	m, err := kustomize.RenderTemplateAndKustomize(c.fs, configmapTemplatePath, templateParams)
+	// Mutate kustomization file with object attributes.
+	kMutate := []kustomize.MutateFunc{kustomize.AddNamespace(game.GetNamespace())}
+
+	// Run mutation and kustomization to obtain the final manifest.
+	m, err := kustomize.MutateAndKustomize(c.fs, kMutate, "configmap")
 	if err != nil {
-		return nil, fmt.Errorf("error kustomizing: %w", err)
+		return nil, fmt.Errorf("error mutating and kustomizing: %w", err)
 	}
 
 	// Apply the manifest.

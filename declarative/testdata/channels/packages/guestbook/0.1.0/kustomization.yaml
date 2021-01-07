@@ -1,0 +1,3 @@
+resources:
+- role.yaml
+- service_account.yaml
