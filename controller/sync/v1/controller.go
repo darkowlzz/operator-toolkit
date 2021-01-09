@@ -1,6 +1,6 @@
 package v1
 
-//go:generate mockgen -destination=mocks/mock_controller.go -package=mocks github.com/darkowlzz/operator-toolkit/controller/external-object-sync/v1 Controller
+//go:generate mockgen -destination=mocks/mock_controller.go -package=mocks github.com/darkowlzz/operator-toolkit/controller/sync/v1 Controller
 
 import (
 	"context"

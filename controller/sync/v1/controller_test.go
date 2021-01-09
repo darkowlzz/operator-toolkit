@@ -14,7 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/darkowlzz/operator-toolkit/controller/external-object-sync/v1/mocks"
+	"github.com/darkowlzz/operator-toolkit/controller/sync/v1/mocks"
 	tdv1alpha1 "github.com/darkowlzz/operator-toolkit/testdata/api/v1alpha1"
 )
 
@@ -53,7 +53,6 @@ func TestReconcile(t *testing.T) {
 					WithScheme(scheme),
 					WithController(m),
 					WithClient(cli),
-					WithGarbageCollectorEnabled(false),
 				)
 				return sr
 			},
@@ -71,7 +70,6 @@ func TestReconcile(t *testing.T) {
 					WithScheme(scheme),
 					WithController(m),
 					WithClient(cli),
-					WithGarbageCollectorEnabled(false),
 				)
 				return sr
 			},
@@ -90,7 +88,6 @@ func TestReconcile(t *testing.T) {
 					WithScheme(scheme),
 					WithController(m),
 					WithClient(cli),
-					WithGarbageCollectorEnabled(false),
 				)
 				return sr
 			},
@@ -108,7 +105,6 @@ func TestReconcile(t *testing.T) {
 					WithScheme(scheme),
 					WithController(m),
 					WithClient(cli),
-					WithGarbageCollectorEnabled(false),
 				)
 				return sr
 			},

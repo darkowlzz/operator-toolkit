@@ -1,9 +1,6 @@
-// Package v1 helpers to build an external object sync controller reconciler.
-// It defines a Controller interface which provides methods required for
-// reconciling an external object sync controller. An external object sync
-// controller syncs objects between a kubernetes cluster and an external
-// system. The package also provides an implementation of the Reconcile method
-// that can be embedded in a controller to satisfy the controller-runtime's
-// Reconciler interface. The reconciler also implements a garbage collector to
-// delete orphaned objects in the external system.
+// Package v1 provides helpers to implement an external object sync controller.
+// It's based on the sync controller and adds a garbage collector sync function
+// for the purpose of syncing objects between a kubernetes cluster and an
+// external system. The garbage collector deletes orphan objects in the
+// external system.
 package v1

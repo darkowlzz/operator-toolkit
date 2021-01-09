@@ -10,7 +10,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/darkowlzz/operator-toolkit/controller/external-object-sync/v1/mocks"
+	syncv1 "github.com/darkowlzz/operator-toolkit/controller/sync/v1"
+	"github.com/darkowlzz/operator-toolkit/controller/sync/v1/mocks"
 	tdv1alpha1 "github.com/darkowlzz/operator-toolkit/testdata/api/v1alpha1"
 )
 
@@ -59,16 +60,16 @@ func TestCollectGarbage(t *testing.T) {
 		Build()
 
 	// Initialize the reconciler.
-	sr := SyncReconciler{}
+	sr := ExternalObjectSyncReconciler{}
 	err := sr.Init(nil, &tdv1alpha1.Game{}, &tdv1alpha1.GameList{},
-		WithScheme(scheme),
-		WithController(m),
-		WithClient(cli),
-		// Disable garbage collector from executing automatically.
-		WithGarbageCollectorEnabled(false),
+		syncv1.WithScheme(scheme),
+		syncv1.WithController(m),
+		syncv1.WithClient(cli),
 	)
 	assert.Nil(t, err)
 
-	// Run garbage collection.
-	sr.collectGarbage()
+	// Run garbage collection sync functions.
+	for _, f := range sr.SyncFuncs {
+		f.Call()
+	}
 }

@@ -15,11 +15,11 @@ func (s *SyncReconciler) Reconcile(ctx context.Context, req ctrl.Request) (resul
 	ctx, span := tr.Start(ctx, "reconcile")
 	defer span.End()
 
-	controller := s.ctrlr
+	controller := s.Ctrlr
 
 	// Get an instance of the object.
-	instance := s.prototype.DeepCopyObject().(client.Object)
-	if getErr := s.client.Get(ctx, req.NamespacedName, instance); getErr != nil {
+	instance := s.Prototype.DeepCopyObject().(client.Object)
+	if getErr := s.Client.Get(ctx, req.NamespacedName, instance); getErr != nil {
 		if apierrors.IsNotFound(getErr) {
 			// Not found means that it's a delete event. Delete the associated
 			// object from the external system.
@@ -38,6 +38,8 @@ func (s *SyncReconciler) Reconcile(ctx context.Context, req ctrl.Request) (resul
 		}
 		return
 	}
+
+	// TODO: Add support for finalizers for synchronous delete API.
 
 	// Ensure the object exists in the external system.
 	if ensureErr := controller.Ensure(ctx, instance); ensureErr != nil {

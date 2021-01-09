@@ -13,8 +13,11 @@ operators.
 
 - `controller/composite` package contains interface and types to implement the
     composite controller pattern.
-- `controller/external-object-sync` package contains interface and types to
-    implement the external object sync pattern.
+- `controller/sync` package contains interface and types to implement sync
+    controller pattern.
+- `controller/external-object-sync` package uses the sync pattern as the base
+    and adds a garbage collector for collecting the orphan objects in external
+    system.
 
 #### operator
 
