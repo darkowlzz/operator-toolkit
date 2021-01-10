@@ -23,6 +23,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	controller := c.ctrlr
 
+	// Get an instance of the target object.
 	instance := c.prototype.DeepCopyObject().(client.Object)
 	if getErr := c.client.Get(ctx, req.NamespacedName, instance); getErr != nil {
 		reterr = client.IgnoreNotFound(getErr)
@@ -42,7 +43,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// Save the instance before operating on it in memory.
-	clonedInstance := instance.DeepCopyObject()
+	oldInstance := instance.DeepCopyObject()
 
 	init, initErr := c.isInitialized(instance)
 	if initErr != nil {
@@ -76,9 +77,9 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		span.AddEvent("Patch status")
 
-		// Compare the cloned instance status with the updated instance status
+		// Compare the old instance status with the updated instance status
 		// and patch the status if there's a diff.
-		changed, statusChngErr := c.statusChanged(clonedInstance, instance)
+		changed, statusChngErr := c.statusChanged(oldInstance, instance)
 		if statusChngErr != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, fmt.Errorf("error while checking for changed status: %v", statusChngErr)})
 		}
