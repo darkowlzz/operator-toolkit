@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"go.opentelemetry.io/otel"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kustomize/api/filesys"
@@ -39,6 +40,11 @@ func (c *ConfigmapOperand) ReadyCheck(ctx context.Context, obj client.Object) (b
 }
 
 func (c *ConfigmapOperand) Ensure(ctx context.Context, obj client.Object, ownerRef metav1.OwnerReference) (eventv1.ReconcilerEvent, error) {
+	// Setup a tracer and start a span.
+	tr := otel.Tracer("ConfigmapOperand")
+	ctx, span := tr.Start(ctx, "configmap")
+	defer span.End()
+
 	game, ok := obj.(*appv1alpha1.Game)
 	if !ok {
 		return nil, fmt.Errorf("failed to convert %v to Game", obj)
