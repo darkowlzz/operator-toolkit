@@ -20,27 +20,27 @@ const (
 	zeroDuration time.Duration = 0 * time.Minute
 )
 
-// ExternalObjectSyncReconciler defines an external object sync reconciler
-// based on the Sync reconciler with a sync function for garbage collection of
-// the external objects.
-type ExternalObjectSyncReconciler struct {
-	syncv1.SyncReconciler
+// Reconciler defines an external object sync reconciler based on the Sync
+// reconciler with a sync function for garbage collection of the external
+// objects.
+type Reconciler struct {
+	syncv1.Reconciler
 	disableGarbageCollector bool
 	garbageCollectionPeriod time.Duration
 }
 
 // DisableGarbageCollector disables the garbage collector.
-func (s *ExternalObjectSyncReconciler) DisableGarbageCollector() {
+func (s *Reconciler) DisableGarbageCollector() {
 	s.disableGarbageCollector = true
 }
 
 // SetGarbageCollectionPeriod sets the garbage collection period.
-func (s *ExternalObjectSyncReconciler) SetGarbageCollectionPeriod(period time.Duration) {
+func (s *Reconciler) SetGarbageCollectionPeriod(period time.Duration) {
 	s.garbageCollectionPeriod = period
 }
 
 // Init initializes the reconciler.
-func (s *ExternalObjectSyncReconciler) Init(mgr ctrl.Manager, prototype client.Object, prototypeList client.ObjectList, opts ...syncv1.SyncReconcilerOptions) error {
+func (s *Reconciler) Init(mgr ctrl.Manager, prototype client.Object, prototypeList client.ObjectList, opts ...syncv1.ReconcilerOptions) error {
 	// Add a garbage collector sync func if garbage collector is not disabled.
 	if !s.disableGarbageCollector {
 		// If the period is zero, use the default period.
@@ -55,13 +55,13 @@ func (s *ExternalObjectSyncReconciler) Init(mgr ctrl.Manager, prototype client.O
 	}
 
 	// Initialize the base sync reconciler.
-	return s.SyncReconciler.Init(mgr, prototype, prototypeList, opts...)
+	return s.Reconciler.Init(mgr, prototype, prototypeList, opts...)
 }
 
 // collectGarbage lists all the prototype objects in k8s and the associated
 // objects in the external system and compares them. It deletes all the objects
 // in the external system that don't have an associated k8s object.
-func (s *ExternalObjectSyncReconciler) collectGarbage() {
+func (s *Reconciler) collectGarbage() {
 	s.Log.WithValues("garbage-collector", s.Name)
 
 	controller := s.Ctrlr

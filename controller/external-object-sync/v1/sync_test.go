@@ -60,7 +60,7 @@ func TestCollectGarbage(t *testing.T) {
 		Build()
 
 	// Initialize the reconciler.
-	sr := ExternalObjectSyncReconciler{}
+	sr := Reconciler{}
 	err := sr.Init(nil, &tdv1alpha1.Game{}, &tdv1alpha1.GameList{},
 		syncv1.WithScheme(scheme),
 		syncv1.WithController(m),

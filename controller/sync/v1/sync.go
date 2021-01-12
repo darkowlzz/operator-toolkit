@@ -9,8 +9,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// SyncReconciler defines a sync reconciler.
-type SyncReconciler struct {
+// Reconciler defines a sync reconciler.
+type Reconciler struct {
 	Name          string
 	Ctrlr         Controller
 	Prototype     client.Object
@@ -21,61 +21,61 @@ type SyncReconciler struct {
 	SyncFuncs     []SyncFunc
 }
 
-// SyncReconcilerOptions is used to configure SyncReconciler.
-type SyncReconcilerOptions func(*SyncReconciler)
+// ReconcilerOptions is used to configure Reconciler.
+type ReconcilerOptions func(*Reconciler)
 
-// WithName sets the name of the SyncReconciler.
-func WithName(name string) SyncReconcilerOptions {
-	return func(s *SyncReconciler) {
+// WithName sets the name of the Reconciler.
+func WithName(name string) ReconcilerOptions {
+	return func(s *Reconciler) {
 		s.Name = name
 	}
 }
 
 // WithClient sets the k8s client in the reconciler.
-func WithClient(cli client.Client) SyncReconcilerOptions {
-	return func(s *SyncReconciler) {
+func WithClient(cli client.Client) ReconcilerOptions {
+	return func(s *Reconciler) {
 		s.Client = cli
 	}
 }
 
 // WithPrototype sets a prototype of the object that's reconciled.
-func WithPrototype(obj client.Object) SyncReconcilerOptions {
-	return func(s *SyncReconciler) {
+func WithPrototype(obj client.Object) ReconcilerOptions {
+	return func(s *Reconciler) {
 		s.Prototype = obj
 	}
 }
 
-// WithLogger sets the Logger in a SyncReconciler.
-func WithLogger(log logr.Logger) SyncReconcilerOptions {
-	return func(s *SyncReconciler) {
+// WithLogger sets the Logger in a Reconciler.
+func WithLogger(log logr.Logger) ReconcilerOptions {
+	return func(s *Reconciler) {
 		s.Log = log
 	}
 }
 
-// WithController sets the Controller in a SyncReconciler.
-func WithController(ctrlr Controller) SyncReconcilerOptions {
-	return func(s *SyncReconciler) {
+// WithController sets the Controller in a Reconciler.
+func WithController(ctrlr Controller) ReconcilerOptions {
+	return func(s *Reconciler) {
 		s.Ctrlr = ctrlr
 	}
 }
 
-// WithScheme sets the runtime Scheme of the SyncReconciler.
-func WithScheme(scheme *runtime.Scheme) SyncReconcilerOptions {
-	return func(s *SyncReconciler) {
+// WithScheme sets the runtime Scheme of the Reconciler.
+func WithScheme(scheme *runtime.Scheme) ReconcilerOptions {
+	return func(s *Reconciler) {
 		s.Scheme = scheme
 	}
 }
 
-// WithSyncFuncs sets the syncFuncs of the SyncReconciler.
-func WithSyncFuncs(sf []SyncFunc) SyncReconcilerOptions {
-	return func(s *SyncReconciler) {
+// WithSyncFuncs sets the syncFuncs of the Reconciler.
+func WithSyncFuncs(sf []SyncFunc) ReconcilerOptions {
+	return func(s *Reconciler) {
 		s.SyncFuncs = sf
 	}
 }
 
-// Init initializes the SyncReconciler for a given Object with the given
+// Init initializes the Reconciler for a given Object with the given
 // options.
-func (s *SyncReconciler) Init(mgr ctrl.Manager, prototype client.Object, prototypeList client.ObjectList, opts ...SyncReconcilerOptions) error {
+func (s *Reconciler) Init(mgr ctrl.Manager, prototype client.Object, prototypeList client.ObjectList, opts ...ReconcilerOptions) error {
 	// Use manager if provided. This is helpful in tests to provide explicit
 	// client and scheme without a manager.
 	if mgr != nil {
@@ -106,7 +106,7 @@ func (s *SyncReconciler) Init(mgr ctrl.Manager, prototype client.Object, prototy
 
 	// Perform validation.
 	if s.Ctrlr == nil {
-		return fmt.Errorf("must provide a Controller to the SyncReconciler")
+		return fmt.Errorf("must provide a Controller to the Reconciler")
 	}
 
 	// Run the sync functions.
@@ -116,7 +116,7 @@ func (s *SyncReconciler) Init(mgr ctrl.Manager, prototype client.Object, prototy
 }
 
 // RunSyncFuncs runs all the SyncFuncs in go routines.
-func (s *SyncReconciler) RunSyncFuncs() {
+func (s *Reconciler) RunSyncFuncs() {
 	for _, sf := range s.SyncFuncs {
 		go sf.Run()
 	}

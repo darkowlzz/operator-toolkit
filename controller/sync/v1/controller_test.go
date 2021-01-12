@@ -39,7 +39,7 @@ func TestReconcile(t *testing.T) {
 	testcases := []struct {
 		name         string
 		existingObjs []runtime.Object
-		reconciler   func(m Controller, scheme *runtime.Scheme, cli client.Client) *SyncReconciler
+		reconciler   func(m Controller, scheme *runtime.Scheme, cli client.Client) *Reconciler
 		expectations func(*mocks.MockController)
 		wantResult   ctrl.Result
 		wantErr      bool
@@ -47,8 +47,8 @@ func TestReconcile(t *testing.T) {
 		{
 			name:         "instance found",
 			existingObjs: []runtime.Object{gameObj},
-			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *SyncReconciler {
-				sr := &SyncReconciler{}
+			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *Reconciler {
+				sr := &Reconciler{}
 				_ = sr.Init(nil, &tdv1alpha1.Game{}, &tdv1alpha1.GameList{},
 					WithScheme(scheme),
 					WithController(m),
@@ -64,8 +64,8 @@ func TestReconcile(t *testing.T) {
 		{
 			name:         "ensure error",
 			existingObjs: []runtime.Object{gameObj},
-			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *SyncReconciler {
-				sr := &SyncReconciler{}
+			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *Reconciler {
+				sr := &Reconciler{}
 				_ = sr.Init(nil, &tdv1alpha1.Game{}, &tdv1alpha1.GameList{},
 					WithScheme(scheme),
 					WithController(m),
@@ -82,8 +82,8 @@ func TestReconcile(t *testing.T) {
 		{
 			name:         "instance not found",
 			existingObjs: []runtime.Object{},
-			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *SyncReconciler {
-				sr := &SyncReconciler{}
+			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *Reconciler {
+				sr := &Reconciler{}
 				_ = sr.Init(nil, &tdv1alpha1.Game{}, &tdv1alpha1.GameList{},
 					WithScheme(scheme),
 					WithController(m),
@@ -99,8 +99,8 @@ func TestReconcile(t *testing.T) {
 		{
 			name:         "delete error",
 			existingObjs: []runtime.Object{},
-			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *SyncReconciler {
-				sr := &SyncReconciler{}
+			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *Reconciler {
+				sr := &Reconciler{}
 				_ = sr.Init(nil, &tdv1alpha1.Game{}, &tdv1alpha1.GameList{},
 					WithScheme(scheme),
 					WithController(m),

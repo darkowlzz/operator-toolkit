@@ -38,7 +38,7 @@ type ExternalGameSyncReconciler struct {
 	Log    logr.Logger
 	Scheme *runtime.Scheme
 
-	extobjsyncv1.ExternalObjectSyncReconciler
+	extobjsyncv1.Reconciler
 }
 
 //+kubebuilder:rbac:groups=app.example.com,resources=games,verbs=get;list;watch;create;update;patch;delete
@@ -50,9 +50,9 @@ func (r *ExternalGameSyncReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	c := externalGameSync.NewExternalGameSyncController()
 
 	// Set the garbage collection period and initialize the reconciler,
-	r.ExternalObjectSyncReconciler.SetGarbageCollectionPeriod(5 * time.Second)
-	// r.ExternalObjectSyncReconciler.DisableGarbageCollector()
-	err := r.ExternalObjectSyncReconciler.Init(mgr, &appv1alpha1.Game{}, &appv1alpha1.GameList{},
+	r.Reconciler.SetGarbageCollectionPeriod(5 * time.Second)
+	// r.Reconciler.DisableGarbageCollector()
+	err := r.Reconciler.Init(mgr, &appv1alpha1.Game{}, &appv1alpha1.GameList{},
 		syncv1.WithName("external-game-sync-controller"),
 		syncv1.WithScheme(r.Scheme),
 		syncv1.WithController(c),
