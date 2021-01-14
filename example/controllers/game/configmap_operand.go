@@ -50,19 +50,25 @@ func (c *ConfigmapOperand) Ensure(ctx context.Context, obj client.Object, ownerR
 		return nil, fmt.Errorf("failed to convert %v to Game", obj)
 	}
 
-	// Create a ManifestTransform with all the transformations and run
-	// transforms.
-	manifestTransform := transform.ManifestTransform{
-		"configmap/configmap.yaml": []transform.TransformFunc{
-			transform.AddLabelsFunc(map[string]string{"labelkey1": "labelval1"}),
+	// Create a builder with all the transformations.
+	b, err := declarative.NewBuilder(manifestPackage, c.fs,
+		declarative.WithManifestTransform(transform.ManifestTransform{
+			"configmap/configmap.yaml": []transform.TransformFunc{
+				transform.AddLabelsFunc(map[string]string{"labelkey1": "labelval1"}),
+			},
+		}),
+		declarative.WithCommonTransforms([]transform.TransformFunc{
 			transform.SetOwnerReference([]metav1.OwnerReference{ownerRef}),
-		},
+		}),
+		declarative.WithKustomizeMutationFunc([]kustomize.MutateFunc{
+			kustomize.AddNamespace(game.GetNamespace()),
+		}),
+	)
+	if err != nil {
+		return nil, err
 	}
 
-	// Mutate kustomization file with object attributes.
-	kMutate := []kustomize.MutateFunc{kustomize.AddNamespace(game.GetNamespace())}
-
-	return nil, declarative.BuildAndApply(ctx, c.fs, manifestPackage, game.GetNamespace(), manifestTransform, kMutate)
+	return nil, b.Apply(ctx)
 }
 
 func (c *ConfigmapOperand) Delete(ctx context.Context, obj client.Object) (eventv1.ReconcilerEvent, error) {
