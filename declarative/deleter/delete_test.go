@@ -24,6 +24,6 @@ metadata:
 
 	// Delete the namespace using the deleter.
 	d := NewDirectDeleter()
-	err = d.Delete(context.Background(), nsManifest)
+	err = d.Delete(context.Background(), "", nsManifest, false)
 	assert.Nil(t, err)
 }

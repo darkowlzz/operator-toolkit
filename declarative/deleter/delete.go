@@ -24,7 +24,11 @@ func NewDirectDeleter() *DirectDeleter {
 }
 
 // Delete deletes the given manifest.
-func (d *DirectDeleter) Delete(ctx context.Context, manifest string) error {
+// NOTE: Some arguments like namespace and extraArgs are no-op at the moment.
+// They exist to be consistent with the kubebuilder-declarative-pattern's
+// Applier interface. They are not part of the DeleteOptions at the moment.
+// This will change as the upstream delete package is refactored in the future.
+func (d *DirectDeleter) Delete(ctx context.Context, namespace string, manifest string, validate bool, extraArgs ...string) error {
 	// Create iostreams for the deleter.
 	// TODO: Make this configurable.
 	ioStreams := genericclioptions.IOStreams{
@@ -35,8 +39,11 @@ func (d *DirectDeleter) Delete(ctx context.Context, manifest string) error {
 
 	// Create a new factory for the deleter.
 	restClient := genericclioptions.NewConfigFlags(true).WithDeprecatedPasswordFlag()
-	matchVersionKubeConfigFlags := cmdutil.NewMatchVersionFlags(restClient)
-	f := cmdutil.NewFactory(matchVersionKubeConfigFlags)
+	f := cmdutil.NewFactory(restClient)
+	_, err := f.Validator(validate)
+	if err != nil {
+		return errors.Wrap(err, "validation failed")
+	}
 
 	// Write the given file into a temporary file and pass that to the
 	// FilenameOptions as Filenames.
