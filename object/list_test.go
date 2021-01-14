@@ -3,12 +3,13 @@ package object
 import (
 	"testing"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	tdv1alpha1 "github.com/darkowlzz/operator-toolkit/testdata/api/v1alpha1"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func TestNamespacedNames(t *testing.T) {
@@ -207,6 +208,95 @@ func TestNamespacedNamesDiff(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			got := NamespacedNamesDiff(tc.a, tc.b)
 			assert.Equal(t, tc.want, got, "result")
+		})
+	}
+}
+
+func TestClientObjects(t *testing.T) {
+	// Create a scheme with testdata scheme info.
+	scheme := runtime.NewScheme()
+	assert.Nil(t, tdv1alpha1.AddToScheme(scheme))
+
+	type want struct {
+		name      string
+		namespace string
+	}
+
+	tests := []struct {
+		name    string
+		objs    []runtime.Object
+		want    []want
+		wantErr bool
+	}{
+		{
+			name: "name and ns",
+			objs: []runtime.Object{
+				&tdv1alpha1.Game{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "zelda",
+						Namespace: "switch",
+					},
+				},
+			},
+			want: []want{
+				{
+					name:      "zelda",
+					namespace: "switch",
+				},
+			},
+		},
+		{
+			name: "list type",
+			objs: []runtime.Object{
+				&tdv1alpha1.GameList{
+					ListMeta: metav1.ListMeta{},
+					Items: []tdv1alpha1.Game{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "zelda",
+								Namespace: "switch",
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "overwatch",
+								Namespace: "blizzard",
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "unregistered type",
+			objs: []runtime.Object{
+				&corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "zelda",
+						Namespace: "switch",
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := ClientObjects(scheme, tc.objs)
+			if tc.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, got)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, len(tc.objs), len(got))
+			for i, obj := range got {
+				assert.Equal(t, tc.want[i].name, obj.GetName())
+				assert.Equal(t, tc.want[i].namespace, obj.GetNamespace())
+			}
+
 		})
 	}
 }
