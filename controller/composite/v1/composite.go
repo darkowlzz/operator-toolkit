@@ -42,39 +42,39 @@ type CompositeReconciler struct {
 	scheme          *runtime.Scheme
 }
 
-// CompositeReconcilerOptions is used to configure CompositeReconciler.
-type CompositeReconcilerOptions func(*CompositeReconciler)
+// CompositeReconcilerOption is used to configure CompositeReconciler.
+type CompositeReconcilerOption func(*CompositeReconciler)
 
 // WithName sets the name of the CompositeReconciler.
-func WithName(name string) CompositeReconcilerOptions {
+func WithName(name string) CompositeReconcilerOption {
 	return func(c *CompositeReconciler) {
 		c.name = name
 	}
 }
 
 // WithClient sets the k8s client in the reconciler.
-func WithClient(cli client.Client) CompositeReconcilerOptions {
+func WithClient(cli client.Client) CompositeReconcilerOption {
 	return func(c *CompositeReconciler) {
 		c.client = cli
 	}
 }
 
 // WithPrototype sets a prototype of the object that's reconciled.
-func WithPrototype(obj client.Object) CompositeReconcilerOptions {
+func WithPrototype(obj client.Object) CompositeReconcilerOption {
 	return func(c *CompositeReconciler) {
 		c.prototype = obj
 	}
 }
 
 // WithLogger sets the Logger in a CompositeReconciler.
-func WithLogger(log logr.Logger) CompositeReconcilerOptions {
+func WithLogger(log logr.Logger) CompositeReconcilerOption {
 	return func(c *CompositeReconciler) {
 		c.log = log
 	}
 }
 
 // WithController sets the Controller in a CompositeReconciler.
-func WithController(ctrlr Controller) CompositeReconcilerOptions {
+func WithController(ctrlr Controller) CompositeReconcilerOption {
 	return func(c *CompositeReconciler) {
 		c.ctrlr = ctrlr
 	}
@@ -82,7 +82,7 @@ func WithController(ctrlr Controller) CompositeReconcilerOptions {
 
 // WithInitCondition sets the initial status Condition to be used by the
 // CompositeReconciler on a resource object.
-func WithInitCondition(cndn metav1.Condition) CompositeReconcilerOptions {
+func WithInitCondition(cndn metav1.Condition) CompositeReconcilerOption {
 	return func(c *CompositeReconciler) {
 		c.initCondition = cndn
 	}
@@ -90,21 +90,21 @@ func WithInitCondition(cndn metav1.Condition) CompositeReconcilerOptions {
 
 // WithFinalizer sets the name of the finalizer used by the
 // CompositeReconciler.
-func WithFinalizer(finalizer string) CompositeReconcilerOptions {
+func WithFinalizer(finalizer string) CompositeReconcilerOption {
 	return func(c *CompositeReconciler) {
 		c.finalizerName = finalizer
 	}
 }
 
 // WithCleanupStrategy sets the CleanupStrategy of the CompositeReconciler.
-func WithCleanupStrategy(cleanupStrat CleanupStrategy) CompositeReconcilerOptions {
+func WithCleanupStrategy(cleanupStrat CleanupStrategy) CompositeReconcilerOption {
 	return func(c *CompositeReconciler) {
 		c.cleanupStrategy = cleanupStrat
 	}
 }
 
 // WithScheme sets the runtime Scheme of the CompositeReconciler.
-func WithScheme(scheme *runtime.Scheme) CompositeReconcilerOptions {
+func WithScheme(scheme *runtime.Scheme) CompositeReconcilerOption {
 	return func(c *CompositeReconciler) {
 		c.scheme = scheme
 	}
@@ -112,7 +112,7 @@ func WithScheme(scheme *runtime.Scheme) CompositeReconcilerOptions {
 
 // Init initializes the CompositeReconciler for a given Object with the given
 // options.
-func (c *CompositeReconciler) Init(mgr ctrl.Manager, prototype client.Object, opts ...CompositeReconcilerOptions) error {
+func (c *CompositeReconciler) Init(mgr ctrl.Manager, prototype client.Object, opts ...CompositeReconcilerOption) error {
 	// Use manager if provided. This is helpful in tests to provide explicit
 	// client and scheme without a manager.
 	if mgr != nil {

@@ -21,53 +21,53 @@ type Reconciler struct {
 	SyncFuncs     []SyncFunc
 }
 
-// ReconcilerOptions is used to configure Reconciler.
-type ReconcilerOptions func(*Reconciler)
+// ReconcilerOption is used to configure Reconciler.
+type ReconcilerOption func(*Reconciler)
 
 // WithName sets the name of the Reconciler.
-func WithName(name string) ReconcilerOptions {
+func WithName(name string) ReconcilerOption {
 	return func(s *Reconciler) {
 		s.Name = name
 	}
 }
 
 // WithClient sets the k8s client in the reconciler.
-func WithClient(cli client.Client) ReconcilerOptions {
+func WithClient(cli client.Client) ReconcilerOption {
 	return func(s *Reconciler) {
 		s.Client = cli
 	}
 }
 
 // WithPrototype sets a prototype of the object that's reconciled.
-func WithPrototype(obj client.Object) ReconcilerOptions {
+func WithPrototype(obj client.Object) ReconcilerOption {
 	return func(s *Reconciler) {
 		s.Prototype = obj
 	}
 }
 
 // WithLogger sets the Logger in a Reconciler.
-func WithLogger(log logr.Logger) ReconcilerOptions {
+func WithLogger(log logr.Logger) ReconcilerOption {
 	return func(s *Reconciler) {
 		s.Log = log
 	}
 }
 
 // WithController sets the Controller in a Reconciler.
-func WithController(ctrlr Controller) ReconcilerOptions {
+func WithController(ctrlr Controller) ReconcilerOption {
 	return func(s *Reconciler) {
 		s.Ctrlr = ctrlr
 	}
 }
 
 // WithScheme sets the runtime Scheme of the Reconciler.
-func WithScheme(scheme *runtime.Scheme) ReconcilerOptions {
+func WithScheme(scheme *runtime.Scheme) ReconcilerOption {
 	return func(s *Reconciler) {
 		s.Scheme = scheme
 	}
 }
 
 // WithSyncFuncs sets the syncFuncs of the Reconciler.
-func WithSyncFuncs(sf []SyncFunc) ReconcilerOptions {
+func WithSyncFuncs(sf []SyncFunc) ReconcilerOption {
 	return func(s *Reconciler) {
 		s.SyncFuncs = sf
 	}
@@ -75,7 +75,7 @@ func WithSyncFuncs(sf []SyncFunc) ReconcilerOptions {
 
 // Init initializes the Reconciler for a given Object with the given
 // options.
-func (s *Reconciler) Init(mgr ctrl.Manager, prototype client.Object, prototypeList client.ObjectList, opts ...ReconcilerOptions) error {
+func (s *Reconciler) Init(mgr ctrl.Manager, prototype client.Object, prototypeList client.ObjectList, opts ...ReconcilerOption) error {
 	// Use manager if provided. This is helpful in tests to provide explicit
 	// client and scheme without a manager.
 	if mgr != nil {

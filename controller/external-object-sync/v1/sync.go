@@ -40,7 +40,7 @@ func (s *Reconciler) SetGarbageCollectionPeriod(period time.Duration) {
 }
 
 // Init initializes the reconciler.
-func (s *Reconciler) Init(mgr ctrl.Manager, prototype client.Object, prototypeList client.ObjectList, opts ...syncv1.ReconcilerOptions) error {
+func (s *Reconciler) Init(mgr ctrl.Manager, prototype client.Object, prototypeList client.ObjectList, opts ...syncv1.ReconcilerOption) error {
 	// Add a garbage collector sync func if garbage collector is not disabled.
 	if !s.disableGarbageCollector {
 		// If the period is zero, use the default period.
