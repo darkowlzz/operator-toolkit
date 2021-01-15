@@ -2,14 +2,13 @@ package v1
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	syncv1 "github.com/darkowlzz/operator-toolkit/controller/sync/v1"
-	apimeta "k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/darkowlzz/operator-toolkit/object"
 )
 
 const (
@@ -80,7 +79,7 @@ func (s *Reconciler) collectGarbage() {
 	}
 
 	// Convert all k8s objects to list of namespaced names.
-	kObjList, nsnErr := ExtractNamespacedNamesFromList(instances)
+	kObjList, nsnErr := object.NamespacedNames(instances)
 	if nsnErr != nil {
 		s.Log.Info("failed to extract namespaced names: %w", nsnErr)
 		return
@@ -93,12 +92,8 @@ func (s *Reconciler) collectGarbage() {
 		return
 	}
 
-	// Diff the objects and obtain a list of external objects to delete.
-	delObjs, diffErr := DiffExternalObjects(kObjList, extObjList)
-	if diffErr != nil {
-		s.Log.Info("failed to get diff of objects", "error", diffErr)
-		return
-	}
+	// Get the list of external objects that are no longer in k8s.
+	delObjs := object.NamespacedNamesDiff(extObjList, kObjList)
 
 	s.Log.Info("garbage collecting external objects", "objects", delObjs)
 
@@ -112,47 +107,4 @@ func (s *Reconciler) collectGarbage() {
 			s.Log.Info("failed to delete external object", "instance", instance, "error", err)
 		}
 	}
-}
-
-// ExtractNamespacedNamesFromList takes an ObjectList, extracts NamespacedName
-// info from the items and returns a list of NamespacedName.
-func ExtractNamespacedNamesFromList(instances client.ObjectList) ([]types.NamespacedName, error) {
-	result := []types.NamespacedName{}
-
-	items, err := apimeta.ExtractList(instances)
-	if err != nil {
-		return nil, fmt.Errorf("failed to extract objects from object list %v: %w", instances, err)
-	}
-	for _, item := range items {
-		// Get meta object from the item and extract namespace/name info.
-		obj, err := apimeta.Accessor(item)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get accessor for %v: %w", item, err)
-		}
-		nsn := types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}
-		result = append(result, nsn)
-	}
-
-	return result, nil
-}
-
-// DiffExternalObjects takes a list of k8s objects and external objects and
-// returns the list of externals objects that don't exist in k8s.
-func DiffExternalObjects(kObjList, extObjList []types.NamespacedName) ([]types.NamespacedName, error) {
-	result := []types.NamespacedName{}
-
-	for _, extObj := range extObjList {
-		found := false
-		for _, kObj := range kObjList {
-			if extObj == kObj {
-				found = true
-				break
-			}
-		}
-		if !found {
-			result = append(result, extObj)
-		}
-	}
-
-	return result, nil
 }

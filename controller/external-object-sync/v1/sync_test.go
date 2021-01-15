@@ -38,10 +38,10 @@ func TestCollectGarbage(t *testing.T) {
 
 	// Mock object list results from the external system.
 	extObjNsNList := []types.NamespacedName{
-		types.NamespacedName{Name: gameObj.GetName(), Namespace: gameObj.GetNamespace()},
-		types.NamespacedName{Name: gameObj2.GetName(), Namespace: gameObj2.GetNamespace()},
-		types.NamespacedName{Name: "oldobj1", Namespace: "somens1"},
-		types.NamespacedName{Name: "oldobj2", Namespace: "somens2"},
+		{Name: gameObj.GetName(), Namespace: gameObj.GetNamespace()},
+		{Name: gameObj2.GetName(), Namespace: gameObj2.GetNamespace()},
+		{Name: "oldobj1", Namespace: "somens1"},
+		{Name: "oldobj2", Namespace: "somens2"},
 	}
 
 	// Create a mock of the controller.
