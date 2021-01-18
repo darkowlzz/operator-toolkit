@@ -6,6 +6,8 @@ require (
 	github.com/go-logr/logr v0.3.0
 	github.com/golang/mock v1.4.4
 	github.com/goombaio/dag v0.0.0-20181006234417-a8874b1f72ff
+	github.com/onsi/ginkgo v1.14.1
+	github.com/onsi/gomega v1.10.2
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.6.1
 	go.opentelemetry.io/otel v0.15.0
