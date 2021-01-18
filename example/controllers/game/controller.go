@@ -8,6 +8,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	compositev1 "github.com/darkowlzz/operator-toolkit/controller/composite/v1"
+	"github.com/darkowlzz/operator-toolkit/object"
 	operatorv1 "github.com/darkowlzz/operator-toolkit/operator/v1"
 )
 
@@ -28,7 +29,7 @@ func (gc *GameController) Initialize(context.Context, client.Object, metav1.Cond
 }
 
 func (gc *GameController) Operate(ctx context.Context, obj client.Object) (result ctrl.Result, err error) {
-	return gc.Operator.Ensure(ctx, obj, compositev1.OwnerReferenceFromObject(obj))
+	return gc.Operator.Ensure(ctx, obj, object.OwnerReferenceFromObject(obj))
 }
 
 func (gc *GameController) Cleanup(context.Context, client.Object) (result ctrl.Result, err error) {

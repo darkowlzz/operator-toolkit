@@ -3,16 +3,14 @@ package v1
 import (
 	"context"
 	"fmt"
-	"reflect"
-	"strings"
 
 	"go.opentelemetry.io/otel"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	"github.com/darkowlzz/operator-toolkit/object"
 )
 
 // Reconcile implements the composite controller reconciliation.
@@ -45,7 +43,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// Save the instance before operating on it in memory.
 	oldInstance := instance.DeepCopyObject()
 
-	init, initErr := c.isInitialized(instance)
+	init, initErr := object.IsInitialized(c.scheme, instance)
 	if initErr != nil {
 		reterr = initErr
 		return
@@ -79,7 +77,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		// Compare the old instance status with the updated instance status
 		// and patch the status if there's a diff.
-		changed, statusChngErr := c.statusChanged(oldInstance, instance)
+		changed, statusChngErr := object.StatusChanged(c.scheme, oldInstance, instance)
 		if statusChngErr != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, fmt.Errorf("error while checking for changed status: %v", statusChngErr)})
 		}
@@ -135,100 +133,11 @@ func (c *CompositeReconciler) cleanupHandler(ctx context.Context, obj client.Obj
 	return
 }
 
-// nestedFieldNoCopy returns the nested field from a given Object. The second
-// returned value is true if the field is found, else false.
-//
-// Taken from kubebuilder-declarative-pattern's manifest package:
-// https://github.com/kubernetes-sigs/kubebuilder-declarative-pattern/blob/b731a62175207a3d8343d318e72ddc13896bcb3f/pkg/patterns/declarative/pkg/manifest/objects.go#L96
-func nestedFieldNoCopy(obj map[string]interface{}, fields ...string) (interface{}, bool, error) {
-	var val interface{} = obj
-
-	for i, field := range fields {
-		if m, ok := val.(map[string]interface{}); ok {
-			val, ok = m[field]
-			if !ok {
-				return nil, false, nil
-			}
-		} else {
-			return nil, false, fmt.Errorf("%v accessor error: %v is of the type %T, expected map[string]interface{}", strings.Join(fields[:i+1], "."), val, val)
+func contains(slice []string, s string) bool {
+	for _, element := range slice {
+		if element == s {
+			return true
 		}
 	}
-	return val, true, nil
-}
-
-// getObjectStatus returns the status of a given object, if any.
-func getObjectStatus(obj map[string]interface{}) (map[string]interface{}, error) {
-	status, found, err := nestedFieldNoCopy(obj, "status")
-	if err != nil {
-		return nil, fmt.Errorf("error reading object status: %v", err)
-	}
-
-	if !found {
-		return nil, fmt.Errorf("object status not found")
-	}
-
-	objStatus, ok := status.(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("status was not of type map[string]interface{}")
-	}
-
-	return objStatus, nil
-}
-
-// statusChanged gets the status of the given objects and compares them. It
-// returns true if there's a change in the object status.
-func (c *CompositeReconciler) statusChanged(oldo runtime.Object, newo runtime.Object) (bool, error) {
-	// Get the old status value.
-	ou, err := c.getUnstructuredObject(oldo)
-	if err != nil {
-		return false, fmt.Errorf("failed to convert old Object to Unstructured: %v", err)
-	}
-	oldStatus, err := getObjectStatus(ou.Object)
-	if err != nil {
-		return false, fmt.Errorf("failed to get old Object status: %v", err)
-	}
-
-	// Get the new status value.
-	nu, err := c.getUnstructuredObject(newo)
-	if err != nil {
-		return false, fmt.Errorf("failed to convert new Object to Unstructured: %v", err)
-	}
-	newStatus, err := getObjectStatus(nu.Object)
-	if err != nil {
-		return false, fmt.Errorf("failed to get new Object status: %v", err)
-	}
-
-	// Compare the status values.
-	if !reflect.DeepEqual(oldStatus, newStatus) {
-		return true, nil
-	}
-	return false, nil
-}
-
-// getUnstructuredObject converts the given Object into Unstructured type.
-func (c *CompositeReconciler) getUnstructuredObject(obj runtime.Object) (*unstructured.Unstructured, error) {
-	u := &unstructured.Unstructured{}
-	if err := c.scheme.Convert(obj, u, nil); err != nil {
-		return nil, fmt.Errorf("failed to convert Object to Unstructured: %v", err)
-	}
-	return u, nil
-}
-
-// isUninitialized checks if an object is uninitialized by checking if there's
-// any status condition.
-func (c *CompositeReconciler) isInitialized(obj runtime.Object) (bool, error) {
-	u, err := c.getUnstructuredObject(obj)
-	if err != nil {
-		return false, fmt.Errorf("failed to convert Object to Unstructured: %v", err)
-	}
-	status, err := getObjectStatus(u.Object)
-	if err != nil {
-		return false, fmt.Errorf("failed to get Object status: %v", err)
-	}
-
-	_, ok := status["conditions"].([]interface{})
-	if ok {
-		return true, nil
-	}
-	return false, nil
+	return false
 }

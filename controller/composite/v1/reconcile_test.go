@@ -16,64 +16,6 @@ import (
 	tdv1alpha1 "github.com/darkowlzz/operator-toolkit/testdata/api/v1alpha1"
 )
 
-func TestIsInitialized(t *testing.T) {
-	// Create a scheme with testdata scheme info.
-	scheme := runtime.NewScheme()
-	assert.Nil(t, tdv1alpha1.AddToScheme(scheme))
-
-	cases := []struct {
-		name     string
-		obj      *tdv1alpha1.Game
-		wantInit bool
-	}{
-		{
-			name:     "uninitialized",
-			obj:      &tdv1alpha1.Game{},
-			wantInit: false,
-		},
-		{
-			name: "initialized empty status conditions",
-			obj: &tdv1alpha1.Game{
-				Status: tdv1alpha1.GameStatus{
-					Conditions: []metav1.Condition{},
-				},
-			},
-			wantInit: false,
-		},
-		{
-			name: "initialized status conditions",
-			obj: &tdv1alpha1.Game{
-				Status: tdv1alpha1.GameStatus{
-					Conditions: []metav1.Condition{DefaultInitCondition},
-				},
-			},
-			wantInit: true,
-		},
-	}
-
-	for _, tc := range cases {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			// Create a mock controller.
-			mctrl := gomock.NewController(t)
-			defer mctrl.Finish()
-			m := mocks.NewMockController(mctrl)
-
-			cr := CompositeReconciler{}
-			err := cr.Init(nil, nil,
-				WithInitCondition(DefaultInitCondition),
-				WithScheme(scheme),
-				WithController(m),
-			)
-			assert.Nil(t, err)
-
-			init, err := cr.isInitialized(tc.obj)
-			assert.Nil(t, err)
-			assert.Equal(t, tc.wantInit, init, "isInitialized result")
-		})
-	}
-}
-
 func TestCleanupHandler(t *testing.T) {
 	// Create a scheme with testdata scheme info.
 	scheme := runtime.NewScheme()
