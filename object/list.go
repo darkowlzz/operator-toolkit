@@ -1,9 +1,12 @@
 package object
 
 import (
+	"errors"
 	"fmt"
 
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -47,4 +50,22 @@ func NamespacedNamesDiff(a, b []types.NamespacedName) []types.NamespacedName {
 	}
 
 	return result
+}
+
+// ClientObjects converts a slice of runtime objects to a list of client.Object.
+func ClientObjects(scheme *runtime.Scheme, objs []runtime.Object) ([]client.Object, error) {
+	result := []client.Object{}
+	for _, o := range objs {
+		u := &unstructured.Unstructured{}
+		if err := scheme.Convert(o, u, nil); err != nil {
+			return nil, err
+		}
+
+		if u.IsList() {
+			return nil, errors.New("object is a list")
+		}
+		result = append(result, u)
+	}
+
+	return result, nil
 }
