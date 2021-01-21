@@ -80,6 +80,8 @@ func NewDeleteOptions(ioStreams genericclioptions.IOStreams, fopts resource.File
 	return &delete.DeleteOptions{
 		FilenameOptions: fopts,
 		IOStreams:       ioStreams,
+		IgnoreNotFound:  true,
+		Cascade:         true,
 	}
 }
 
