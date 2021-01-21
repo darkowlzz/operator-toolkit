@@ -24,16 +24,16 @@ type Controller interface {
 	Validate(context.Context, client.Object) error
 
 	// Initialize sets the provided initialization condition on the object
-	// status. This helps some operations in Operation() know about the
-	// creation phase and run initialization specific operations.
+	// status. The object status need not be updated using a k8s client, only
+	// the status value should be set. The controller handles updating the
+	// object status in the API. Any additional status, other than the initial
+	// conditions can be set here.
 	Initialize(context.Context, client.Object, metav1.Condition) error
 
 	// UpdateStatus queries the status of the child objects and based on them,
-	// sets the status of the primary object instance. It doesn't save the
-	// updated object in the API. API update is done in PatchStatus() after
-	// collecting and comparing all the status updates. This is also called
-	// when cleanup is in progress. This should be able to remove previous
-	// status related to child objects that have been terminated.
+	// sets the status of the primary object instance. It need not save the
+	// updated object in the API. API update is done by the controller after
+	// collecting and comparing the new status with the old status.
 	UpdateStatus(context.Context, client.Object) error
 
 	// Operate runs the core operation of the controller that ensures that

@@ -140,6 +140,11 @@ func (c *CompositeReconciler) Init(mgr ctrl.Manager, prototype client.Object, op
 		c.log = c.log.WithValues("reconciler", c.name)
 	}
 
+	// If finalizer name is not provided, use the controller name.
+	if c.finalizerName == "" {
+		c.finalizerName = c.name
+	}
+
 	// Perform validation.
 	if c.ctrlr == nil {
 		return fmt.Errorf("must provide a Controller to the CompositeReconciler")

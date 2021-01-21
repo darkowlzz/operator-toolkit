@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/darkowlzz/operator-toolkit/controller/composite/v1/mocks"
 	tdv1alpha1 "github.com/darkowlzz/operator-toolkit/testdata/api/v1alpha1"
@@ -85,7 +86,7 @@ func TestCleanupHandler(t *testing.T) {
 					DeletionTimestamp: &metav1.Time{Time: time.Now()},
 				},
 			},
-			wantFinalizers: []string{someFinalizerX, finalizerName},
+			wantFinalizers: []string{someFinalizerX},
 			wantDelEnabled: true,
 			expectations: func(m *mocks.MockController) {
 				m.EXPECT().Cleanup(gomock.Any(), gomock.Any())
@@ -101,7 +102,7 @@ func TestCleanupHandler(t *testing.T) {
 					DeletionTimestamp: &metav1.Time{Time: time.Now()},
 				},
 			},
-			wantFinalizers: []string{someFinalizerX, finalizerName},
+			wantFinalizers: []string{someFinalizerX},
 			wantDelEnabled: true,
 			wantResult:     ctrl.Result{Requeue: true},
 			wantErr:        someErr,
@@ -114,6 +115,11 @@ func TestCleanupHandler(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			// Create a fake client with some existing objects.
+			cli := fake.NewClientBuilder().
+				WithScheme(scheme).
+				Build()
+
 			// Create a mock controller.
 			mctrl := gomock.NewController(t)
 			defer mctrl.Finish()
@@ -125,6 +131,7 @@ func TestCleanupHandler(t *testing.T) {
 				WithScheme(scheme),
 				WithFinalizer(finalizerName),
 				WithController(m),
+				WithClient(cli),
 			)
 			assert.Nil(t, err)
 

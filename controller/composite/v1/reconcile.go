@@ -49,7 +49,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return
 	}
 
-	// Initialize the instance if not initialized.
+	// Initialize the instance if not initialized and update.
 	if !init {
 		span.AddEvent("Initialize instance")
 		c.log.Info("initializing", "instance", instance.GetName())
@@ -58,6 +58,14 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			reterr = initErr
 			return
 		}
+
+		// Update the object status in the API.
+		if updateErr := c.client.Status().Update(ctx, instance); updateErr != nil {
+			span.RecordError(updateErr)
+			c.log.Info("failed to update initialized object", "error", updateErr)
+		}
+		span.AddEvent("Updated object status")
+		return
 	}
 
 	// Attempt to patch the status after each reconciliation.
@@ -68,6 +76,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		// of the control loop with the deferred PatchStatus.
 		span.AddEvent("Get status updates")
 		if updateErr := controller.UpdateStatus(ctx, instance); updateErr != nil {
+			span.RecordError(updateErr)
 			result = ctrl.Result{Requeue: true}
 			reterr = kerrors.NewAggregate([]error{reterr, fmt.Errorf("error while updating status: %v", updateErr)})
 			return
@@ -119,14 +128,37 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 // result and error of cleanup. It also returns delEnabled to help the caller
 // of this function know that the cleanup process has started.
 func (c *CompositeReconciler) cleanupHandler(ctx context.Context, obj client.Object) (delEnabled bool, result ctrl.Result, reterr error) {
+	tr := otel.Tracer("Cleanup Handler")
+	ctx, span := tr.Start(ctx, "cleanup handler")
+	defer span.End()
+
 	if obj.GetDeletionTimestamp().IsZero() {
-		controllerutil.AddFinalizer(obj, c.finalizerName)
+		span.AddEvent("No delete timestamp")
+		// If the object does not contain finalizer, add it.
+		if !controllerutil.ContainsFinalizer(obj, c.finalizerName) {
+			span.AddEvent("Finalizer not found, updating object to add finalizer")
+			controllerutil.AddFinalizer(obj, c.finalizerName)
+			if updateErr := c.client.Update(ctx, obj); updateErr != nil {
+				span.RecordError(updateErr)
+				c.log.Info("failed to add finalizer", "error", updateErr)
+			}
+		}
 	} else {
+		span.AddEvent("Delete timestamp found")
 		delEnabled = true
 		if contains(obj.GetFinalizers(), c.finalizerName) {
+			span.AddEvent("Finalizer found, run cleanup")
 			result, reterr = c.ctrlr.Cleanup(ctx, obj)
 			if reterr != nil {
+				span.RecordError(reterr)
 				c.log.Info("failed to cleanup", "error", reterr)
+			}
+			// Cleanup successful, remove the finalizer.
+			span.AddEvent("Cleanup completed, remove finalizer")
+			controllerutil.RemoveFinalizer(obj, c.finalizerName)
+			if updateErr := c.client.Update(ctx, obj); updateErr != nil {
+				span.RecordError(updateErr)
+				c.log.Info("failed to remove finalizer", "error", updateErr)
 			}
 		}
 	}
