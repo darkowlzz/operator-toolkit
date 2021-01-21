@@ -33,7 +33,9 @@ type Controller interface {
 	// UpdateStatus queries the status of the child objects and based on them,
 	// sets the status of the primary object instance. It need not save the
 	// updated object in the API. API update is done by the controller after
-	// collecting and comparing the new status with the old status.
+	// collecting and comparing the new status with the old status. This is the
+	// only place for updating the object. All other updates to the object are
+	// discarded.
 	UpdateStatus(context.Context, client.Object) error
 
 	// Operate runs the core operation of the controller that ensures that

@@ -68,8 +68,24 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return
 	}
 
+	// skipStatusUpdate is used to skip the deferred status update when it's
+	// known that another reconciliation will take place. An example usage of
+	// this is when the cleanupHandler() below adds a finalizer to the target
+	// object, the existing instance of the object becomes old. Fetching a new
+	// instance in UpdateStatus() in a very short time sometimes results in
+	// fetching the cached old version of the object. Attempting an update with
+	// this object results in object modified error from the API. Since adding
+	// finalizer updated the target object, it's known that another
+	// reconciliation will take place and it's okay to skip status update.
+	skipStatusUpdate := false
+
 	// Attempt to patch the status after each reconciliation.
 	defer func() {
+		if skipStatusUpdate {
+			span.AddEvent("Skipping status update")
+			return
+		}
+
 		// Update the local copy of the target object status based on the state of
 		// the world.
 		// NOTE: The actual target object gets updated in the API server at the end
@@ -82,7 +98,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return
 		}
 
-		span.AddEvent("Patch status")
+		span.AddEvent("Checking for status change")
 
 		// Compare the old instance status with the updated instance status
 		// and patch the status if there's a diff.
@@ -92,20 +108,28 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 
 		if changed {
+			span.AddEvent("Found status change, updating object")
 			// ?: Should patch status only if reterr is nil?
 			if statusErr := c.client.Status().Update(ctx, instance); statusErr != nil {
 				reterr = kerrors.NewAggregate([]error{reterr, fmt.Errorf("error while patching status: %v", statusErr)})
 			}
+		} else {
+			span.AddEvent("No status change found")
 		}
 	}()
 
 	// If the cleanup strategy is finalizer based, call the cleanup handler.
 	if c.cleanupStrategy == FinalizerCleanup {
-		span.AddEvent("Trigger cleanup")
-		delEnabled, cResult, cErr := c.cleanupHandler(ctx, instance)
+		span.AddEvent("Handle finalizers")
+		delEnabled, updated, cResult, cErr := c.cleanupHandler(ctx, instance)
+		if updated {
+			// Object updated, skip deferred status update and let the
+			// subsequent reconciliation handle the status udpate.
+			skipStatusUpdate = true
+		}
 		// If the deletion of the target object has started, return with the
-		// result and error.
-		if delEnabled || cErr != nil {
+		// result and error. Also, return if an update took place.
+		if updated || delEnabled || cErr != nil {
 			result = cResult
 			reterr = cErr
 			return
@@ -125,9 +149,11 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 // cleanupHandler checks if the target object is marked for deletion. If not,
 // it ensures that a finalizer is added to the target object. If an object is
 // marked for deletion, it runs the custom cleanup functions and returns the
-// result and error of cleanup. It also returns delEnabled to help the caller
-// of this function know that the cleanup process has started.
-func (c *CompositeReconciler) cleanupHandler(ctx context.Context, obj client.Object) (delEnabled bool, result ctrl.Result, reterr error) {
+// result and error of cleanup. It returns delEnabled to help the caller of
+// this function know that the cleanup process has started. It also returns
+// updated which tells the caller about an API update, usually update to the
+// finalizers in the object.
+func (c *CompositeReconciler) cleanupHandler(ctx context.Context, obj client.Object) (delEnabled bool, updated bool, result ctrl.Result, reterr error) {
 	tr := otel.Tracer("Cleanup Handler")
 	ctx, span := tr.Start(ctx, "cleanup handler")
 	defer span.End()
@@ -142,24 +168,35 @@ func (c *CompositeReconciler) cleanupHandler(ctx context.Context, obj client.Obj
 				span.RecordError(updateErr)
 				c.log.Info("failed to add finalizer", "error", updateErr)
 			}
+			// Mark API object update.
+			updated = true
+		} else {
+			span.AddEvent("Finalizer exists, no-op")
 		}
 	} else {
 		span.AddEvent("Delete timestamp found")
 		delEnabled = true
+
+		// Perform cleanup if finalizer is found.
 		if contains(obj.GetFinalizers(), c.finalizerName) {
 			span.AddEvent("Finalizer found, run cleanup")
 			result, reterr = c.ctrlr.Cleanup(ctx, obj)
 			if reterr != nil {
 				span.RecordError(reterr)
 				c.log.Info("failed to cleanup", "error", reterr)
+			} else {
+				// Cleanup successful, remove the finalizer.
+				span.AddEvent("Cleanup completed, remove finalizer")
+				controllerutil.RemoveFinalizer(obj, c.finalizerName)
+				if updateErr := c.client.Update(ctx, obj); updateErr != nil {
+					span.RecordError(updateErr)
+					c.log.Info("failed to remove finalizer", "error", updateErr)
+				}
+				// Mark API object update.
+				updated = true
 			}
-			// Cleanup successful, remove the finalizer.
-			span.AddEvent("Cleanup completed, remove finalizer")
-			controllerutil.RemoveFinalizer(obj, c.finalizerName)
-			if updateErr := c.client.Update(ctx, obj); updateErr != nil {
-				span.RecordError(updateErr)
-				c.log.Info("failed to remove finalizer", "error", updateErr)
-			}
+		} else {
+			span.AddEvent("Finalizer not found, no-op")
 		}
 	}
 	return

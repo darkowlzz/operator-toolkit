@@ -281,8 +281,6 @@ func TestReconcile(t *testing.T) {
 			expectations: func(m *mocks.MockController) {
 				m.EXPECT().Default(gomock.Any(), gomock.Any())
 				m.EXPECT().Validate(gomock.Any(), gomock.Any()).Return(nil)
-				m.EXPECT().UpdateStatus(gomock.Any(), gomock.Any())
-				m.EXPECT().Operate(gomock.Any(), gomock.Any()).Return(ctrl.Result{}, nil)
 			},
 			wantResult: ctrl.Result{},
 		},
@@ -331,7 +329,6 @@ func TestReconcile(t *testing.T) {
 				m.EXPECT().Default(gomock.Any(), gomock.Any())
 				m.EXPECT().Validate(gomock.Any(), gomock.Any()).Return(nil)
 				m.EXPECT().Cleanup(gomock.Any(), gomock.Any())
-				m.EXPECT().UpdateStatus(gomock.Any(), gomock.Any())
 			},
 			wantResult: ctrl.Result{},
 		},

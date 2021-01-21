@@ -31,6 +31,7 @@ func TestCleanupHandler(t *testing.T) {
 		obj            *tdv1alpha1.Game
 		wantFinalizers []string
 		wantDelEnabled bool
+		wantUpdated    bool
 		wantResult     ctrl.Result
 		wantErr        error
 		expectations   func(*mocks.MockController)
@@ -48,6 +49,7 @@ func TestCleanupHandler(t *testing.T) {
 				},
 			},
 			wantFinalizers: []string{finalizerName},
+			wantUpdated:    true,
 			expectations:   func(m *mocks.MockController) {},
 		},
 		{
@@ -88,6 +90,7 @@ func TestCleanupHandler(t *testing.T) {
 			},
 			wantFinalizers: []string{someFinalizerX},
 			wantDelEnabled: true,
+			wantUpdated:    true,
 			expectations: func(m *mocks.MockController) {
 				m.EXPECT().Cleanup(gomock.Any(), gomock.Any())
 			},
@@ -102,7 +105,7 @@ func TestCleanupHandler(t *testing.T) {
 					DeletionTimestamp: &metav1.Time{Time: time.Now()},
 				},
 			},
-			wantFinalizers: []string{someFinalizerX},
+			wantFinalizers: []string{someFinalizerX, finalizerName},
 			wantDelEnabled: true,
 			wantResult:     ctrl.Result{Requeue: true},
 			wantErr:        someErr,
@@ -135,10 +138,11 @@ func TestCleanupHandler(t *testing.T) {
 			)
 			assert.Nil(t, err)
 
-			delEnabled, res, err := cr.cleanupHandler(context.Background(), tc.obj)
+			delEnabled, updated, res, err := cr.cleanupHandler(context.Background(), tc.obj)
 			assert.Equal(t, tc.wantErr, err)
 			assert.Equal(t, tc.wantFinalizers, tc.obj.GetFinalizers(), "finalizers after cleanupHandler call")
 			assert.Equal(t, tc.wantDelEnabled, delEnabled, "delete enabled result")
+			assert.Equal(t, tc.wantUpdated, updated, "updated result")
 			assert.Equal(t, tc.wantResult, res, "cleanup result")
 		})
 	}
