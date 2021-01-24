@@ -1,4 +1,4 @@
-package rbac
+package client
 
 import (
 	rbacv1 "k8s.io/api/rbac/v1"

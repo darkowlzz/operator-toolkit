@@ -1,4 +1,4 @@
-package rbac
+package client
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ import (
 )
 
 // recordRule records RBAC rule for a given Object with a given verb.
-func (c *RBACClient) recordRule(obj runtime.Object, verb string) {
+func (c *Client) recordRule(obj runtime.Object, verb string) {
 	c.recordRuleWithStatus(obj, verb, false)
 }
 
@@ -28,7 +28,7 @@ func (c *RBACClient) recordRule(obj runtime.Object, verb string) {
 // NOTE: To avoid the recorder from interfering with the Client's operation,
 // errors shouldn't cause a failure, but only log and store the error for later
 // use.
-func (c *RBACClient) recordRuleWithStatus(obj runtime.Object, verb string, status bool) {
+func (c *Client) recordRuleWithStatus(obj runtime.Object, verb string, status bool) {
 	gvk, err := apiutil.GVKForObject(obj, c.Scheme())
 	if err != nil {
 		c.errors = append(c.errors, err)

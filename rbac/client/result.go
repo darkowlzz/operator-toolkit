@@ -1,4 +1,4 @@
-package rbac
+package client
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ const (
 
 // Result marshals and writes the observed RBAC rules into a given Writer. It
 // also writes any observed error into a given error writer.
-func Result(c *RBACClient, manifestWriter io.Writer, errorWriter io.Writer) error {
+func Result(c *Client, manifestWriter io.Writer, errorWriter io.Writer) error {
 	// Reorder the rules.
 	c.Role.Rules = reorderRules(c.Role.Rules)
 	c.ClusterRole.Rules = reorderRules(c.ClusterRole.Rules)
@@ -33,15 +33,15 @@ func Result(c *RBACClient, manifestWriter io.Writer, errorWriter io.Writer) erro
 
 	// Write the errors to the error writer.
 	if errorWriter != nil && len(c.errors) > 0 {
-		_, err := errorWriter.Write([]byte("Errors during RBACClient recording:\n"))
+		_, err := errorWriter.Write([]byte("Errors during rbac client recording:\n"))
 		if err != nil {
-			return errors.Wrap(err, "failed to write to RBACClient errorWriter")
+			return errors.Wrap(err, "failed to write to rbac client errorWriter")
 		}
 
 		for _, cErr := range c.errors {
 			_, err := errorWriter.Write([]byte(cErr.Error()))
 			if err != nil {
-				return errors.Wrap(err, "failed to write RBACClient recorder errors")
+				return errors.Wrap(err, "failed to write rbac client recorder errors")
 			}
 		}
 	}

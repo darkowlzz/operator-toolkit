@@ -1,4 +1,4 @@
-package rbac
+package client
 
 import (
 	"path/filepath"
@@ -23,7 +23,7 @@ import (
 // var cfg *rest.Config
 var k8sClient client.Client
 var testEnv *envtest.Environment
-var cli *RBACClient
+var cli *Client
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -38,7 +38,7 @@ var _ = BeforeSuite(func() {
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "example", "config", "crd", "bases")},
+		CRDDirectoryPaths: []string{filepath.Join("..", "..", "example", "config", "crd", "bases")},
 	}
 
 	cfg, err := testEnv.Start()

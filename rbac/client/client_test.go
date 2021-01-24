@@ -1,4 +1,4 @@
-package rbac
+package client
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	tdv1alpha1 "github.com/darkowlzz/operator-toolkit/testdata/api/v1alpha1"
 )
 
-var _ = Describe("RBACClient recording", func() {
+var _ = Describe("RBAC client recording", func() {
 	var count uint64 = 0
 	var ns *corev1.Namespace
 	var gameObj *tdv1alpha1.Game
@@ -52,7 +52,7 @@ var _ = Describe("RBACClient recording", func() {
 		close(done)
 	}, 10)
 
-	Describe("Use RBACClient", func() {
+	Describe("Use RBAC Client", func() {
 
 		Context("to record API calls", func() {
 			It("should record the RBAC permission", func() {
