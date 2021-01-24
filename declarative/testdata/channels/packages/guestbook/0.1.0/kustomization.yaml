@@ -1,3 +1,8 @@
 resources:
 - role.yaml
 - service_account.yaml
+
+images:
+  - name: someAppX
+    newName: example/AppX
+    newTag: v1

@@ -5,6 +5,7 @@ import (
 
 	"github.com/darkowlzz/operator-toolkit/declarative/loader"
 	"github.com/stretchr/testify/assert"
+	apitypes "sigs.k8s.io/kustomize/api/types"
 )
 
 func TestMutate(t *testing.T) {
@@ -15,7 +16,19 @@ commonAnnotations:
 commonLabels:
   haha: xaxa
   oqoq: pqpq
+images:
+- name: someAppX
+  newName: example/AppX
+  newTag: v1
+- name: someAppA
+  newName: example/AppA
+  newTag: v0.5.0
+- digest: sha256:25a0d4
+  name: someAppB
+  newName: example/AppB
 kind: Kustomization
+namePrefix: ttt
+nameSuffix: yyy
 namespace: test-ns
 resources:
 - role.yaml
@@ -40,12 +53,28 @@ resources:
 		"kqkq": "lele",
 	}
 
+	images := []apitypes.Image{
+		{
+			Name:    "someAppA",
+			NewName: "example/AppA",
+			NewTag:  "v0.5.0",
+		},
+		{
+			Name:    "someAppB",
+			NewName: "example/AppB",
+			Digest:  "sha256:25a0d4",
+		},
+	}
+
 	// List of mutations to apply.
 	mut := []MutateFunc{
 		AddCommonLabels(labels),
 		AddCommonAnnotations(annotations),
 		AddNamespace("test-ns"),
 		AddResources([]string{"uuuu.yaml", "lll.yaml"}),
+		AddImages(images),
+		AddNamePrefix("ttt"),
+		AddNameSuffix("yyy"),
 	}
 
 	Mutate(k, mut)

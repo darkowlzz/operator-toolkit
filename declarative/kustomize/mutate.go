@@ -60,3 +60,26 @@ func AddResources(resources []string) MutateFunc {
 		k.Resources = append(k.Resources, resources...)
 	}
 }
+
+// AddImages returns a MutateFunc which adds images to kustomization object.
+func AddImages(images []apitypes.Image) MutateFunc {
+	return func(k *apitypes.Kustomization) {
+		k.Images = append(k.Images, images...)
+	}
+}
+
+// AddNamePrefix returns a MutateFunc which adds namePrefix to kustomization
+// object.
+func AddNamePrefix(prefix string) MutateFunc {
+	return func(k *apitypes.Kustomization) {
+		k.NamePrefix = prefix
+	}
+}
+
+// AddNameSuffix returns a MutateFunc which adds nameSuffix to kustomization
+// object.
+func AddNameSuffix(suffix string) MutateFunc {
+	return func(k *apitypes.Kustomization) {
+		k.NameSuffix = suffix
+	}
+}
