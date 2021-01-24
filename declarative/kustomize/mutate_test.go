@@ -17,15 +17,15 @@ commonLabels:
   haha: xaxa
   oqoq: pqpq
 images:
-- name: someAppX
-  newName: example/AppX
-  newTag: v1
 - name: someAppA
   newName: example/AppA
   newTag: v0.5.0
 - digest: sha256:25a0d4
   name: someAppB
   newName: example/AppB
+- name: someAppX
+  newName: foo/AppX
+  newTag: v5
 kind: Kustomization
 namePrefix: ttt
 nameSuffix: yyy
@@ -63,6 +63,11 @@ resources:
 			Name:    "someAppB",
 			NewName: "example/AppB",
 			Digest:  "sha256:25a0d4",
+		},
+		{
+			Name:    "someAppX",
+			NewName: "foo/AppX",
+			NewTag:  "v5",
 		},
 	}
 

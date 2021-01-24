@@ -62,9 +62,33 @@ func AddResources(resources []string) MutateFunc {
 }
 
 // AddImages returns a MutateFunc which adds images to kustomization object.
+// NOTE: In kustomization, if an images list contains duplicate entries for the
+// same name, the first entry takes precedence. To avoid confusion, any
+// existing entry with the same name is updated with the new entry.
 func AddImages(images []apitypes.Image) MutateFunc {
 	return func(k *apitypes.Kustomization) {
-		k.Images = append(k.Images, images...)
+		newImages := []apitypes.Image{}
+
+		// Remove duplicate entries from existing images.
+		for _, eImage := range k.Images {
+			found := false
+			for _, nImage := range images {
+				// If entry for the same name is found, ignore it.
+				if eImage.Name == nImage.Name {
+					found = true
+					break
+				}
+			}
+			if !found {
+				newImages = append(newImages, eImage)
+			}
+		}
+
+		// Add new images.
+		newImages = append(newImages, images...)
+
+		// Set kustomization images.
+		k.Images = newImages
 	}
 }
 
