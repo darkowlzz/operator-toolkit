@@ -18,6 +18,8 @@ operators.
 - `controller/external-object-sync` package uses the sync pattern as the base
     and adds a garbage collector for collecting the orphan objects in external
     system.
+- `controller/metadata-sync` package uses the sync pattern as the base and adds
+    a resync to periodically sync object metadata between systems.
 
 #### operator
 
@@ -34,6 +36,17 @@ manifests in a declarative way. It uses kustomize tools to read, organize and
 transform the manifests with the desired configuration. This helps avoid
 writing Go structs for all the kubernetes objects and write generic reusable
 transforms.
+
+#### rbac
+
+`rbac/client` package provides a controller-runtime generic client
+implementation capable of recording the actions performed using the client on
+the objects and generate RBAC permissions as Role and ClusterRole.
+
+#### telemetry
+
+`telemetry/export` package provides opentelemetry exporters that can be used to
+enable telemetry in an operator.
 
 The above packages can be used together or independently of each other.
 `example/` contains an example of using all the packages together in a
