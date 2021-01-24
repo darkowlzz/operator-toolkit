@@ -10,8 +10,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	"github.com/darkowlzz/operator-toolkit/controller/external-object-sync/v1/mocks"
 	syncv1 "github.com/darkowlzz/operator-toolkit/controller/sync/v1"
-	"github.com/darkowlzz/operator-toolkit/controller/sync/v1/mocks"
 	tdv1alpha1 "github.com/darkowlzz/operator-toolkit/testdata/api/v1alpha1"
 )
 
@@ -61,9 +61,8 @@ func TestCollectGarbage(t *testing.T) {
 
 	// Initialize the reconciler.
 	sr := Reconciler{}
-	err := sr.Init(nil, &tdv1alpha1.Game{}, &tdv1alpha1.GameList{},
+	err := sr.Init(nil, m, &tdv1alpha1.Game{}, &tdv1alpha1.GameList{},
 		syncv1.WithScheme(scheme),
-		syncv1.WithController(m),
 		syncv1.WithClient(cli),
 	)
 	assert.Nil(t, err)

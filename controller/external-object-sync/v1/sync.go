@@ -24,6 +24,7 @@ const (
 // objects.
 type Reconciler struct {
 	syncv1.Reconciler
+	Ctrlr                   Controller
 	disableGarbageCollector bool
 	garbageCollectionPeriod time.Duration
 }
@@ -39,7 +40,7 @@ func (s *Reconciler) SetGarbageCollectionPeriod(period time.Duration) {
 }
 
 // Init initializes the reconciler.
-func (s *Reconciler) Init(mgr ctrl.Manager, prototype client.Object, prototypeList client.ObjectList, opts ...syncv1.ReconcilerOption) error {
+func (s *Reconciler) Init(mgr ctrl.Manager, ctrlr Controller, prototype client.Object, prototypeList client.ObjectList, opts ...syncv1.ReconcilerOption) error {
 	// Add a garbage collector sync func if garbage collector is not disabled.
 	if !s.disableGarbageCollector {
 		// If the period is zero, use the default period.
@@ -53,8 +54,11 @@ func (s *Reconciler) Init(mgr ctrl.Manager, prototype client.Object, prototypeLi
 		opts = append(opts, syncv1.WithSyncFuncs(sfs))
 	}
 
+	// Set controller.
+	s.Ctrlr = ctrlr
+
 	// Initialize the base sync reconciler.
-	return s.Reconciler.Init(mgr, prototype, prototypeList, opts...)
+	return s.Reconciler.Init(mgr, ctrlr, prototype, prototypeList, opts...)
 }
 
 // collectGarbage lists all the prototype objects in k8s and the associated

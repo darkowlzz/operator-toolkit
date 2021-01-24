@@ -1,8 +1,6 @@
 package v1
 
 import (
-	"fmt"
-
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -52,13 +50,6 @@ func WithLogger(log logr.Logger) ReconcilerOption {
 	}
 }
 
-// WithController sets the Controller in a Reconciler.
-func WithController(ctrlr Controller) ReconcilerOption {
-	return func(s *Reconciler) {
-		s.Ctrlr = ctrlr
-	}
-}
-
 // WithScheme sets the runtime Scheme of the Reconciler.
 func WithScheme(scheme *runtime.Scheme) ReconcilerOption {
 	return func(s *Reconciler) {
@@ -75,7 +66,9 @@ func WithSyncFuncs(sf []SyncFunc) ReconcilerOption {
 
 // Init initializes the Reconciler for a given Object with the given
 // options.
-func (s *Reconciler) Init(mgr ctrl.Manager, prototype client.Object, prototypeList client.ObjectList, opts ...ReconcilerOption) error {
+func (s *Reconciler) Init(mgr ctrl.Manager, ctrlr Controller, prototype client.Object, prototypeList client.ObjectList, opts ...ReconcilerOption) error {
+	s.Ctrlr = ctrlr
+
 	// Use manager if provided. This is helpful in tests to provide explicit
 	// client and scheme without a manager.
 	if mgr != nil {
@@ -102,11 +95,6 @@ func (s *Reconciler) Init(mgr ctrl.Manager, prototype client.Object, prototypeLi
 	// If a name is set, log it as the reconciler name.
 	if s.Name != "" {
 		s.Log = s.Log.WithValues("reconciler", s.Name)
-	}
-
-	// Perform validation.
-	if s.Ctrlr == nil {
-		return fmt.Errorf("must provide a Controller to the Reconciler")
 	}
 
 	// Run the sync functions.

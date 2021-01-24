@@ -49,9 +49,8 @@ func TestReconcile(t *testing.T) {
 			existingObjs: []runtime.Object{gameObj},
 			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *Reconciler {
 				sr := &Reconciler{}
-				_ = sr.Init(nil, &tdv1alpha1.Game{}, &tdv1alpha1.GameList{},
+				_ = sr.Init(nil, m, &tdv1alpha1.Game{}, &tdv1alpha1.GameList{},
 					WithScheme(scheme),
-					WithController(m),
 					WithClient(cli),
 				)
 				return sr
@@ -66,9 +65,8 @@ func TestReconcile(t *testing.T) {
 			existingObjs: []runtime.Object{gameObj},
 			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *Reconciler {
 				sr := &Reconciler{}
-				_ = sr.Init(nil, &tdv1alpha1.Game{}, &tdv1alpha1.GameList{},
+				_ = sr.Init(nil, m, &tdv1alpha1.Game{}, &tdv1alpha1.GameList{},
 					WithScheme(scheme),
-					WithController(m),
 					WithClient(cli),
 				)
 				return sr
@@ -84,9 +82,8 @@ func TestReconcile(t *testing.T) {
 			existingObjs: []runtime.Object{},
 			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *Reconciler {
 				sr := &Reconciler{}
-				_ = sr.Init(nil, &tdv1alpha1.Game{}, &tdv1alpha1.GameList{},
+				_ = sr.Init(nil, m, &tdv1alpha1.Game{}, &tdv1alpha1.GameList{},
 					WithScheme(scheme),
-					WithController(m),
 					WithClient(cli),
 				)
 				return sr
@@ -101,9 +98,8 @@ func TestReconcile(t *testing.T) {
 			existingObjs: []runtime.Object{},
 			reconciler: func(m Controller, scheme *runtime.Scheme, cli client.Client) *Reconciler {
 				sr := &Reconciler{}
-				_ = sr.Init(nil, &tdv1alpha1.Game{}, &tdv1alpha1.GameList{},
+				_ = sr.Init(nil, m, &tdv1alpha1.Game{}, &tdv1alpha1.GameList{},
 					WithScheme(scheme),
-					WithController(m),
 					WithClient(cli),
 				)
 				return sr

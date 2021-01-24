@@ -52,10 +52,9 @@ func (r *ExternalGameSyncReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// Set the garbage collection period and initialize the reconciler,
 	r.Reconciler.SetGarbageCollectionPeriod(5 * time.Second)
 	// r.Reconciler.DisableGarbageCollector()
-	err := r.Reconciler.Init(mgr, &appv1alpha1.Game{}, &appv1alpha1.GameList{},
+	err := r.Reconciler.Init(mgr, c, &appv1alpha1.Game{}, &appv1alpha1.GameList{},
 		syncv1.WithName("external-game-sync-controller"),
 		syncv1.WithScheme(r.Scheme),
-		syncv1.WithController(c),
 		syncv1.WithClient(r.Client),
 		syncv1.WithLogger(r.Log),
 	)

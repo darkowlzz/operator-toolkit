@@ -57,11 +57,8 @@ func (s *Reconciler) Init(mgr ctrl.Manager, ctrlr Controller, prototype client.O
 	// Set controller.
 	s.Ctrlr = ctrlr
 
-	// TODO: remove when Init() takes controller as an argument.
-	opts = append(opts, syncv1.WithController(ctrlr))
-
 	// Initialize the base sync reconciler.
-	return s.Reconciler.Init(mgr, prototype, prototypeList, opts...)
+	return s.Reconciler.Init(mgr, ctrlr, prototype, prototypeList, opts...)
 }
 
 // resync lists all the prototype objects in k8s and performs a diff against
