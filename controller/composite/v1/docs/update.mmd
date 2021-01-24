@@ -1,0 +1,14 @@
+%% Composite Reconcile - Update (finalizer based cleanup strategy)
+
+sequenceDiagram
+    autonumber
+    participant R as Root
+
+    R->>Cleanup Handler: Ensure that the object has controller owned finalizer. No-op if exists.
+
+    R->>Operate: Run operator to act on the object data. Ensures that the world is in the desired state.
+
+    participant SU as Status Update
+    R->>SU: Fetch info about the world and create a new status to be added to the main object.
+
+    Note over R, SU: Main object status update results in another update reconcile event.

@@ -1,0 +1,13 @@
+%% Composite Reconcile - Delete (finalizer based cleanup strategy)
+
+sequenceDiagram
+    autonumber
+    participant R as Root
+
+    participant CH as Cleanup Handler
+    R->>CH: If the object contains a controller owned finalizer, call Cleanup operations. This updates the world.
+
+    participant OFU as Object Finalizer Update
+    CH->>OFU: If the cleanup operations were successful, update the main Object to remove the finalizer.
+
+    Note over R, OFU: Removal of finalizer from the API object results in another reconcile event. But since the finalizer is removed, the object itself will be garbage collected.

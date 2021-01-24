@@ -1,0 +1,22 @@
+%% Composite Reconcile - Create (finalizer based cleanup strategy)
+
+sequenceDiagram
+    autonumber
+    participant R as Root
+
+    R->>Default: Add defaults
+    R->>Validate: Validate the object fields
+    R->>Init: Initialize by setting the object initial status
+
+    participant SU as Status Update
+    R->>SU: Update the API object status
+
+    Note over R, SU: Status update results in an event that causes another reconcile
+
+    participant CH as Cleanup Handler
+    R->>CH: Looks at the cleanup strategy and adds finalizer. Update the API object.
+
+    Note over R, CH: Additon of finalizer in the API object results in another reconcile event
+
+    R->>Operate: Run operator to act on the object data. Makes changes to the world.
+    R->>SU: Fetch info about the world and create a new status to be added to the main API object
