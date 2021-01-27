@@ -62,6 +62,7 @@ func TestCollectGarbage(t *testing.T) {
 
 	// Initialize the reconciler.
 	sr := Reconciler{}
+	sr.SetGarbageCollectionPeriod(5 * time.Minute)
 	// Set the delay to avoid running the GC automatically during the test.
 	sr.SetStartupGarbageCollectionDelay(1 * time.Minute)
 	err := sr.Init(nil, m, &tdv1alpha1.Game{}, &tdv1alpha1.GameList{},

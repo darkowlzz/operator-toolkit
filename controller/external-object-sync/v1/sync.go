@@ -25,14 +25,8 @@ const (
 type Reconciler struct {
 	syncv1.Reconciler
 	Ctrlr                         Controller
-	disableGarbageCollector       bool
 	garbageCollectionPeriod       time.Duration
 	startupGarbageCollectionDelay time.Duration
-}
-
-// DisableGarbageCollector disables the garbage collector.
-func (s *Reconciler) DisableGarbageCollector() {
-	s.disableGarbageCollector = true
 }
 
 // SetGarbageCollectionPeriod sets the garbage collection period.
@@ -50,13 +44,9 @@ func (s *Reconciler) SetStartupGarbageCollectionDelay(period time.Duration) {
 
 // Init initializes the reconciler.
 func (s *Reconciler) Init(mgr ctrl.Manager, ctrlr Controller, prototype client.Object, prototypeList client.ObjectList, opts ...syncv1.ReconcilerOption) error {
-	// Add a garbage collector sync func if garbage collector is not disabled.
-	if !s.disableGarbageCollector {
-		// If the period is zero, use the default period.
-		if s.garbageCollectionPeriod == zeroDuration {
-			s.garbageCollectionPeriod = DefaultGarbageCollectionPeriod
-		}
-
+	// Add a garbage collector sync func if garbage collection period is not
+	// zero.
+	if s.garbageCollectionPeriod > zeroDuration {
 		sf := syncv1.NewSyncFunc(s.collectGarbage, s.garbageCollectionPeriod, s.startupGarbageCollectionDelay)
 		sfs := []syncv1.SyncFunc{sf}
 

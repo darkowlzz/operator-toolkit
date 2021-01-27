@@ -12,12 +12,7 @@ import (
 	"github.com/darkowlzz/operator-toolkit/object"
 )
 
-const (
-	// DefaultResyncPeriod is the default period at which resync is executed.
-	DefaultResyncPeriod time.Duration = 5 * time.Minute
-
-	zeroDuration time.Duration = 0 * time.Minute
-)
+const zeroDuration time.Duration = 0 * time.Minute
 
 // Reconciler defines an external metadata sync reconciler based on the Sync
 // reconciler with a sync function for resynchronization of the external
@@ -25,14 +20,8 @@ const (
 type Reconciler struct {
 	syncv1.Reconciler
 	Ctrlr            Controller
-	disableResync    bool
 	resyncPeriod     time.Duration
 	startupSyncDelay time.Duration
-}
-
-// DisableResync disables the resync operation.
-func (s *Reconciler) DisableResync() {
-	s.disableResync = true
 }
 
 // SetResyncPeriod sets the resync interval.
@@ -49,13 +38,8 @@ func (s *Reconciler) SetStartupSyncDelay(period time.Duration) {
 
 // Init initializes the reconciler.
 func (s *Reconciler) Init(mgr ctrl.Manager, ctrlr Controller, prototype client.Object, prototypeList client.ObjectList, opts ...syncv1.ReconcilerOption) error {
-	// Add a resync func if resync is not disabled.
-	if !s.disableResync {
-		// If the period is zero, use the default period.
-		if s.resyncPeriod == zeroDuration {
-			s.resyncPeriod = DefaultResyncPeriod
-		}
-
+	// Add a resync func if resync period is not zero.
+	if s.resyncPeriod > zeroDuration {
 		sf := syncv1.NewSyncFunc(s.resync, s.resyncPeriod, s.startupSyncDelay)
 		sfs := []syncv1.SyncFunc{sf}
 
