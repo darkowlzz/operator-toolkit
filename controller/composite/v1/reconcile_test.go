@@ -130,10 +130,9 @@ func TestCleanupHandler(t *testing.T) {
 			tc.expectations(m)
 
 			cr := CompositeReconciler{}
-			err := cr.Init(nil, nil,
+			err := cr.Init(nil, m, nil,
 				WithScheme(scheme),
 				WithFinalizer(finalizerName),
-				WithController(m),
 				WithClient(cli),
 			)
 			assert.Nil(t, err)

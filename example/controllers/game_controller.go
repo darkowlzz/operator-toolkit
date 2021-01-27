@@ -76,9 +76,8 @@ func (r *GameReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	// Initialize the reconciler.
-	err = r.CompositeReconciler.Init(mgr, &appv1alpha1.Game{},
+	err = r.CompositeReconciler.Init(mgr, gc, &appv1alpha1.Game{},
 		compositev1.WithName("game-controller"),
-		compositev1.WithController(gc),
 		compositev1.WithCleanupStrategy(compositev1.OwnerReferenceCleanup),
 		compositev1.WithInitCondition(compositev1.DefaultInitCondition),
 		compositev1.WithLogger(r.Log),

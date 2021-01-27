@@ -1,8 +1,6 @@
 package v1
 
 import (
-	"fmt"
-
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -73,13 +71,6 @@ func WithLogger(log logr.Logger) CompositeReconcilerOption {
 	}
 }
 
-// WithController sets the Controller in a CompositeReconciler.
-func WithController(ctrlr Controller) CompositeReconcilerOption {
-	return func(c *CompositeReconciler) {
-		c.ctrlr = ctrlr
-	}
-}
-
 // WithInitCondition sets the initial status Condition to be used by the
 // CompositeReconciler on a resource object.
 func WithInitCondition(cndn metav1.Condition) CompositeReconcilerOption {
@@ -112,7 +103,9 @@ func WithScheme(scheme *runtime.Scheme) CompositeReconcilerOption {
 
 // Init initializes the CompositeReconciler for a given Object with the given
 // options.
-func (c *CompositeReconciler) Init(mgr ctrl.Manager, prototype client.Object, opts ...CompositeReconcilerOption) error {
+func (c *CompositeReconciler) Init(mgr ctrl.Manager, ctrlr Controller, prototype client.Object, opts ...CompositeReconcilerOption) error {
+	c.ctrlr = ctrlr
+
 	// Use manager if provided. This is helpful in tests to provide explicit
 	// client and scheme without a manager.
 	if mgr != nil {
@@ -143,11 +136,6 @@ func (c *CompositeReconciler) Init(mgr ctrl.Manager, prototype client.Object, op
 	// If finalizer name is not provided, use the controller name.
 	if c.finalizerName == "" {
 		c.finalizerName = c.name
-	}
-
-	// Perform validation.
-	if c.ctrlr == nil {
-		return fmt.Errorf("must provide a Controller to the CompositeReconciler")
 	}
 
 	return nil
