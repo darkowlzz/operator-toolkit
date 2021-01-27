@@ -3,6 +3,7 @@ package game
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go.opentelemetry.io/otel"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,6 +45,27 @@ func (c *ConfigmapOperand) Ensure(ctx context.Context, obj client.Object, ownerR
 	tr := otel.Tracer("ConfigmapOperand")
 	ctx, span := tr.Start(ctx, "configmap")
 	defer span.End()
+
+	counter := 0
+
+	for {
+		select {
+		case <-ctx.Done():
+			fmt.Println("ConfigMAP PROCESSOR RECEIVED DONE!!")
+			break
+		case <-time.After(2 * time.Second):
+			counter++
+		}
+		fmt.Println("COUNT VAL:", counter)
+		if counter == 10 {
+			fmt.Println("COUNTED SUCCESSFULLY")
+			break
+		}
+	}
+
+	fmt.Println("PROCESSING Configmap request...")
+	time.Sleep(10 * time.Second)
+	fmt.Println("PROCESSED!!!")
 
 	game, ok := obj.(*appv1alpha1.Game)
 	if !ok {

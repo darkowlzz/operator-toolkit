@@ -13,8 +13,19 @@ import (
 	"github.com/darkowlzz/operator-toolkit/object"
 )
 
-// Reconcile implements the composite controller reconciliation.
 func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, reterr error) {
+	// Send the reconcile processing request.
+	fmt.Println("SENDING RECONCILE REQUEST...")
+	c.reconcileRequestCh <- ReconcileRequestWithContext{Request: req, Ctx: ctx}
+	fmt.Println("WAITING FOR RESULT...")
+	// Wait for the processed result.
+	res := <-c.reconcileResultCh
+	fmt.Println("RECEIVED RESULT in Reconcile:", res)
+	return res.Result, res.Err
+}
+
+// Reconcile implements the composite controller reconciliation.
+func (c *CompositeReconciler) MainReconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, reterr error) {
 	tr := otel.Tracer("Reconcile")
 	ctx, span := tr.Start(ctx, "reconcile")
 	defer span.End()

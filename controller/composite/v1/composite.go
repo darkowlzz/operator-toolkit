@@ -1,6 +1,9 @@
 package v1
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -27,6 +30,18 @@ const (
 	FinalizerCleanup
 )
 
+// ReconcileRequestWithContext is a reconcile Request with reconcile context.
+type ReconcileRequestWithContext struct {
+	ctrl.Request
+	Ctx context.Context
+}
+
+// ReconcileResultWithError is a reconcile Result with reconcile error, if any.
+type ReconcileResultWithError struct {
+	ctrl.Result
+	Err error
+}
+
 // CompositeReconciler defines a composite reconciler.
 type CompositeReconciler struct {
 	name            string
@@ -38,6 +53,11 @@ type CompositeReconciler struct {
 	prototype       client.Object
 	client          client.Client
 	scheme          *runtime.Scheme
+
+	// reconcileCh is a channel to process the reconciliations.
+	// reconcileCh       chan ctrl.Request
+	reconcileRequestCh chan ReconcileRequestWithContext
+	reconcileResultCh  chan ReconcileResultWithError
 }
 
 // CompositeReconcilerOption is used to configure CompositeReconciler.
@@ -138,7 +158,59 @@ func (c *CompositeReconciler) Init(mgr ctrl.Manager, ctrlr Controller, prototype
 		c.finalizerName = c.name
 	}
 
+	// Initialize channels and start the reconcile request manager.
+	c.reconcileRequestCh = make(chan ReconcileRequestWithContext)
+	c.reconcileResultCh = make(chan ReconcileResultWithError)
+	go c.reconcileManager()
+	// go func(recReqCh chan ReconcileRequestWithContext) {
+	//     var ctx context.Context
+	//     var cancel context.CancelFunc
+
+	//     fmt.Println("STARTED RECONCILE MANAGER")
+	//     // When a reconcile request is received, run the main reconcile.
+	//     for {
+	//         select {
+	//         case req := <-recReqCh:
+	//             // Cancel any previously running processes, else no-op.
+	//             cancel()
+	//             // Create a new calcelable context.
+	//             ctx, cancel = context.WithCancel(req.Ctx)
+	//             go c.reconcileInGoroutine(ctx, req)
+	//         }
+	//     }
+	// }(c.reconcileCh)
+
 	return nil
+}
+
+func (c *CompositeReconciler) reconcileManager() {
+	var ctx context.Context
+	var cancel context.CancelFunc
+
+	fmt.Println("STARTED RECONCILE MANAGER")
+	// When a reconcile request is received, run the main reconcile.
+	for {
+		select {
+		case req := <-c.reconcileRequestCh:
+			fmt.Println("RECEIVED NEW RECONCILE REQUEST")
+			// Cancel any previously running processes, else no-op.
+			if cancel != nil {
+				cancel()
+			}
+			// Create a new calcelable context.
+			ctx, cancel = context.WithCancel(req.Ctx)
+			go c.reconcileInGoroutine(ctx, req.Request)
+		}
+	}
+}
+
+// reconcileInGoroutine calls the main reconcile and sends the obtained result
+// to the reconcile result channe.
+func (c *CompositeReconciler) reconcileInGoroutine(ctx context.Context, req ctrl.Request) {
+	fmt.Println("IN RECONCILE IN GOROUTINE")
+	result, err := c.MainReconcile(ctx, req)
+	fmt.Println("RECONCILE IN GOROUTINE RECEIVED RESULT")
+	c.reconcileResultCh <- ReconcileResultWithError{Result: result, Err: err}
 }
 
 // DefaultInitCondition is the default init condition used by the composite

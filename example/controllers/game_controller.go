@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	compositev1 "github.com/darkowlzz/operator-toolkit/controller/composite/v1"
 	"github.com/darkowlzz/operator-toolkit/declarative/loader"
@@ -87,6 +88,7 @@ func (r *GameReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(controller.Options{MaxConcurrentReconciles: 2}).
 		For(&appv1alpha1.Game{}).
 		Complete(r)
 }
