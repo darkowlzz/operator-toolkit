@@ -2,6 +2,7 @@ package v1
 
 import (
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -61,6 +62,8 @@ func TestCollectGarbage(t *testing.T) {
 
 	// Initialize the reconciler.
 	sr := Reconciler{}
+	// Set the delay to avoid running the GC automatically during the test.
+	sr.SetStartupGarbageCollectionDelay(1 * time.Minute)
 	err := sr.Init(nil, m, &tdv1alpha1.Game{}, &tdv1alpha1.GameList{},
 		syncv1.WithScheme(scheme),
 		syncv1.WithClient(cli),

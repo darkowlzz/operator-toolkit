@@ -24,9 +24,10 @@ const (
 // objects.
 type Reconciler struct {
 	syncv1.Reconciler
-	Ctrlr         Controller
-	disableResync bool
-	resyncPeriod  time.Duration
+	Ctrlr            Controller
+	disableResync    bool
+	resyncPeriod     time.Duration
+	startupSyncDelay time.Duration
 }
 
 // DisableResync disables the resync operation.
@@ -39,6 +40,13 @@ func (s *Reconciler) SetResyncPeriod(period time.Duration) {
 	s.resyncPeriod = period
 }
 
+// StartupSyncDelay sets a delay for the initial resync at startup.
+// NOTE: Setting this too low can result in failure due to uninitialized
+// controller components.
+func (s *Reconciler) SetStartupSyncDelay(period time.Duration) {
+	s.startupSyncDelay = period
+}
+
 // Init initializes the reconciler.
 func (s *Reconciler) Init(mgr ctrl.Manager, ctrlr Controller, prototype client.Object, prototypeList client.ObjectList, opts ...syncv1.ReconcilerOption) error {
 	// Add a resync func if resync is not disabled.
@@ -48,7 +56,7 @@ func (s *Reconciler) Init(mgr ctrl.Manager, ctrlr Controller, prototype client.O
 			s.resyncPeriod = DefaultResyncPeriod
 		}
 
-		sf := syncv1.NewSyncFunc(s.resync, s.resyncPeriod)
+		sf := syncv1.NewSyncFunc(s.resync, s.resyncPeriod, s.startupSyncDelay)
 		sfs := []syncv1.SyncFunc{sf}
 
 		opts = append(opts, syncv1.WithSyncFuncs(sfs))
