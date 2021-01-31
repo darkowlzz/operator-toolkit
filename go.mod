@@ -3,6 +3,7 @@ module github.com/darkowlzz/operator-toolkit
 go 1.15
 
 require (
+	github.com/blang/semver/v4 v4.0.0
 	github.com/go-logr/logr v0.3.0
 	github.com/golang/mock v1.4.4
 	github.com/goombaio/dag v0.0.0-20181006234417-a8874b1f72ff
