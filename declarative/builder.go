@@ -10,6 +10,7 @@ import (
 
 	"github.com/darkowlzz/operator-toolkit/declarative/kubectl"
 	"github.com/darkowlzz/operator-toolkit/declarative/kustomize"
+	"github.com/darkowlzz/operator-toolkit/declarative/loader"
 	"github.com/darkowlzz/operator-toolkit/declarative/transform"
 	"github.com/pkg/errors"
 )
@@ -72,9 +73,15 @@ func WithKustomizeMutationFunc(kMutateFuncs []kustomize.MutateFunc) BuilderOptio
 // returns a builder which can be used to apply or delete the built resource
 // manifests.
 func NewBuilder(packageName string, fs filesys.FileSystem, opts ...BuilderOption) (*Builder, error) {
+	// Create a copy of the filesystem.
+	fsCopy := loader.ManifestFileSystem{FileSystem: filesys.MakeFsInMemory()}
+	if err := loader.DeepCopy(fs, fsCopy); err != nil {
+		return nil, errors.Wrap(err, "failed to create a copy of the filesystem")
+	}
+
 	builder := &Builder{
 		kubectl:     kubectl.New(),
-		fs:          fs,
+		fs:          fsCopy,
 		packageName: packageName,
 	}
 

@@ -100,3 +100,35 @@ func (mfs *ManifestFileSystem) CreateIfNotExists(dir string) error {
 
 	return nil
 }
+
+// DeepCopy performs a deep copy of the FileSystem from fs1 to fs2.
+func DeepCopy(fs1, fs2 filesys.FileSystem) error {
+	walkErr := fs1.Walk("/", func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			// Create the directory in copy target.
+			if err := fs2.MkdirAll(path); err != nil {
+				return err
+			}
+			return nil
+		} else {
+			// Read the file from source and write it in the destination.
+			content, err := fs1.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			if err := fs2.WriteFile(path, content); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	if walkErr != nil {
+		return walkErr
+	}
+	return nil
+}
