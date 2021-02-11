@@ -104,6 +104,18 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "ExternalGameSync")
 		os.Exit(1)
 	}
+
+	// This is an external controller whose events are fetched from outside of
+	// k8s. The setup is the same as any other controller.
+	if err = (&controllers.SpaceReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("Space"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Space")
+		os.Exit(1)
+	}
+
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("health", healthz.Ping); err != nil {
