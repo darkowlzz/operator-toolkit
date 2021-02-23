@@ -6,35 +6,36 @@ package mocks
 
 import (
 	context "context"
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// MockController is a mock of Controller interface
+// MockController is a mock of Controller interface.
 type MockController struct {
 	ctrl     *gomock.Controller
 	recorder *MockControllerMockRecorder
 }
 
-// MockControllerMockRecorder is the mock recorder for MockController
+// MockControllerMockRecorder is the mock recorder for MockController.
 type MockControllerMockRecorder struct {
 	mock *MockController
 }
 
-// NewMockController creates a new mock instance
+// NewMockController creates a new mock instance.
 func NewMockController(ctrl *gomock.Controller) *MockController {
 	mock := &MockController{ctrl: ctrl}
 	mock.recorder = &MockControllerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockController) EXPECT() *MockControllerMockRecorder {
 	return m.recorder
 }
 
-// Delete mocks base method
+// Delete mocks base method.
 func (m *MockController) Delete(arg0 context.Context, arg1 client.Object) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", arg0, arg1)
@@ -42,13 +43,13 @@ func (m *MockController) Delete(arg0 context.Context, arg1 client.Object) error 
 	return ret0
 }
 
-// Delete indicates an expected call of Delete
+// Delete indicates an expected call of Delete.
 func (mr *MockControllerMockRecorder) Delete(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockController)(nil).Delete), arg0, arg1)
 }
 
-// Diff mocks base method
+// Diff mocks base method.
 func (m *MockController) Diff(arg0 context.Context, arg1 []client.Object) ([]client.Object, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Diff", arg0, arg1)
@@ -57,13 +58,13 @@ func (m *MockController) Diff(arg0 context.Context, arg1 []client.Object) ([]cli
 	return ret0, ret1
 }
 
-// Diff indicates an expected call of Diff
+// Diff indicates an expected call of Diff.
 func (mr *MockControllerMockRecorder) Diff(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Diff", reflect.TypeOf((*MockController)(nil).Diff), arg0, arg1)
 }
 
-// Ensure mocks base method
+// Ensure mocks base method.
 func (m *MockController) Ensure(arg0 context.Context, arg1 client.Object) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Ensure", arg0, arg1)
@@ -71,7 +72,7 @@ func (m *MockController) Ensure(arg0 context.Context, arg1 client.Object) error 
 	return ret0
 }
 
-// Ensure indicates an expected call of Ensure
+// Ensure indicates an expected call of Ensure.
 func (mr *MockControllerMockRecorder) Ensure(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ensure", reflect.TypeOf((*MockController)(nil).Ensure), arg0, arg1)
