@@ -1,0 +1,28 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: webhook-service
+  namespace: system
+spec:
+  ports:
+    - port: 443
+      targetPort: 9443
+      name: client
+  # selector:
+  #   control-plane: controller-manager
+  type: ClusterIP
+
+---
+
+kind: Endpoints
+apiVersion: v1
+metadata:
+  name: webhook-service
+  namespace: system
+subsets:
+  - ports:
+      - name: client
+        port: 9443
+    # addresses:
+    #   - ip: <ip-address>
