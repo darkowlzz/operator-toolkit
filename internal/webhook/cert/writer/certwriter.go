@@ -24,7 +24,7 @@ import (
 	"errors"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/darkowlzz/operator-toolkit/internal/webhook/cert/generator"
 )
@@ -47,7 +47,7 @@ type CertWriter interface {
 	// Inject injects the necessary information given the objects.
 	// It supports MutatingWebhookConfiguration and
 	// ValidatingWebhookConfiguration.
-	Inject(ctx context.Context, objs ...runtime.Object) error
+	Inject(ctx context.Context, objs ...client.Object) error
 }
 
 // handleCommon ensures the given webhook has a proper certificate.
@@ -137,5 +137,9 @@ func validCert(certs *generator.Artifacts, dnsName string) bool {
 		CurrentTime: time.Now().AddDate(0, 6, 0),
 	}
 	_, err = cert.Verify(ops)
-	return err == nil
+	if err != nil {
+		log.Info("cert validation failed", "error", err)
+		return false
+	}
+	return true
 }

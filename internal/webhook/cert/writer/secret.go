@@ -23,7 +23,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -170,7 +169,7 @@ func certsToSecret(certs *generator.Artifacts, sec types.NamespacedName) *corev1
 }
 
 // Inject sets the ownerReference in the secret.
-func (s *secretCertWriter) Inject(ctx context.Context, objs ...runtime.Object) error {
+func (s *secretCertWriter) Inject(ctx context.Context, objs ...client.Object) error {
 	// TODO: figure out how to get the UID
 	//for i := range objs {
 	//	accessor, err := meta.Accessor(objs[i])
