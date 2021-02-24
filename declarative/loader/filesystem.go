@@ -113,7 +113,6 @@ func DeepCopy(fs1, fs2 filesys.FileSystem) error {
 			if err := fs2.MkdirAll(path); err != nil {
 				return err
 			}
-			return nil
 		} else {
 			// Read the file from source and write it in the destination.
 			content, err := fs1.ReadFile(path)

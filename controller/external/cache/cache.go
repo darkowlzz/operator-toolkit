@@ -7,7 +7,7 @@ import "sigs.k8s.io/controller-runtime/pkg/client"
 type Cache interface {
 	// CacheMiss takes an object and checks it with the cache. It returns true
 	// when the object is not available in the cache or the cached item needs
-	// to be updated. It returns true when there's no change in the cached
+	// to be updated. It returns false when there's no change in the cached
 	// object.
 	CacheMiss(client.Object) bool
 }
