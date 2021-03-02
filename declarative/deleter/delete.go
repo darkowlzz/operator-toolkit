@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/kubectl/pkg/cmd/delete"
@@ -78,10 +79,10 @@ func (d *DirectDeleter) Delete(ctx context.Context, namespace string, manifest s
 
 func NewDeleteOptions(ioStreams genericclioptions.IOStreams, fopts resource.FilenameOptions) *delete.DeleteOptions {
 	return &delete.DeleteOptions{
-		FilenameOptions: fopts,
-		IOStreams:       ioStreams,
-		IgnoreNotFound:  true,
-		Cascade:         true,
+		FilenameOptions:   fopts,
+		IOStreams:         ioStreams,
+		IgnoreNotFound:    true,
+		CascadingStrategy: metav1.DeletePropagationForeground,
 	}
 }
 
