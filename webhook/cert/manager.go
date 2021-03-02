@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/url"
@@ -118,6 +119,7 @@ func (o *Options) setDefault() {
 }
 
 // NewManager creates a certificate manager managed by the controller manager.
+// If the manager is nil, the manager is started independently, unmanaged.
 func NewManager(mgr manager.Manager, ops Options) error {
 	ops.setDefault()
 
@@ -156,37 +158,37 @@ func (m *Manager) NeedLeaderElection() bool {
 
 // certExists checks if cert already exist that are not managed by certificate
 // manager.
-// ?: Should it ensure that both cert and key exist? If not, take over and
-// consider invalid or incomplete certificates?
 func (m *Manager) certExists() bool {
 	_, err := os.Stat(filepath.Join(m.CertDir, m.CertName))
-	if !os.IsNotExist(err) {
-		log.Info("server cert found")
-		return true
+	if err != nil {
+		if !os.IsNotExist(err) {
+			log.Error(err, "error checking server cert")
+		}
+		return false
 	}
 
 	_, err = os.Stat(filepath.Join(m.CertDir, m.KeyName))
-	if !os.IsNotExist(err) {
-		log.Info("server key found")
-		return true
+	if err != nil {
+		if !os.IsNotExist(err) {
+			log.Error(err, "error checking server key")
+		}
+		return false
 	}
 
-	return false
+	return true
 }
 
 // provision implements the Runnable interface. It starts the certificate
 // manager.
 func (m *Manager) Start(ctx context.Context) error {
-	log.Info("starting cert manager")
-
 	// If cert already exists, skip. Certificate is manager by another
 	// certificate manager.
 	if m.certExists() {
-		log.Info("skipping self signed cert generation")
+		log.Info("existing certs found, skipping self signed certificate manager")
 		return nil
 	}
 
-	log.Info("managing webhook server certificate")
+	log.Info("starting certificate manager to manage webhook server certificate")
 
 	// Ensure certificate at startup.
 	if err := m.run(); err != nil {
@@ -216,22 +218,36 @@ func (m *Manager) Start(ctx context.Context) error {
 }
 
 // run ensures that a valid certificate exists and upon certificate update, it
-// updates the certificate on the disk.
+// updates the certificate on the host.
 func (m *Manager) run() error {
+	needHostCertUpdate := false
+
+	// Check if the certs exist on the host.
+	if !m.certExists() {
+		log.Info("cert not found on host")
+		needHostCertUpdate = true
+	}
+
+	// Refresh existing cert in secret if needed.
 	ctx := context.Background()
 	changed, err := m.RefreshCert(ctx)
 	if err != nil {
 		return err
 	}
-	if !changed {
-		// ?: Check at least if the on disk cert exists? But since cert refresh
-		// is supposed to run once in a long time, this won't help in ensuring
-		// that the cert exists and up-to-date on disk.
-		return nil
+	if changed {
+		log.Info("generated new cert")
 	}
 
-	log.Info("new cert, updating the cert on disk")
+	// Update the cert on host.
+	if changed || needHostCertUpdate {
+		log.Info(fmt.Sprintf("updating the cert in %s", m.CertDir))
+		return m.writeCertOnDisk(ctx)
+	}
 
+	return nil
+}
+
+func (m *Manager) writeCertOnDisk(ctx context.Context) error {
 	// Get the cert and write on disk.
 	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
@@ -239,7 +255,7 @@ func (m *Manager) run() error {
 			Kind:       "Secret",
 		},
 	}
-	err = m.Client.Get(ctx, *m.SecretRef, secret)
+	err := m.Client.Get(ctx, *m.SecretRef, secret)
 	if apierrors.IsNotFound(err) {
 		return err
 	}
