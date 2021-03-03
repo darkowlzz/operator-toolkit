@@ -20,6 +20,9 @@ operators.
     system.
 - `controller/metadata-sync` package uses the sync pattern as the base and adds
     a resync to periodically sync object metadata between systems.
+- `controller/external` package provides tools for building external
+    controllers with the same core components that a k8s controller uses but
+    for an external system based on non-k8s event source.
 
 #### operator
 
@@ -47,6 +50,12 @@ the objects and generate RBAC permissions as Role and ClusterRole.
 
 `telemetry/export` package provides opentelemetry exporters that can be used to
 enable telemetry in an operator.
+
+#### webhook
+
+`webhook/cert` package provides a local certificate manager that can provision
+self signed certificate for webhook server, backed by k8s secret for
+persistence, and refresh certificate when they expire automatically.
 
 The above packages can be used together or independently of each other.
 `example/` contains an example of using all the packages together in a
