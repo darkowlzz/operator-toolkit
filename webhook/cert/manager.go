@@ -33,6 +33,11 @@ var log = ctrl.Log.WithName("webhook").WithName("cert").WithName("manager")
 
 var defaultCertRefreshInterval = 3 * 30 * 24 * time.Hour
 
+const (
+	defaultCertName = "tls.crt"
+	defaultKeyName  = "tls.key"
+)
+
 // Manager is a webhook server certificate manager. It needs to know
 // about the webhook configuration and service or host of the webhook in order
 // to provision self signed certificate and inject the cert into the webhook
@@ -106,11 +111,11 @@ func (o *Options) setDefault() {
 	}
 
 	if len(o.CertName) == 0 {
-		o.CertName = "tls.crt"
+		o.CertName = defaultCertName
 	}
 
 	if len(o.KeyName) == 0 {
-		o.KeyName = "tls.key"
+		o.KeyName = defaultKeyName
 	}
 
 	if o.CertRefreshInterval == 0*time.Second {
