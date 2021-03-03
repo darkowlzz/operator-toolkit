@@ -121,6 +121,23 @@ func (o *Options) setDefault() {
 // NewManager creates a certificate manager managed by the controller manager.
 // If the manager is nil, the manager is started independently, unmanaged.
 func NewManager(mgr manager.Manager, ops Options) error {
+	certManager, err := newManager(ops)
+	if err != nil {
+		return err
+	}
+	// If a manager is provided, add the certificate manager to the manager,
+	// else start the cert manager immediately.
+	if mgr != nil {
+		return mgr.Add(certManager)
+	}
+
+	return certManager.Start(context.Background())
+}
+
+// newManager exists separately to help with testing. Since NewManager does not
+// returns the cert manager, newManager can be used to get the cert manager
+// instance for testing and calling its methods.
+func newManager(ops Options) (*Manager, error) {
 	ops.setDefault()
 
 	// If CertWriter is not set, create a default CertWriter.
@@ -132,7 +149,7 @@ func NewManager(mgr manager.Manager, ops Options) error {
 		}
 		cw, err := writer.NewSecretCertWriter(secretCWOpts)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		ops.CertWriter = cw
 	}
@@ -142,13 +159,7 @@ func NewManager(mgr manager.Manager, ops Options) error {
 		Options:         ops,
 	}
 
-	// If a manager is provided, add the certificate manager to the manager,
-	// else start the cert manager immediately.
-	if mgr != nil {
-		return mgr.Add(certManager)
-	}
-
-	return certManager.Start(context.Background())
+	return certManager, nil
 }
 
 // NeedLeaderElection implements the LeaderElectionRunnable interface.
@@ -230,7 +241,7 @@ func (m *Manager) run() error {
 
 	// Refresh existing cert in secret if needed.
 	ctx := context.Background()
-	changed, err := m.RefreshCert(ctx)
+	changed, err := m.refreshCert(ctx)
 	if err != nil {
 		return err
 	}
@@ -276,11 +287,11 @@ func (m *Manager) writeCertOnDisk(ctx context.Context) error {
 	return nil
 }
 
-// RefreshCert refreshes the certificate using cert provisioner if the
+// refreshCert refreshes the certificate using cert provisioner if the
 // certificate is expiring. It also updates the webhook configurations with the
 // current certificate. The caller can decide to reload the webhook server
 // when the cert changes.
-func (m *Manager) RefreshCert(ctx context.Context) (bool, error) {
+func (m *Manager) refreshCert(ctx context.Context) (bool, error) {
 	cc, err := m.getClientConfig()
 	if err != nil {
 		return false, err
