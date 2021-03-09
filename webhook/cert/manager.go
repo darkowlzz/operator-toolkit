@@ -31,7 +31,9 @@ import (
 
 var log = ctrl.Log.WithName("webhook").WithName("cert").WithName("manager")
 
-var defaultCertRefreshInterval = 3 * 30 * 24 * time.Hour
+// Short refresh interval by default to reduce the impact of out of sync
+// instances of the certificate manager.
+var defaultCertRefreshInterval = 30 * time.Minute
 
 const (
 	defaultCertName = "tls.crt"
