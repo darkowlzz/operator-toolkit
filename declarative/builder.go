@@ -122,11 +122,19 @@ func NewBuilder(packageName string, fs filesys.FileSystem, opts ...BuilderOption
 
 // Apply applies the built manifest.
 func (b *Builder) Apply(ctx context.Context) error {
+	// Skip when the manifest is empty.
+	if b.manifest == "" {
+		return nil
+	}
 	return b.kubectl.Apply(ctx, "", b.manifest, true)
 }
 
 // Delete deletes the built manifest.
 func (b *Builder) Delete(ctx context.Context) error {
+	// Skip when the manifest is empty.
+	if b.manifest == "" {
+		return nil
+	}
 	return b.kubectl.Delete(ctx, "", b.manifest, true)
 }
 
