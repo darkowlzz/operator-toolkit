@@ -60,19 +60,34 @@ func (mr *MockManagerMockRecorder) Defer(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Defer", reflect.TypeOf((*MockManager)(nil).Defer), arg0, arg1)
 }
 
-// GetObjects mocks base method.
-func (m *MockManager) GetObjects() ([]interface{}, error) {
+// GetName mocks base method.
+func (m *MockManager) GetName(arg0 interface{}) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetObjects")
+	ret := m.ctrl.Call(m, "GetName", arg0)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetName indicates an expected call of GetName.
+func (mr *MockManagerMockRecorder) GetName(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetName", reflect.TypeOf((*MockManager)(nil).GetName), arg0)
+}
+
+// GetObjects mocks base method.
+func (m *MockManager) GetObjects(arg0 context.Context) ([]interface{}, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetObjects", arg0)
 	ret0, _ := ret[0].([]interface{})
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetObjects indicates an expected call of GetObjects.
-func (mr *MockManagerMockRecorder) GetObjects() *gomock.Call {
+func (mr *MockManagerMockRecorder) GetObjects(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetObjects", reflect.TypeOf((*MockManager)(nil).GetObjects))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetObjects", reflect.TypeOf((*MockManager)(nil).GetObjects), arg0)
 }
 
 // Run mocks base method.

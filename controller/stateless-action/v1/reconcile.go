@@ -17,7 +17,6 @@ import (
 type Reconciler struct {
 	name   string
 	ctrlr  Controller
-	actmgr action.Manager
 	log    logr.Logger
 	client client.Client
 	scheme *runtime.Scheme
@@ -63,9 +62,8 @@ func WithScheme(scheme *runtime.Scheme) ReconcilerOption {
 	}
 }
 
-func (r *Reconciler) Init(mgr ctrl.Manager, ctrlr Controller, actmgr action.Manager, opts ...ReconcilerOption) {
+func (r *Reconciler) Init(mgr ctrl.Manager, ctrlr Controller, opts ...ReconcilerOption) {
 	r.ctrlr = ctrlr
-	r.actmgr = actmgr
 
 	// Use manager if provided. This is helpful in tests to provide explicit
 	// client and scheme without a manager.
@@ -101,7 +99,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	// check. If it's a k8s apimachinery "not found" error, ignore it. Any
 	// other error will result in returning error. In order to ignore not found
 	// from other backend, return a nil object.
-	obj, err := controller.GetObject(req.NamespacedName)
+	obj, err := controller.GetObject(ctx, req.NamespacedName)
 	if err != nil {
 		reterr = client.IgnoreNotFound(err)
 		return
@@ -112,7 +110,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	}
 
 	// Check if an action is required.
-	requireAction, err := controller.RequireAction(obj)
+	requireAction, err := controller.RequireAction(ctx, obj)
 	if err != nil {
 		reterr = err
 		return
@@ -120,7 +118,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 
 	// If an action is required, run an action manager for the target object.
 	if requireAction {
-		if err := r.RunActionManager(obj); err != nil {
+		if err := r.RunActionManager(ctx, obj); err != nil {
 			reterr = err
 			return
 		}
@@ -131,9 +129,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 
 // RunActionManager runs the actions in the action manager based on the given
 // object.
-func (r *Reconciler) RunActionManager(o interface{}) error {
+func (r *Reconciler) RunActionManager(ctx context.Context, o interface{}) error {
+	actmgr, err := r.ctrlr.BuildActionManager(o)
+	if err != nil {
+		r.log.Info("failed to build action manager", "error", err)
+		return err
+	}
+
 	// Get the objects to run action on.
-	objects, err := r.actmgr.GetObjects()
+	objects, err := actmgr.GetObjects(ctx)
 	if err != nil {
 		r.log.Info("failed to get objects from action manager", "error", err)
 		return err
@@ -141,7 +145,7 @@ func (r *Reconciler) RunActionManager(o interface{}) error {
 
 	// Run the action in a goroutine.
 	for _, obj := range objects {
-		go r.RunAction(obj)
+		go r.RunAction(actmgr, obj)
 	}
 
 	return nil
@@ -149,8 +153,14 @@ func (r *Reconciler) RunActionManager(o interface{}) error {
 
 // RunAction checks if an action needs to be run before running it. It also
 // runs a deferred function at the end.
-func (r *Reconciler) RunAction(o interface{}) {
-	log := r.log.WithValues("object", o)
+func (r *Reconciler) RunAction(actmgr action.Manager, o interface{}) {
+	name, err := actmgr.GetName(o)
+	if err != nil {
+		r.log.Info("failed to get ActionManager name", "error", err)
+		return
+	}
+
+	log := r.log.WithValues("action-manager", name)
 
 	// Create a context with timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), r.actionTimeout)
@@ -158,20 +168,20 @@ func (r *Reconciler) RunAction(o interface{}) {
 
 	// Defer the Defer() function.
 	defer func() {
-		r.actmgr.Defer(ctx, o)
+		actmgr.Defer(ctx, o)
 	}()
 
 	// First run.
-	r.actmgr.Run(ctx, o)
+	actmgr.Run(ctx, o)
 
 	// Check and run the action periodically if the check fails.
 	for {
 		select {
 		case <-time.After(r.actionRetryPeriod):
 			log.Info("checking action status")
-			if r.actmgr.Check(ctx, o) {
+			if actmgr.Check(ctx, o) {
 				log.Info("retrying")
-				r.actmgr.Run(ctx, o)
+				actmgr.Run(ctx, o)
 			} else {
 				// Action successful, end the action.
 				log.Info("action successful", "object", o)

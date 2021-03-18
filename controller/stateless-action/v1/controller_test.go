@@ -14,6 +14,8 @@ import (
 	"github.com/darkowlzz/operator-toolkit/controller/stateless-action/v1/mocks"
 )
 
+const testActionManagerName = "testAM"
+
 func TestReconcile(t *testing.T) {
 	testcases := []struct {
 		name         string
@@ -26,11 +28,11 @@ func TestReconcile(t *testing.T) {
 			name: "object not found",
 			reconciler: func(m Controller, am action.Manager) *Reconciler {
 				r := &Reconciler{}
-				r.Init(nil, m, am)
+				r.Init(nil, m)
 				return r
 			},
 			expectations: func(m *mocks.MockController, am *actionmocks.MockManager) {
-				m.EXPECT().GetObject(gomock.Any()).Return(nil, nil)
+				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).Return(nil, nil)
 			},
 			wantResult: ctrl.Result{},
 		},
@@ -38,12 +40,12 @@ func TestReconcile(t *testing.T) {
 			name: "object found, action not required",
 			reconciler: func(m Controller, am action.Manager) *Reconciler {
 				r := &Reconciler{}
-				r.Init(nil, m, am)
+				r.Init(nil, m)
 				return r
 			},
 			expectations: func(m *mocks.MockController, am *actionmocks.MockManager) {
-				m.EXPECT().GetObject(gomock.Any()).Return("a", nil)
-				m.EXPECT().RequireAction(gomock.Any()).Return(false, nil)
+				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).Return("a", nil)
+				m.EXPECT().RequireAction(gomock.Any(), gomock.Any()).Return(false, nil)
 			},
 			wantResult: ctrl.Result{},
 		},
@@ -51,13 +53,14 @@ func TestReconcile(t *testing.T) {
 			name: "object found, action required",
 			reconciler: func(m Controller, am action.Manager) *Reconciler {
 				r := &Reconciler{}
-				r.Init(nil, m, am)
+				r.Init(nil, m)
 				return r
 			},
 			expectations: func(m *mocks.MockController, am *actionmocks.MockManager) {
-				m.EXPECT().GetObject(gomock.Any()).Return("a", nil)
-				m.EXPECT().RequireAction(gomock.Any()).Return(true, nil)
-				am.EXPECT().GetObjects().Return(nil, nil)
+				m.EXPECT().GetObject(gomock.Any(), gomock.Any()).Return("a", nil)
+				m.EXPECT().RequireAction(gomock.Any(), gomock.Any()).Return(true, nil)
+				m.EXPECT().BuildActionManager(gomock.Any()).Return(am, nil)
+				am.EXPECT().GetObjects(gomock.Any()).Return(nil, nil)
 			},
 			wantResult: ctrl.Result{},
 		},
@@ -104,6 +107,7 @@ func TestRunAction(t *testing.T) {
 		{
 			name: "no retry",
 			expectations: func(m *actionmocks.MockManager) {
+				m.EXPECT().GetName(gomock.Any()).Return(testActionManagerName, nil)
 				m.EXPECT().Run(gomock.Any(), objA)
 				m.EXPECT().Defer(gomock.Any(), objA)
 				m.EXPECT().Check(gomock.Any(), objA).Return(false)
@@ -112,6 +116,7 @@ func TestRunAction(t *testing.T) {
 		{
 			name: "retry",
 			expectations: func(m *actionmocks.MockManager) {
+				m.EXPECT().GetName(gomock.Any()).Return(testActionManagerName, nil)
 				m.EXPECT().Run(gomock.Any(), objA).Times(2)
 				m.EXPECT().Defer(gomock.Any(), objA)
 				// Check returns true the first time, causing a run retry.
@@ -130,11 +135,10 @@ func TestRunAction(t *testing.T) {
 			tc.expectations(m)
 
 			r := &Reconciler{
-				actmgr:        m,
 				log:           ctrl.Log,
 				actionTimeout: 5 * time.Second,
 			}
-			r.RunAction(objA)
+			r.RunAction(m, objA)
 		})
 	}
 }

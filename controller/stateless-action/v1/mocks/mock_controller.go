@@ -5,6 +5,7 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
 	action "github.com/darkowlzz/operator-toolkit/controller/stateless-action/v1/action"
@@ -36,11 +37,12 @@ func (m *MockController) EXPECT() *MockControllerMockRecorder {
 }
 
 // BuildActionManager mocks base method.
-func (m *MockController) BuildActionManager(arg0 interface{}) action.Manager {
+func (m *MockController) BuildActionManager(arg0 interface{}) (action.Manager, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "BuildActionManager", arg0)
 	ret0, _ := ret[0].(action.Manager)
-	return ret0
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // BuildActionManager indicates an expected call of BuildActionManager.
@@ -50,31 +52,31 @@ func (mr *MockControllerMockRecorder) BuildActionManager(arg0 interface{}) *gomo
 }
 
 // GetObject mocks base method.
-func (m *MockController) GetObject(arg0 types.NamespacedName) (interface{}, error) {
+func (m *MockController) GetObject(arg0 context.Context, arg1 types.NamespacedName) (interface{}, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetObject", arg0)
+	ret := m.ctrl.Call(m, "GetObject", arg0, arg1)
 	ret0, _ := ret[0].(interface{})
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetObject indicates an expected call of GetObject.
-func (mr *MockControllerMockRecorder) GetObject(arg0 interface{}) *gomock.Call {
+func (mr *MockControllerMockRecorder) GetObject(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetObject", reflect.TypeOf((*MockController)(nil).GetObject), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetObject", reflect.TypeOf((*MockController)(nil).GetObject), arg0, arg1)
 }
 
 // RequireAction mocks base method.
-func (m *MockController) RequireAction(arg0 interface{}) (bool, error) {
+func (m *MockController) RequireAction(arg0 context.Context, arg1 interface{}) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RequireAction", arg0)
+	ret := m.ctrl.Call(m, "RequireAction", arg0, arg1)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RequireAction indicates an expected call of RequireAction.
-func (mr *MockControllerMockRecorder) RequireAction(arg0 interface{}) *gomock.Call {
+func (mr *MockControllerMockRecorder) RequireAction(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RequireAction", reflect.TypeOf((*MockController)(nil).RequireAction), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RequireAction", reflect.TypeOf((*MockController)(nil).RequireAction), arg0, arg1)
 }
