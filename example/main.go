@@ -156,6 +156,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err = (&controllers.NamespaceRecorderReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("nsRecorder"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "NamespaceRecorder")
+		os.Exit(1)
+	}
+
 	if err = (&appv1alpha1.Game{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Game")
 		os.Exit(1)
