@@ -2,10 +2,12 @@ package v1
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -99,18 +101,36 @@ func TestReconcile(t *testing.T) {
 func TestRunAction(t *testing.T) {
 	objA := "a"
 
-	testcases := []struct {
-		name string
+	testErr := fmt.Errorf("some error")
 
+	testcases := []struct {
+		name         string
 		expectations func(m *actionmocks.MockManager)
+		wantErr      bool
 	}{
+		{
+			name: "get name failure",
+			expectations: func(m *actionmocks.MockManager) {
+				m.EXPECT().GetName(gomock.Any()).Return("", testErr)
+			},
+			wantErr: true,
+		},
+		{
+			name: "first run failure",
+			expectations: func(m *actionmocks.MockManager) {
+				m.EXPECT().GetName(gomock.Any()).Return(testActionManagerName, nil)
+				m.EXPECT().Run(gomock.Any(), objA).Return(testErr)
+				m.EXPECT().Defer(gomock.Any(), objA)
+				m.EXPECT().Check(gomock.Any(), objA).Return(false, nil)
+			},
+		},
 		{
 			name: "no retry",
 			expectations: func(m *actionmocks.MockManager) {
 				m.EXPECT().GetName(gomock.Any()).Return(testActionManagerName, nil)
 				m.EXPECT().Run(gomock.Any(), objA)
 				m.EXPECT().Defer(gomock.Any(), objA)
-				m.EXPECT().Check(gomock.Any(), objA).Return(false)
+				m.EXPECT().Check(gomock.Any(), objA).Return(false, nil)
 			},
 		},
 		{
@@ -120,8 +140,19 @@ func TestRunAction(t *testing.T) {
 				m.EXPECT().Run(gomock.Any(), objA).Times(2)
 				m.EXPECT().Defer(gomock.Any(), objA)
 				// Check returns true the first time, causing a run retry.
-				check1 := m.EXPECT().Check(gomock.Any(), objA).Return(true)
-				m.EXPECT().Check(gomock.Any(), objA).Return(false).After(check1)
+				check1 := m.EXPECT().Check(gomock.Any(), objA).Return(true, nil)
+				m.EXPECT().Check(gomock.Any(), objA).Return(false, nil).After(check1)
+			},
+		},
+		{
+			name: "retry due to error",
+			expectations: func(m *actionmocks.MockManager) {
+				m.EXPECT().GetName(gomock.Any()).Return(testActionManagerName, nil)
+				m.EXPECT().Run(gomock.Any(), objA).Times(1)
+				m.EXPECT().Defer(gomock.Any(), objA)
+				// Check returns error the first time, followed by success.
+				check1 := m.EXPECT().Check(gomock.Any(), objA).Return(true, testErr)
+				m.EXPECT().Check(gomock.Any(), objA).Return(false, nil).After(check1)
 			},
 		},
 	}
@@ -138,7 +169,13 @@ func TestRunAction(t *testing.T) {
 				log:           ctrl.Log,
 				actionTimeout: 5 * time.Second,
 			}
-			r.RunAction(m, objA)
+
+			actionErr := r.RunAction(m, objA)
+			if tc.wantErr {
+				assert.NotNil(t, actionErr)
+			} else {
+				assert.Nil(t, actionErr)
+			}
 		})
 	}
 }

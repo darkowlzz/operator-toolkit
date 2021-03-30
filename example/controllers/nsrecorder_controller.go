@@ -6,8 +6,9 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -92,12 +93,12 @@ func (n *nsRecorder) RequireAction(ctx context.Context, i interface{}) (bool, er
 		return false, fmt.Errorf("failed to convert into Namespace")
 	}
 
-	// Check if the configmap to store the record exist.
+	// Check if the configmap to store the record exists.
 	key := client.ObjectKey{Namespace: n.configmapNamespace, Name: ns.Name}
 	cm := &corev1.ConfigMap{}
 
 	if err := n.Client.Get(ctx, key, cm); err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return true, nil
 		}
 		n.log.Info("failed to get configmap", "error", err)
@@ -153,11 +154,10 @@ func (am *nsActionManager) GetObjects(context.Context) ([]interface{}, error) {
 }
 
 // Check checks if the action is needed anymore.
-func (am *nsActionManager) Check(ctx context.Context, i interface{}) bool {
+func (am *nsActionManager) Check(ctx context.Context, i interface{}) (bool, error) {
 	ns, ok := i.(*corev1.Namespace)
 	if !ok {
-		am.log.Info("failed to convert into Namespace", "object", i)
-		return false
+		return true, fmt.Errorf("failed to convert into Namespace %v", i)
 	}
 
 	// Check if the target configmap exists, if not, there's no data to check,
@@ -166,31 +166,29 @@ func (am *nsActionManager) Check(ctx context.Context, i interface{}) bool {
 
 	cm := &corev1.ConfigMap{}
 	if err := am.Client.Get(ctx, key, cm); err != nil {
-		am.log.Info("failed to get configmap", "error", err)
-		return true
+		return true, errors.Wrapf(err, "failed to get configmap")
 	}
 
 	// If there's no data, action is needed.
 	if cm.Data == nil {
-		return true
+		return true, nil
 	}
 
 	// If the creation data is not found, action is needed.
 	if _, exists := cm.Data[configmapCreatedKey]; !exists {
-		return true
+		return true, nil
 	}
 
-	return false
+	// Action successful, action not needed.
+	return false, nil
 }
 
 // Run runs the action on the given object.
-func (am *nsActionManager) Run(ctx context.Context, i interface{}) {
+func (am *nsActionManager) Run(ctx context.Context, i interface{}) error {
 	ns, ok := i.(*corev1.Namespace)
 	if !ok {
-		am.log.Info("failed to convert into Namespace", "object", i)
+		return fmt.Errorf("failed to convert into Namespace: %v", i)
 	}
-
-	am.log.Info("recording namespace", "name", ns.Name)
 
 	// Ensure the target configmap exists.
 	cm := &corev1.ConfigMap{
@@ -202,18 +200,14 @@ func (am *nsActionManager) Run(ctx context.Context, i interface{}) {
 	key := client.ObjectKeyFromObject(cm)
 
 	if getErr := am.Get(ctx, key, cm); getErr != nil {
-		if errors.IsNotFound(getErr) {
+		if apierrors.IsNotFound(getErr) {
 			// Create the configmap.
 			if createErr := am.Create(ctx, cm); createErr != nil {
-				am.log.Info("failed to create configmap", "error", createErr)
-				// Nothing can be done. Return and let the action manager
-				// retry.
-				return
+				return errors.Wrapf(createErr, "failed to create configmap")
 			}
 		} else {
-			am.log.Info("failed to get the configmap", "error", getErr)
 			// Return and let the action manager retry.
-			return
+			return errors.Wrapf(getErr, "failed to get the configmap")
 		}
 	}
 
@@ -225,11 +219,14 @@ func (am *nsActionManager) Run(ctx context.Context, i interface{}) {
 	cm.Data[configmapCreatedKey] = time.Now().String()
 
 	if updateErr := am.Update(ctx, cm); updateErr != nil {
-		am.log.Info("failed to update configmap", "error", updateErr)
+		return errors.Wrapf(updateErr, "failed to update configmap")
 	}
+
+	return nil
 }
 
 // Defer is executed at the end of run to execute once run ends.
-func (am *nsActionManager) Defer(context.Context, interface{}) {
+func (am *nsActionManager) Defer(context.Context, interface{}) error {
 	// no-op
+	return nil
 }

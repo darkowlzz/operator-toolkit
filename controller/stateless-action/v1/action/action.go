@@ -15,11 +15,11 @@ type Manager interface {
 	GetObjects(context.Context) ([]interface{}, error)
 
 	// Check checks if the action is needed anymore.
-	Check(context.Context, interface{}) bool
+	Check(context.Context, interface{}) (bool, error)
 
 	// Run runs the action on the given object.
-	Run(context.Context, interface{})
+	Run(context.Context, interface{}) error
 
 	// Defer is executed at the end of run to execute once run ends.
-	Defer(context.Context, interface{})
+	Defer(context.Context, interface{}) error
 }

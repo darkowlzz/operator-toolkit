@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
 	"go.opentelemetry.io/otel"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -132,20 +133,22 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 func (r *Reconciler) RunActionManager(ctx context.Context, o interface{}) error {
 	actmgr, err := r.ctrlr.BuildActionManager(o)
 	if err != nil {
-		r.log.Info("failed to build action manager", "error", err)
-		return err
+		return errors.Wrapf(err, "failed to build action manager")
 	}
 
 	// Get the objects to run action on.
 	objects, err := actmgr.GetObjects(ctx)
 	if err != nil {
-		r.log.Info("failed to get objects from action manager", "error", err)
-		return err
+		return errors.Wrapf(err, "failed to get objects from action manager")
 	}
 
 	// Run the action in a goroutine.
 	for _, obj := range objects {
-		go r.RunAction(actmgr, obj)
+		go func(o interface{}) {
+			if runErr := r.RunAction(actmgr, o); runErr != nil {
+				r.log.Info("failed to run action", "error", runErr)
+			}
+		}(obj)
 	}
 
 	return nil
@@ -153,42 +156,54 @@ func (r *Reconciler) RunActionManager(ctx context.Context, o interface{}) error 
 
 // RunAction checks if an action needs to be run before running it. It also
 // runs a deferred function at the end.
-func (r *Reconciler) RunAction(actmgr action.Manager, o interface{}) {
+func (r *Reconciler) RunAction(actmgr action.Manager, o interface{}) (retErr error) {
 	name, err := actmgr.GetName(o)
 	if err != nil {
-		r.log.Info("failed to get ActionManager name", "error", err)
+		retErr = errors.Wrapf(err, "failed to get action manager name")
 		return
 	}
 
+	// Set up the logger with action info.
 	log := r.log.WithValues("action-manager", name)
 
-	// Create a context with timeout.
+	// Create a context with timeout to be able to cancel the action if it
+	// can't be completed within the given time.
 	ctx, cancel := context.WithTimeout(context.Background(), r.actionTimeout)
 	defer cancel()
 
-	// Defer the Defer() function.
+	// Defer the action Defer() function.
 	defer func() {
-		actmgr.Defer(ctx, o)
+		if deferErr := actmgr.Defer(ctx, o); deferErr != nil {
+			retErr = errors.Wrapf(deferErr, "failed to run deferred action")
+			return
+		}
 	}()
 
-	// First run.
-	actmgr.Run(ctx, o)
+	// First run, handle any failure by continuing execution and retry.
+	if runErr := actmgr.Run(ctx, o); runErr != nil {
+		log.Info("action run failed, will retry", "error", runErr)
+	}
 
 	// Check and run the action periodically if the check fails.
 	for {
 		select {
 		case <-time.After(r.actionRetryPeriod):
-			log.Info("checking action status")
-			if actmgr.Check(ctx, o) {
-				log.Info("retrying")
-				actmgr.Run(ctx, o)
+			checkResult, checkErr := actmgr.Check(ctx, o)
+			if checkErr != nil {
+				log.Info("failed to perform action check, retrying", "error", checkErr)
+				continue
+			}
+			if checkResult {
+				if runErr := actmgr.Run(ctx, o); runErr != nil {
+					log.Info("action run retry failed", "error", runErr)
+				}
 			} else {
 				// Action successful, end the action.
-				log.Info("action successful", "object", o)
+				log.V(6).Info("action successful", "object", o)
 				return
 			}
 		case <-ctx.Done():
-			log.Info("context done, terminating action")
+			log.Info("context cancelled, terminating action")
 			return
 		}
 	}

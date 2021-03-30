@@ -35,11 +35,12 @@ func (m *MockManager) EXPECT() *MockManagerMockRecorder {
 }
 
 // Check mocks base method.
-func (m *MockManager) Check(arg0 context.Context, arg1 interface{}) bool {
+func (m *MockManager) Check(arg0 context.Context, arg1 interface{}) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Check", arg0, arg1)
 	ret0, _ := ret[0].(bool)
-	return ret0
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // Check indicates an expected call of Check.
@@ -49,9 +50,11 @@ func (mr *MockManagerMockRecorder) Check(arg0, arg1 interface{}) *gomock.Call {
 }
 
 // Defer mocks base method.
-func (m *MockManager) Defer(arg0 context.Context, arg1 interface{}) {
+func (m *MockManager) Defer(arg0 context.Context, arg1 interface{}) error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Defer", arg0, arg1)
+	ret := m.ctrl.Call(m, "Defer", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // Defer indicates an expected call of Defer.
@@ -91,9 +94,11 @@ func (mr *MockManagerMockRecorder) GetObjects(arg0 interface{}) *gomock.Call {
 }
 
 // Run mocks base method.
-func (m *MockManager) Run(arg0 context.Context, arg1 interface{}) {
+func (m *MockManager) Run(arg0 context.Context, arg1 interface{}) error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Run", arg0, arg1)
+	ret := m.ctrl.Call(m, "Run", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // Run indicates an expected call of Run.
