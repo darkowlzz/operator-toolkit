@@ -20,7 +20,7 @@ require (
 	k8s.io/cli-runtime v0.20.2
 	k8s.io/client-go v0.20.2
 	k8s.io/kubectl v0.20.2
-	sigs.k8s.io/controller-runtime v0.8.2
+	sigs.k8s.io/controller-runtime v0.8.3
 	sigs.k8s.io/kubebuilder-declarative-pattern v0.0.0-20201209165851-b731a6217520
 	sigs.k8s.io/kustomize/api v0.7.0
 	sigs.k8s.io/kustomize/kyaml v0.10.3
