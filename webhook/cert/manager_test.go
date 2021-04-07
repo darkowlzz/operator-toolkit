@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
@@ -13,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/darkowlzz/operator-toolkit/internal/pkiutil"
 )
@@ -71,6 +73,7 @@ func TestManager(t *testing.T) {
 		SecretRef:                   &types.NamespacedName{Name: secret.Name, Namespace: secret.Namespace},
 		MutatingWebhookConfigRefs:   []types.NamespacedName{{Name: mutatingWebhookConfig.Name}},
 		ValidatingWebhookConfigRefs: []types.NamespacedName{{Name: validatingWebhookConfig.Name}},
+		CertValidity:                time.Now().AddDate(0, 0, 1),
 	}
 
 	// Create a new cert manager.
@@ -173,4 +176,60 @@ func TestMultipleManagers(t *testing.T) {
 
 	contentCheck(filepath.Join(certDir1, defaultCertName), filepath.Join(certDir2, defaultCertName))
 	contentCheck(filepath.Join(certDir1, defaultKeyName), filepath.Join(certDir2, defaultKeyName))
+}
+
+func TestOptionsSetDefault(t *testing.T) {
+	testcases := []struct {
+		name      string
+		inputOpts Options
+		wantOpts  Options
+	}{
+		{
+			name:      "empty",
+			inputOpts: Options{},
+			wantOpts: Options{
+				Port:                int32(webhook.DefaultPort),
+				CertDir:             "/tmp/k8s-webhook-server/serving-certs",
+				CertName:            "tls.crt",
+				KeyName:             "tls.key",
+				CertRefreshInterval: 30 * time.Minute,
+			},
+		},
+		{
+			name: "custom",
+			inputOpts: Options{
+				Port:                int32(2222),
+				CertDir:             "/tmp/foo",
+				CertName:            "abc.xyz",
+				KeyName:             "xyz.abc",
+				CertRefreshInterval: 5 * time.Second,
+			},
+			wantOpts: Options{
+				Port:                int32(2222),
+				CertDir:             "/tmp/foo",
+				CertName:            "abc.xyz",
+				KeyName:             "xyz.abc",
+				CertRefreshInterval: 5 * time.Second,
+			},
+		},
+	}
+
+	for _, tc := range testcases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			// Take a copy of the input.
+			resultOpts := tc.inputOpts
+
+			// Set defaults.
+			resultOpts.setDefault()
+
+			// Check the values of defaulted attributes.
+			assert.Equal(t, tc.wantOpts.Port, resultOpts.Port, "Port")
+			assert.Equal(t, tc.wantOpts.CertDir, resultOpts.CertDir, "CertDir")
+			assert.Equal(t, tc.wantOpts.CertName, resultOpts.CertName, "CertName")
+			assert.Equal(t, tc.wantOpts.KeyName, resultOpts.KeyName, "KeyName")
+			assert.Equal(t, tc.wantOpts.CertRefreshInterval, resultOpts.CertRefreshInterval, "CertRefreshInterval")
+			assert.Equal(t, tc.wantOpts.CertValidity, resultOpts.CertValidity, "CertValidity")
+		})
+	}
 }

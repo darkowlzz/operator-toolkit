@@ -17,6 +17,10 @@ limitations under the License.
 // NOTE: This file is taken from
 // https://github.com/kubernetes/kubernetes/blob/15a8a8ec4a3275a33b7f8eb3d4d98db2abad55b7/cmd/kubeadm/app/util/pkiutil/pki_helpers.go
 // with some modifications to remove dependency on k/k repo.
+//
+// Updates:
+// - [08/April/2021] Add the ability to set certificate validity with
+//   NewSignedCertWithValidity().
 
 package pkiutil
 
@@ -638,6 +642,15 @@ func GeneratePrivateKey(keyType x509.PublicKeyAlgorithm) (crypto.Signer, error) 
 
 // NewSignedCert creates a signed certificate using the given CA certificate and key
 func NewSignedCert(cfg *CertConfig, key crypto.Signer, caCert *x509.Certificate, caKey crypto.Signer, isCA bool) (*x509.Certificate, error) {
+	validity := time.Now().Add(CertificateValidity).UTC()
+	return NewSignedCertWithValidity(cfg, key, caCert, caKey, isCA, validity)
+}
+
+// NewSignedCertWithValidity creates a signed certificate with a given
+// validity.
+// NOTE: This has been modified to allow setting the validity. Upstream always
+// sets the validity to 1 year. NewSignedCert() still uses 1 year validity.
+func NewSignedCertWithValidity(cfg *CertConfig, key crypto.Signer, caCert *x509.Certificate, caKey crypto.Signer, isCA bool, validity time.Time) (*x509.Certificate, error) {
 	serial, err := cryptorand.Int(cryptorand.Reader, new(big.Int).SetInt64(math.MaxInt64))
 	if err != nil {
 		return nil, err
@@ -662,7 +675,7 @@ func NewSignedCert(cfg *CertConfig, key crypto.Signer, caCert *x509.Certificate,
 		IPAddresses:           cfg.AltNames.IPs,
 		SerialNumber:          serial,
 		NotBefore:             caCert.NotBefore,
-		NotAfter:              time.Now().Add(CertificateValidity).UTC(),
+		NotAfter:              validity,
 		KeyUsage:              keyUsage,
 		ExtKeyUsage:           cfg.Usages,
 		BasicConstraintsValid: true,

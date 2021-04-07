@@ -35,9 +35,14 @@ func ServiceToCommonName(serviceNamespace, serviceName string) string {
 
 // SelfSignedCertGenerator implements the certGenerator interface.
 // It provisions self-signed certificates.
+// NOTE: The self signed root CA cert is created with a validity of 10 years.
+// This is set by the upstream client-go's cert utils package.
 type SelfSignedCertGenerator struct {
 	caKey  []byte
 	caCert []byte
+	// Validity is the validity of the certificate generated and signed by the
+	// root CA cert.
+	Validity time.Time
 }
 
 var _ CertGenerator = &SelfSignedCertGenerator{}
@@ -58,6 +63,11 @@ func (cp *SelfSignedCertGenerator) Generate(commonName string) (*Artifacts, erro
 	var signingCert *x509.Certificate
 	var valid bool
 	var err error
+
+	// If the validity is not set, set the default to a year.
+	if cp.Validity.IsZero() {
+		cp.Validity = time.Now().AddDate(1, 0, 0)
+	}
 
 	// Public key algorithm.
 	// TODO: Maybe allow passing the algorithm as an argument or a field in the
@@ -89,7 +99,7 @@ func (cp *SelfSignedCertGenerator) Generate(commonName string) (*Artifacts, erro
 	if !ok {
 		return nil, errors.New("failed to conver signer to RSA private key")
 	}
-	signedCert, err := cert.NewSignedCert(
+	signedCert, err := cert.NewSignedCertWithValidity(
 		&cert.CertConfig{
 			Config: certutil.Config{
 				CommonName: commonName,
@@ -101,7 +111,7 @@ func (cp *SelfSignedCertGenerator) Generate(commonName string) (*Artifacts, erro
 				Usages: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 			},
 		},
-		key, signingCert, signingKey, false,
+		key, signingCert, signingKey, false, cp.Validity,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create the cert: %v", err)
@@ -115,8 +125,7 @@ func (cp *SelfSignedCertGenerator) Generate(commonName string) (*Artifacts, erro
 }
 
 func (cp *SelfSignedCertGenerator) validCACert() (bool, *rsa.PrivateKey, *x509.Certificate) {
-	if !ValidCACert(cp.caKey, cp.caCert, cp.caCert, "",
-		time.Now().AddDate(1, 0, 0)) {
+	if !ValidCACert(cp.caKey, cp.caCert, cp.caCert, "", cp.Validity) {
 		return false, nil, nil
 	}
 

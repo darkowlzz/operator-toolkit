@@ -100,6 +100,12 @@ type Options struct {
 
 	// KeyName is the server key name. Defaults to tls.key.
 	KeyName string
+
+	// CertValidity is the validity of the generated certificate. This is not
+	// the validity of the root CA cert. That's set to 10 years by default in
+	// the client-go cert utils package.
+	// If not set, this defaults to a year.
+	CertValidity time.Time
 }
 
 // setDefault sets the default options.
@@ -150,9 +156,11 @@ func newManager(ops Options) (*Manager, error) {
 	// If CertWriter is not set, create a default CertWriter.
 	if ops.CertWriter == nil {
 		secretCWOpts := writer.SecretCertWriterOptions{
-			Client:        ops.Client,
-			CertGenerator: &generator.SelfSignedCertGenerator{},
-			Secret:        ops.SecretRef,
+			Client: ops.Client,
+			CertGenerator: &generator.SelfSignedCertGenerator{
+				Validity: ops.CertValidity,
+			},
+			Secret: ops.SecretRef,
 		}
 		cw, err := writer.NewSecretCertWriter(secretCWOpts)
 		if err != nil {
