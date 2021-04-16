@@ -101,11 +101,11 @@ type Options struct {
 	// KeyName is the server key name. Defaults to tls.key.
 	KeyName string
 
-	// CertValidity is the validity of the generated certificate. This is not
+	// CertValidity is the length of the generated certificate's validity. This is not
 	// the validity of the root CA cert. That's set to 10 years by default in
 	// the client-go cert utils package.
 	// If not set, this defaults to a year.
-	CertValidity time.Time
+	CertValidity time.Duration
 }
 
 // setDefault sets the default options.
