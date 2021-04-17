@@ -73,7 +73,7 @@ func TestManager(t *testing.T) {
 		SecretRef:                   &types.NamespacedName{Name: secret.Name, Namespace: secret.Namespace},
 		MutatingWebhookConfigRefs:   []types.NamespacedName{{Name: mutatingWebhookConfig.Name}},
 		ValidatingWebhookConfigRefs: []types.NamespacedName{{Name: validatingWebhookConfig.Name}},
-		CertValidity:                time.Now().AddDate(0, 0, 1),
+		CertValidity:                24 * time.Hour,
 	}
 
 	// Create a new cert manager.
@@ -179,24 +179,22 @@ func TestMultipleManagers(t *testing.T) {
 }
 
 func TestOptionsSetDefault(t *testing.T) {
-	testcases := []struct {
+	testcases := map[string]struct {
 		name      string
 		inputOpts Options
 		wantOpts  Options
 	}{
-		{
-			name:      "empty",
+		"empty": {
 			inputOpts: Options{},
 			wantOpts: Options{
 				Port:                int32(webhook.DefaultPort),
-				CertDir:             "/tmp/k8s-webhook-server/serving-certs",
+				CertDir:             os.TempDir() + "/k8s-webhook-server/serving-certs",
 				CertName:            "tls.crt",
 				KeyName:             "tls.key",
 				CertRefreshInterval: 30 * time.Minute,
 			},
 		},
-		{
-			name: "custom",
+		"custom": {
 			inputOpts: Options{
 				Port:                int32(2222),
 				CertDir:             "/tmp/foo",
@@ -214,9 +212,9 @@ func TestOptionsSetDefault(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testcases {
+	for name, tc := range testcases {
 		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(name, func(t *testing.T) {
 			// Take a copy of the input.
 			resultOpts := tc.inputOpts
 

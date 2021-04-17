@@ -28,6 +28,8 @@ import (
 	"k8s.io/client-go/util/keyutil"
 )
 
+const oneYear = 365 * 24 * time.Hour
+
 // ServiceToCommonName generates the CommonName for the certificate when using a k8s service.
 func ServiceToCommonName(serviceNamespace, serviceName string) string {
 	return fmt.Sprintf("%s.%s.svc", serviceName, serviceNamespace)
@@ -40,9 +42,9 @@ func ServiceToCommonName(serviceNamespace, serviceName string) string {
 type SelfSignedCertGenerator struct {
 	caKey  []byte
 	caCert []byte
-	// Validity is the validity of the certificate generated and signed by the
+	// Validity is the length of the generated certificate's validity and signed by the
 	// root CA cert.
-	Validity time.Time
+	Validity time.Duration
 }
 
 var _ CertGenerator = &SelfSignedCertGenerator{}
@@ -65,16 +67,19 @@ func (cp *SelfSignedCertGenerator) Generate(commonName string) (*Artifacts, erro
 	var err error
 
 	// If the validity is not set, set the default to a year.
-	if cp.Validity.IsZero() {
-		cp.Validity = time.Now().AddDate(1, 0, 0)
+	if cp.Validity == 0 {
+		cp.Validity = oneYear
 	}
+
+	// Calculate validity
+	certBestBefore := time.Now().Add(cp.Validity)
 
 	// Public key algorithm.
 	// TODO: Maybe allow passing the algorithm as an argument or a field in the
 	// generator.
 	keyType := x509.RSA
 
-	valid, signingKey, signingCert = cp.validCACert()
+	valid, signingKey, signingCert = cp.validCACert(certBestBefore)
 	if !valid {
 		signer, err := cert.NewPrivateKey(keyType)
 		if err != nil {
@@ -111,7 +116,7 @@ func (cp *SelfSignedCertGenerator) Generate(commonName string) (*Artifacts, erro
 				Usages: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 			},
 		},
-		key, signingCert, signingKey, false, cp.Validity,
+		key, signingCert, signingKey, false, certBestBefore,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create the cert: %v", err)
@@ -124,8 +129,8 @@ func (cp *SelfSignedCertGenerator) Generate(commonName string) (*Artifacts, erro
 	}, nil
 }
 
-func (cp *SelfSignedCertGenerator) validCACert() (bool, *rsa.PrivateKey, *x509.Certificate) {
-	if !ValidCACert(cp.caKey, cp.caCert, cp.caCert, "", cp.Validity) {
+func (cp *SelfSignedCertGenerator) validCACert(time time.Time) (bool, *rsa.PrivateKey, *x509.Certificate) {
+	if !ValidCACert(cp.caKey, cp.caCert, cp.caCert, "", time) {
 		return false, nil, nil
 	}
 
