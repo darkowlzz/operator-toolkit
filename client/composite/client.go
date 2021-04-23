@@ -5,6 +5,7 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 // Client is a composite client, composed of cached and unclient clients. It
@@ -30,6 +31,18 @@ func NewClient(cached client.Client, uncached client.Client, opts Options) *Clie
 		Options:  opts,
 		uncached: uncached,
 	}
+}
+
+// NewClientFromManager combines a cached and an uncached client to return a
+// composite client. The default cache returned by the controller manager is a
+// cached client.
+func NewClientFromManager(mgr manager.Manager, opts Options) (client.Client, error) {
+	uncachedClient, err := client.New(mgr.GetConfig(), client.Options{Scheme: mgr.GetScheme()})
+	if err != nil {
+		return nil, err
+	}
+
+	return NewClient(mgr.GetClient(), uncachedClient, opts), nil
 }
 
 // Get first fetches the object using the cached client. If the object is not
