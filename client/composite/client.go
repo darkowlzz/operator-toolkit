@@ -8,9 +8,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-// Client is a composite client, composed of cached and unclient clients. It
+// Client is a composite client, composed of cached and uncached clients. It
 // can be used to query objects from cache and fall back to use the raw client
-// and get the object directly from the API server.
+// and get the object directly from the API server when there's a cache miss.
 type Client struct {
 	client.Client
 	Options
