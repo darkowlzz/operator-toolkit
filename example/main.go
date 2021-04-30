@@ -39,6 +39,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/discovery"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -224,6 +225,23 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NamespaceRecorder")
+		os.Exit(1)
+	}
+
+	dc, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
+	if err != nil {
+		setupLog.Error(err, "unable to create discovery client")
+		os.Exit(1)
+	}
+
+	// ConfigMap admission controller that uses unified admission controller.
+	if err = controllers.NewConfigMapAdmissionController(
+		"configmap-admission-webhook-controller",
+		mgr.GetClient(),
+		dc,
+		ctrl.Log.WithName("admission-controllers").WithName("configmap"),
+	).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create admission controller", "controller", "configmap-admission-controller")
 		os.Exit(1)
 	}
 

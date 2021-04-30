@@ -35,6 +35,7 @@ func (r *Game) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 
 //+kubebuilder:webhook:path=/mutate-app-example-com-v1alpha1-game,mutating=true,failurePolicy=fail,sideEffects=None,groups=app.example.com,resources=games,verbs=create;update,versions=v1alpha1,name=mgame.kb.io,admissionReviewVersions={v1,v1beta1}
+//+kubebuilder:webhook:path=/mutate-configmap,mutating=true,failurePolicy=fail,sideEffects=None,groups="",resources=configmaps,verbs=create;update,versions=v1,name=mconfigmap.kb.io,admissionReviewVersions={v1,v1beta1}
 
 var _ webhook.Defaulter = &Game{}
 
@@ -47,6 +48,7 @@ func (r *Game) Default() {
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 //+kubebuilder:webhook:path=/validate-app-example-com-v1alpha1-game,mutating=false,failurePolicy=fail,sideEffects=None,groups=app.example.com,resources=games,verbs=create;update,versions=v1alpha1,name=vgame.kb.io,admissionReviewVersions={v1,v1beta1}
+//+kubebuilder:webhook:path=/validate-configmap,mutating=false,failurePolicy=fail,sideEffects=None,groups="",resources=configmaps,verbs=create;update;delete,versions=v1,name=vconfigmap.kb.io,admissionReviewVersions={v1,v1beta1}
 
 var _ webhook.Validator = &Game{}
 

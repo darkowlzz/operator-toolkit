@@ -53,9 +53,13 @@ enable telemetry in an operator.
 
 #### webhook
 
-`webhook/cert` package provides a local certificate manager that can provision
-self signed certificate for webhook server, backed by k8s secret for
-persistence, and refresh certificate when they expire automatically.
+- `webhook/cert` package provides a local certificate manager that can provision
+    self signed certificate for webhook server, backed by k8s secret for
+    persistence, and refresh certificate when they expire automatically.
+
+- `webhook/admission` package provides a consistent way of building admission
+    controllers for k8s native and custom resources with function chaining
+    support.
 
 The above packages can be used together or independently of each other.
 `example/` contains an example of using all the packages together in a
