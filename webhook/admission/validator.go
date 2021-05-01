@@ -15,8 +15,8 @@ import (
 // Validate-Funcs are functions in validating function chain, which forms a
 // validating pipeline for a type of operation.
 type ValidateCreateFunc func(ctx context.Context, obj client.Object) error
-type ValidateUpdateFunc func(ctx context.Context, obj client.Object, old client.Object) error
-type ValidateDeleteFunc func(ctx context.Context, obj client.Object) error
+type ValidateUpdateFunc func(ctx context.Context, obj client.Object, oldObj client.Object) error
+type ValidateDeleteFunc func(ctx context.Context, oldObj client.Object) error
 
 // Validator defines functions for validating an operation.
 type Validator interface {
