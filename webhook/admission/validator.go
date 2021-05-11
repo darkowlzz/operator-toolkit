@@ -5,6 +5,8 @@ import (
 	goerrors "errors"
 	"net/http"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/label"
 	v1 "k8s.io/api/admission/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -61,6 +63,10 @@ func (h *validatingHandler) InjectDecoder(d *admission.Decoder) error {
 
 // Handle handles admission requests.
 func (h *validatingHandler) Handle(ctx context.Context, req admission.Request) admission.Response {
+	tr := otel.Tracer("operator-toolkit/webhook/admission/validator")
+	ctx, span := tr.Start(ctx, "validating-handle")
+	defer span.End()
+
 	if h.validator == nil {
 		panic("validator should never be nil")
 	}
@@ -72,17 +78,26 @@ func (h *validatingHandler) Handle(ctx context.Context, req admission.Request) a
 	// runtime.Object without any metadata info.
 	obj.SetNamespace(req.AdmissionRequest.Namespace)
 
+	addRequestInfoIntoSpan(span, req.AdmissionRequest)
+
 	if req.Operation == v1.Create {
+		span.SetAttributes(label.String("operation", "create"))
+
 		// Get the object in the request.
+		span.AddEvent("Decode request object")
 		err := h.decoder.Decode(req, obj)
 		if err != nil {
+			span.RecordError(err)
 			return admission.Errored(http.StatusBadRequest, err)
 		}
 
 		// Run the validations only if validation is required.
 		if h.validator.RequireValidating(obj) {
+			span.AddEvent("Run validating functions")
+			span.SetAttributes(label.Int("validatecreate-func-count", len(h.validator.ValidateCreate())))
 			for _, m := range h.validator.ValidateCreate() {
 				if err := m(ctx, obj); err != nil {
+					span.RecordError(err)
 					var apiStatus errors.APIStatus
 					if goerrors.As(err, &apiStatus) {
 						return validationResponseFromStatus(false, apiStatus.Status())
@@ -94,21 +109,29 @@ func (h *validatingHandler) Handle(ctx context.Context, req admission.Request) a
 	}
 
 	if req.Operation == v1.Update {
+		span.SetAttributes(label.String("operation", "update"))
+
 		oldObj := h.validator.GetNewObject()
 
+		span.AddEvent("Decode request objects")
 		err := h.decoder.DecodeRaw(req.Object, obj)
 		if err != nil {
+			span.RecordError(err)
 			return admission.Errored(http.StatusBadRequest, err)
 		}
 		err = h.decoder.DecodeRaw(req.OldObject, oldObj)
 		if err != nil {
+			span.RecordError(err)
 			return admission.Errored(http.StatusBadRequest, err)
 		}
 
 		// Run the validations only if validation is required.
 		if h.validator.RequireValidating(obj) {
+			span.AddEvent("Run validating")
+			span.SetAttributes(label.Int("validateupdate-func-count", len(h.validator.ValidateUpdate())))
 			for _, m := range h.validator.ValidateUpdate() {
 				if err := m(ctx, obj, oldObj); err != nil {
+					span.RecordError(err)
 					var apiStatus errors.APIStatus
 					if goerrors.As(err, &apiStatus) {
 						return validationResponseFromStatus(false, apiStatus.Status())
@@ -120,17 +143,24 @@ func (h *validatingHandler) Handle(ctx context.Context, req admission.Request) a
 	}
 
 	if req.Operation == v1.Delete {
+		span.SetAttributes(label.String("operation", "delete"))
+
 		// In reference to PR: https://github.com/kubernetes/kubernetes/pull/76346
 		// OldObject contains the object being deleted
+		span.AddEvent("Decode request object")
 		err := h.decoder.DecodeRaw(req.OldObject, obj)
 		if err != nil {
+			span.RecordError(err)
 			return admission.Errored(http.StatusBadRequest, err)
 		}
 
 		// Run the validations only if validation is required.
 		if h.validator.RequireValidating(obj) {
+			span.AddEvent("Run validating")
+			span.SetAttributes(label.Int("validatedelete-func-count", len(h.validator.ValidateDelete())))
 			for _, m := range h.validator.ValidateDelete() {
 				if err := m(ctx, obj); err != nil {
+					span.RecordError(err)
 					var apiStatus errors.APIStatus
 					if goerrors.As(err, &apiStatus) {
 						return validationResponseFromStatus(false, apiStatus.Status())
@@ -140,6 +170,8 @@ func (h *validatingHandler) Handle(ctx context.Context, req admission.Request) a
 			}
 		}
 	}
+
+	span.SetAttributes(label.Bool("allowed", true))
 
 	return admission.Allowed("")
 }

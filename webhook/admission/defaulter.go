@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/label"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -53,6 +55,10 @@ func (h *mutatingHandler) InjectDecoder(d *admission.Decoder) error {
 
 // Handle handles admission requests.
 func (h *mutatingHandler) Handle(ctx context.Context, req admission.Request) admission.Response {
+	tr := otel.Tracer("operator-toolkit/webhook/admission/defaulter")
+	ctx, span := tr.Start(ctx, "mutating-handle")
+	defer span.End()
+
 	if h.defaulter == nil {
 		panic("defaulter should never be nil")
 	}
@@ -64,25 +70,34 @@ func (h *mutatingHandler) Handle(ctx context.Context, req admission.Request) adm
 	// runtime.Object without any metadata info.
 	obj.SetNamespace(req.AdmissionRequest.Namespace)
 
+	addRequestInfoIntoSpan(span, req.AdmissionRequest)
+
 	// Get the object in the request.
+	span.AddEvent("Decode request object")
 	err := h.decoder.Decode(req, obj)
 	if err != nil {
+		span.RecordError(err)
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
 	// Run the defaulters only if defaulting is required.
 	if h.defaulter.RequireDefaulting(obj) {
+		span.AddEvent("Run defaulting functions")
+		span.SetAttributes(label.Int("default-func-count", len(h.defaulter.Default())))
 		// Process the object through the defaulting pipeline.
 		for _, m := range h.defaulter.Default() {
 			m(ctx, obj)
 		}
 	}
 
+	span.AddEvent("Marshal object")
 	marshalled, err := json.Marshal(obj)
 	if err != nil {
+		span.RecordError(err)
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
 	// Create the patch
+	span.AddEvent("Create patch response")
 	return admission.PatchResponseFromRaw(req.Object.Raw, marshalled)
 }
