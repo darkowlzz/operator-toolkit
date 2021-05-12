@@ -11,6 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/darkowlzz/operator-toolkit/object"
+	"github.com/darkowlzz/operator-toolkit/telemetry/tracing"
 )
 
 // Reconcile implements the composite controller reconciliation.
@@ -18,6 +19,9 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	tr := otel.Tracer("Reconcile")
 	ctx, span := tr.Start(ctx, "reconcile")
 	defer span.End()
+
+	// Create a tracing logger.
+	log := tracing.NewLogger(c.log, span)
 
 	controller := c.ctrlr
 
@@ -36,7 +40,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	span.AddEvent("Validate")
 	if valErr := controller.Validate(ctx, instance); valErr != nil {
 		reterr = valErr
-		c.log.Info("object validation failed", "error", valErr)
+		log.Info("object validation failed", "error", valErr)
 		return
 	}
 
@@ -52,9 +56,9 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// Initialize the instance if not initialized and update.
 	if !init {
 		span.AddEvent("Initialize instance")
-		c.log.Info("initializing", "instance", instance.GetName())
+		log.Info("initializing", "instance", instance.GetName())
 		if initErr := controller.Initialize(ctx, instance, c.initCondition); initErr != nil {
-			c.log.Info("initialization failed", "error", initErr)
+			log.Info("initialization failed", "error", initErr)
 			reterr = initErr
 			return
 		}
@@ -62,7 +66,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		// Update the object status in the API.
 		if updateErr := c.client.Status().Update(ctx, instance); updateErr != nil {
 			span.RecordError(updateErr)
-			c.log.Info("failed to update initialized object", "error", updateErr)
+			log.Info("failed to update initialized object", "error", updateErr)
 		}
 		span.AddEvent("Updated object status")
 		return
@@ -140,7 +144,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	span.AddEvent("Run Operate")
 	result, reterr = controller.Operate(ctx, instance)
 	if reterr != nil {
-		c.log.Info("failed to finish Operation", "error", reterr)
+		log.Info("failed to finish Operation", "error", reterr)
 	}
 
 	return
@@ -158,6 +162,8 @@ func (c *CompositeReconciler) cleanupHandler(ctx context.Context, obj client.Obj
 	ctx, span := tr.Start(ctx, "cleanup handler")
 	defer span.End()
 
+	log := tracing.NewLogger(c.log, span)
+
 	if obj.GetDeletionTimestamp().IsZero() {
 		span.AddEvent("No delete timestamp")
 		// If the object does not contain finalizer, add it.
@@ -166,7 +172,7 @@ func (c *CompositeReconciler) cleanupHandler(ctx context.Context, obj client.Obj
 			controllerutil.AddFinalizer(obj, c.finalizerName)
 			if updateErr := c.client.Update(ctx, obj); updateErr != nil {
 				span.RecordError(updateErr)
-				c.log.Info("failed to add finalizer", "error", updateErr)
+				log.Info("failed to add finalizer", "error", updateErr)
 			}
 			// Mark API object update.
 			updated = true
@@ -183,14 +189,14 @@ func (c *CompositeReconciler) cleanupHandler(ctx context.Context, obj client.Obj
 			result, reterr = c.ctrlr.Cleanup(ctx, obj)
 			if reterr != nil {
 				span.RecordError(reterr)
-				c.log.Info("failed to cleanup", "error", reterr)
+				log.Info("failed to cleanup", "error", reterr)
 			} else {
 				// Cleanup successful, remove the finalizer.
 				span.AddEvent("Cleanup completed, remove finalizer")
 				controllerutil.RemoveFinalizer(obj, c.finalizerName)
 				if updateErr := c.client.Update(ctx, obj); updateErr != nil {
 					span.RecordError(updateErr)
-					c.log.Info("failed to remove finalizer", "error", updateErr)
+					log.Info("failed to remove finalizer", "error", updateErr)
 				}
 				// Mark API object update.
 				updated = true

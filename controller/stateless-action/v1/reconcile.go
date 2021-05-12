@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/darkowlzz/operator-toolkit/controller/stateless-action/v1/action"
+	"github.com/darkowlzz/operator-toolkit/telemetry/tracing"
 )
 
 // Reconciler is the StatelessAction reconciler.
@@ -144,6 +145,8 @@ func (r *Reconciler) RunActionManager(ctx context.Context, o interface{}) error 
 	ctx, span := tr.Start(ctx, r.name+": run action manager")
 	defer span.End()
 
+	log := tracing.NewLogger(r.log, span)
+
 	span.AddEvent("Build action manager")
 	actmgr, err := r.ctrlr.BuildActionManager(o)
 	if err != nil {
@@ -165,7 +168,7 @@ func (r *Reconciler) RunActionManager(ctx context.Context, o interface{}) error 
 		go func(o interface{}) {
 			if runErr := r.RunAction(actmgr, o); runErr != nil {
 				span.RecordError(runErr)
-				r.log.Info("failed to run action", "error", runErr)
+				log.Info("failed to run action", "error", runErr)
 			}
 		}(obj)
 	}
@@ -199,6 +202,8 @@ func (r *Reconciler) RunAction(actmgr action.Manager, o interface{}) (retErr err
 
 	// Set up the logger with action info.
 	log := r.log.WithValues("action", name)
+
+	log = tracing.NewLogger(log, span)
 
 	// Defer the action Defer() function.
 	defer func() {
