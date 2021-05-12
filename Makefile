@@ -2,17 +2,17 @@
 MMD_CMD = mmdc -t neutral
 COMPOSITE_CONTROLLER_DIR = controller/composite/v1
 
-ENVTEST_BIN_VERSION = 1.19.2
-SETUP_ENVTEST = $(shell pwd)/bin/setup-envtest
-# KUBEBUILDER_ASSETS path is set as environment variable when running envtest.
-KUBEBUILDER_ASSETS = $(shell $(SETUP_ENVTEST) use -i -p path $(ENVTEST_BIN_VERSION))
+BIN_PATH = $(shell pwd)/bin
+# Since all the external tools are placed in BIN_PATH, append $PATH with
+# BIN_PATH.
+export PATH := $(BIN_PATH):$(PATH)
 
+# KUBEBUILDER_ASSETS path is set as environment variable when running envtest.
+ENVTEST_BIN_VERSION = 1.19.2
+KUBEBUILDER_ASSETS = $(shell $(SETUP_ENVTEST) use -i -p path $(ENVTEST_BIN_VERSION))
 
 generate: mockgen
 	go generate ./...
-
-mockgen:
-	GO111MODULE=on go get -v github.com/golang/mock/mockgen@latest
 
 test: generate setup-envtest
 	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS) \
@@ -24,6 +24,14 @@ update-diagrams:
 	$(MMD_CMD) -i $(COMPOSITE_CONTROLLER_DIR)/docs/update.mmd -o $(COMPOSITE_CONTROLLER_DIR)/docs/update.svg
 	$(MMD_CMD) -i $(COMPOSITE_CONTROLLER_DIR)/docs/delete.mmd -o $(COMPOSITE_CONTROLLER_DIR)/docs/delete.svg
 
+clean:
+	rm -rf $(BIN_PATH)
+
+MOCKGEN = $(shell pwd)/bin/mockgen
+mockgen:
+	$(call go-get-tool,$(MOCKGEN),github.com/golang/mock/mockgen@latest)
+
+SETUP_ENVTEST = $(shell pwd)/bin/setup-envtest
 setup-envtest:
 	$(call go-get-tool,$(SETUP_ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
 	$(SETUP_ENVTEST) use $(ENVTEST_BIN_VERSION)
