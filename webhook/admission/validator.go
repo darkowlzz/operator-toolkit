@@ -63,7 +63,7 @@ func (h *validatingHandler) InjectDecoder(d *admission.Decoder) error {
 
 // Handle handles admission requests.
 func (h *validatingHandler) Handle(ctx context.Context, req admission.Request) admission.Response {
-	tr := otel.Tracer("operator-toolkit/webhook/admission/validator")
+	tr := otel.Tracer(tracerName)
 	ctx, span := tr.Start(ctx, "validating-handle")
 	defer span.End()
 

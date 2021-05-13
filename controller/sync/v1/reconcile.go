@@ -4,15 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"go.opentelemetry.io/otel"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func (s *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, reterr error) {
-	tr := otel.Tracer("Reconcile")
-	ctx, span := tr.Start(ctx, "reconcile")
+	ctx, span := s.Inst.Start(ctx, "Reconcile")
 	defer span.End()
 
 	controller := s.Ctrlr

@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -13,6 +14,7 @@ import (
 	"github.com/darkowlzz/operator-toolkit/operator/v1/dag"
 	"github.com/darkowlzz/operator-toolkit/operator/v1/executor"
 	"github.com/darkowlzz/operator-toolkit/operator/v1/operand"
+	"github.com/darkowlzz/operator-toolkit/telemetry"
 )
 
 // CompositeOperator contains all the operands and the relationship between
@@ -25,6 +27,7 @@ type CompositeOperator struct {
 	executionStrategy executor.ExecutionStrategy
 	recorder          record.EventRecorder
 	executor          *executor.Executor
+	inst              *telemetry.Instrumentation
 }
 
 // CompositeOperatorOption is used to configure CompositeOperator.
@@ -58,6 +61,13 @@ func WithEventRecorder(recorder record.EventRecorder) CompositeOperatorOption {
 	}
 }
 
+// WithInstrumentation configures the instrumentation of the CompositeOperator.
+func WithInstrumentation(tp trace.TracerProvider, mp metric.MeterProvider) CompositeOperatorOption {
+	return func(c *CompositeOperator) {
+		c.inst = telemetry.NewInstrumentation(tracerName, tp, mp)
+	}
+}
+
 // NewCompositeOperator creates a composite operator with a list of operands.
 // It evaluates the operands for valid, creating a relationship model between
 // the model and returns a CompositeOperator. The relationship model between
@@ -78,6 +88,12 @@ func NewCompositeOperator(opts ...CompositeOperatorOption) (*CompositeOperator, 
 	// Ensure a recorder is provided.
 	if c.recorder == nil {
 		return nil, fmt.Errorf("EventRecorder must be provided to the CompositeOperator")
+	}
+
+	// If instrumentation is nil, create a new instrumentation with default
+	// providers.
+	if c.inst == nil {
+		c.inst = telemetry.NewInstrumentation(tracerName, nil, nil)
 	}
 
 	// Initialize the operator DAG.
@@ -110,8 +126,7 @@ func (co *CompositeOperator) Order() operand.OperandOrder {
 // IsSuspend implements the Operator interface. It checks if the operator can
 // run or if it's suspended and shouldn't run.
 func (co *CompositeOperator) IsSuspended(ctx context.Context, obj client.Object) bool {
-	tr := otel.Tracer("IsSuspended")
-	ctx, span := tr.Start(ctx, "IsSuspended")
+	ctx, span := co.inst.Start(ctx, "IsSuspended")
 	defer span.End()
 
 	return co.isSuspended(ctx, obj)
@@ -121,8 +136,7 @@ func (co *CompositeOperator) IsSuspended(ctx context.Context, obj client.Object)
 // order of their dependencies, to ensure all the operations the individual
 // operands perform.
 func (co *CompositeOperator) Ensure(ctx context.Context, obj client.Object, ownerRef metav1.OwnerReference) (result ctrl.Result, rerr error) {
-	tr := otel.Tracer("Ensure")
-	ctx, span := tr.Start(ctx, "Ensure")
+	ctx, span := co.inst.Start(ctx, "Ensure")
 	defer span.End()
 
 	if !co.IsSuspended(ctx, obj) {
@@ -133,8 +147,7 @@ func (co *CompositeOperator) Ensure(ctx context.Context, obj client.Object, owne
 
 // Cleanup implements the Operator interface.
 func (co *CompositeOperator) Cleanup(ctx context.Context, obj client.Object) (result ctrl.Result, rerr error) {
-	tr := otel.Tracer("Cleanup")
-	ctx, span := tr.Start(ctx, "Cleanup")
+	ctx, span := co.inst.Start(ctx, "Cleanup")
 	defer span.End()
 
 	if !co.IsSuspended(ctx, obj) {

@@ -2,10 +2,18 @@ package v1
 
 import (
 	"github.com/go-logr/logr"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/darkowlzz/operator-toolkit/constant"
+	"github.com/darkowlzz/operator-toolkit/telemetry"
 )
+
+// Name of the tracer.
+const tracerName = constant.LibraryName + "/controller/sync"
 
 // Reconciler defines a sync reconciler.
 type Reconciler struct {
@@ -17,6 +25,7 @@ type Reconciler struct {
 	Scheme        *runtime.Scheme
 	Log           logr.Logger
 	SyncFuncs     []SyncFunc
+	Inst          *telemetry.Instrumentation
 }
 
 // ReconcilerOption is used to configure Reconciler.
@@ -64,6 +73,13 @@ func WithSyncFuncs(sf []SyncFunc) ReconcilerOption {
 	}
 }
 
+// WithInstrumentation configures the instrumentation of the Reconciler.
+func WithInstrumentation(tp trace.TracerProvider, mp metric.MeterProvider) ReconcilerOption {
+	return func(s *Reconciler) {
+		s.Inst = telemetry.NewInstrumentation(tracerName, tp, mp)
+	}
+}
+
 // Init initializes the Reconciler for a given Object with the given
 // options.
 func (s *Reconciler) Init(mgr ctrl.Manager, ctrlr Controller, prototype client.Object, prototypeList client.ObjectList, opts ...ReconcilerOption) error {
@@ -95,6 +111,12 @@ func (s *Reconciler) Init(mgr ctrl.Manager, ctrlr Controller, prototype client.O
 	// If a name is set, log it as the reconciler name.
 	if s.Name != "" {
 		s.Log = s.Log.WithValues("reconciler", s.Name)
+	}
+
+	// If instrumentation is nil, create a new instrumentation with default
+	// providers.
+	if s.Inst == nil {
+		s.Inst = telemetry.NewInstrumentation(tracerName, nil, nil)
 	}
 
 	// Run the sync functions.

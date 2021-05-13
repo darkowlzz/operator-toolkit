@@ -14,6 +14,7 @@ import (
 	"github.com/darkowlzz/operator-toolkit/controller/stateless-action/v1/action"
 	actionmocks "github.com/darkowlzz/operator-toolkit/controller/stateless-action/v1/action/mocks"
 	"github.com/darkowlzz/operator-toolkit/controller/stateless-action/v1/mocks"
+	"github.com/darkowlzz/operator-toolkit/telemetry"
 )
 
 const testActionManagerName = "testAM"
@@ -168,6 +169,7 @@ func TestRunAction(t *testing.T) {
 			r := &Reconciler{
 				log:           ctrl.Log,
 				actionTimeout: 5 * time.Second,
+				inst:          telemetry.NewInstrumentation(tracerName, nil, nil),
 			}
 
 			actionErr := r.RunAction(m, objA)

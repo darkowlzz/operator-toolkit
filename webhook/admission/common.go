@@ -4,7 +4,12 @@ import (
 	"go.opentelemetry.io/otel/label"
 	"go.opentelemetry.io/otel/trace"
 	admissionv1 "k8s.io/api/admission/v1"
+
+	"github.com/darkowlzz/operator-toolkit/constant"
 )
+
+// Name of the tracer.
+const tracerName = constant.LibraryName + "/webhook/admission"
 
 // addRequestInfoIntoSpan adds the admission request information into a trace
 // span.

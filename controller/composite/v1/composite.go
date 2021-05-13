@@ -2,16 +2,24 @@ package v1
 
 import (
 	"github.com/go-logr/logr"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/darkowlzz/operator-toolkit/constant"
+	"github.com/darkowlzz/operator-toolkit/telemetry"
 )
 
 // CleanupStrategy is the resource cleanup strategy used by the reconciler.
 type CleanupStrategy int
 
 const (
+	// Name of the tracer.
+	tracerName = constant.LibraryName + "/controller/composite"
+
 	// OwnerReferenceCleanup depends on k8s garbage collector. All the child
 	// objects of a parent are added with a reference of the parent object.
 	// When the parent object gets deleted, all the child objects are garbage
@@ -38,6 +46,7 @@ type CompositeReconciler struct {
 	prototype       client.Object
 	client          client.Client
 	scheme          *runtime.Scheme
+	inst            *telemetry.Instrumentation
 }
 
 // CompositeReconcilerOption is used to configure CompositeReconciler.
@@ -101,6 +110,14 @@ func WithScheme(scheme *runtime.Scheme) CompositeReconcilerOption {
 	}
 }
 
+// WithInstrumentation configures the instrumentation  of the
+// CompositeReconciler.
+func WithInstrumentation(tp trace.TracerProvider, mp metric.MeterProvider) CompositeReconcilerOption {
+	return func(c *CompositeReconciler) {
+		c.inst = telemetry.NewInstrumentation(tracerName, tp, mp)
+	}
+}
+
 // Init initializes the CompositeReconciler for a given Object with the given
 // options.
 func (c *CompositeReconciler) Init(mgr ctrl.Manager, ctrlr Controller, prototype client.Object, opts ...CompositeReconcilerOption) error {
@@ -136,6 +153,12 @@ func (c *CompositeReconciler) Init(mgr ctrl.Manager, ctrlr Controller, prototype
 	// If finalizer name is not provided, use the controller name.
 	if c.finalizerName == "" {
 		c.finalizerName = c.name
+	}
+
+	// If instrumentation is nil, create a new instrumentation with default
+	// providers.
+	if c.inst == nil {
+		c.inst = telemetry.NewInstrumentation(tracerName, nil, nil)
 	}
 
 	return nil

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/label"
 	"go.opentelemetry.io/otel/trace"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,9 +13,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/darkowlzz/operator-toolkit/constant"
 	eventv1 "github.com/darkowlzz/operator-toolkit/event/v1"
 	"github.com/darkowlzz/operator-toolkit/operator/v1/operand"
+	"github.com/darkowlzz/operator-toolkit/telemetry"
 )
+
+// Name of the tracer.
+const tracerName = constant.LibraryName + "/operator/executor"
 
 // ExecutionStrategy is the operands execution strategy of an operator.
 type ExecutionStrategy int
@@ -32,6 +36,8 @@ const (
 type Executor struct {
 	execStrategy ExecutionStrategy
 	recorder     record.EventRecorder
+
+	inst *telemetry.Instrumentation
 }
 
 // NewExecutor initializes and returns an Executor.
@@ -39,6 +45,7 @@ func NewExecutor(e ExecutionStrategy, r record.EventRecorder) *Executor {
 	return &Executor{
 		execStrategy: e,
 		recorder:     r,
+		inst:         telemetry.NewInstrumentation(tracerName, nil, nil),
 	}
 }
 
@@ -52,8 +59,7 @@ func (exe *Executor) ExecuteOperands(
 	obj client.Object,
 	ownerRef metav1.OwnerReference,
 ) (result ctrl.Result, rerr error) {
-	tr := otel.Tracer("ExecuteOperands")
-	ctx, span := tr.Start(ctx, "execute")
+	ctx, span := exe.inst.Start(ctx, "execute")
 	defer span.End()
 
 	span.SetAttributes(label.Int("order-length", len(order)))
@@ -117,8 +123,7 @@ func (exe *Executor) serialExec(
 	obj client.Object,
 	ownerRef metav1.OwnerReference,
 ) (result *ctrl.Result, rerr error) {
-	tr := otel.Tracer("serialExec")
-	ctx, span := tr.Start(ctx, "serial-exec")
+	ctx, span := exe.inst.Start(ctx, "serial-exec")
 	defer span.End()
 
 	result = nil
@@ -160,8 +165,7 @@ func (exe *Executor) concurrentExec(
 	obj client.Object,
 	ownerRef metav1.OwnerReference,
 ) (result *ctrl.Result, rerr error) {
-	tr := otel.Tracer("concurrentExec")
-	ctx, span := tr.Start(ctx, "concurrent-exec")
+	ctx, span := exe.inst.Start(ctx, "concurrent-exec")
 	defer span.End()
 
 	result = nil

@@ -55,7 +55,7 @@ func (h *mutatingHandler) InjectDecoder(d *admission.Decoder) error {
 
 // Handle handles admission requests.
 func (h *mutatingHandler) Handle(ctx context.Context, req admission.Request) admission.Response {
-	tr := otel.Tracer("operator-toolkit/webhook/admission/defaulter")
+	tr := otel.Tracer(tracerName)
 	ctx, span := tr.Start(ctx, "mutating-handle")
 	defer span.End()
 

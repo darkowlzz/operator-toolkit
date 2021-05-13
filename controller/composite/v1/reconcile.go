@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"go.opentelemetry.io/otel"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -16,8 +15,7 @@ import (
 
 // Reconcile implements the composite controller reconciliation.
 func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, reterr error) {
-	tr := otel.Tracer("Reconcile")
-	ctx, span := tr.Start(ctx, "reconcile")
+	ctx, span := c.inst.Start(ctx, "Reconcile")
 	defer span.End()
 
 	// Create a tracing logger.
@@ -158,8 +156,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 // updated which tells the caller about an API update, usually update to the
 // finalizers in the object.
 func (c *CompositeReconciler) cleanupHandler(ctx context.Context, obj client.Object) (delEnabled bool, updated bool, result ctrl.Result, reterr error) {
-	tr := otel.Tracer("Cleanup Handler")
-	ctx, span := tr.Start(ctx, "cleanup handler")
+	ctx, span := c.inst.Start(ctx, "cleanupHandler")
 	defer span.End()
 
 	log := tracing.NewLogger(c.log, span)

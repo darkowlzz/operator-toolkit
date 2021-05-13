@@ -7,15 +7,21 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/darkowlzz/operator-toolkit/constant"
 	"github.com/darkowlzz/operator-toolkit/controller/stateless-action/v1/action"
+	"github.com/darkowlzz/operator-toolkit/telemetry"
 	"github.com/darkowlzz/operator-toolkit/telemetry/tracing"
 )
+
+// Name of the tracer.
+const tracerName = constant.LibraryName + "/controller/stateless-action"
 
 // Reconciler is the StatelessAction reconciler.
 type Reconciler struct {
@@ -27,6 +33,7 @@ type Reconciler struct {
 
 	actionRetryPeriod time.Duration
 	actionTimeout     time.Duration
+	inst              *telemetry.Instrumentation
 }
 
 // ReconcilerOption is used to configure Reconciler.
@@ -66,6 +73,13 @@ func WithScheme(scheme *runtime.Scheme) ReconcilerOption {
 	}
 }
 
+// WithInstrumentation configures the instrumentation  of the Reconciler.
+func WithInstrumentation(tp trace.TracerProvider, mp metric.MeterProvider) ReconcilerOption {
+	return func(r *Reconciler) {
+		r.inst = telemetry.NewInstrumentation(tracerName, tp, mp)
+	}
+}
+
 func (r *Reconciler) Init(mgr ctrl.Manager, ctrlr Controller, opts ...ReconcilerOption) {
 	r.ctrlr = ctrlr
 
@@ -88,11 +102,16 @@ func (r *Reconciler) Init(mgr ctrl.Manager, ctrlr Controller, opts ...Reconciler
 	if r.name != "" {
 		r.log = r.log.WithValues("reconciler", r.name)
 	}
+
+	// If instrumentation is nil, create a new instrumentation with default
+	// providers.
+	if r.inst == nil {
+		r.inst = telemetry.NewInstrumentation(tracerName, nil, nil)
+	}
 }
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, reterr error) {
-	tr := otel.Tracer(r.name)
-	ctx, span := tr.Start(ctx, r.name+": reconcile")
+	ctx, span := r.inst.Start(ctx, r.name+": Reconcile")
 	defer span.End()
 
 	span.SetAttributes(label.String("object-key", req.NamespacedName.String()))
@@ -141,8 +160,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 // RunActionManager runs the actions in the action manager based on the given
 // object.
 func (r *Reconciler) RunActionManager(ctx context.Context, o interface{}) error {
-	tr := otel.Tracer(r.name)
-	ctx, span := tr.Start(ctx, r.name+": run action manager")
+	ctx, span := r.inst.Start(ctx, r.name+": run action manager")
 	defer span.End()
 
 	log := tracing.NewLogger(r.log, span)
@@ -184,8 +202,7 @@ func (r *Reconciler) RunAction(actmgr action.Manager, o interface{}) (retErr err
 	ctx, cancel := context.WithTimeout(context.Background(), r.actionTimeout)
 	defer cancel()
 
-	tr := otel.Tracer(r.name + "-action")
-	ctx, span := tr.Start(ctx, r.name+": run action")
+	ctx, span := r.inst.Start(ctx, r.name+": run action")
 	defer span.End()
 
 	name, err := actmgr.GetName(o)

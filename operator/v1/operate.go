@@ -6,7 +6,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/darkowlzz/operator-toolkit/constant"
 )
+
+// Name of the tracer.
+const tracerName = constant.LibraryName + "/operator"
 
 // Operator is the operator interface that can be implemented by an operator to
 // be used in a controller control loop.
