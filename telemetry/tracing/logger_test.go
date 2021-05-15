@@ -4,43 +4,43 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 func TestKeyValues(t *testing.T) {
 	cases := []struct {
 		name       string
 		input      []interface{}
-		wantOutput []label.KeyValue
+		wantOutput []attribute.KeyValue
 	}{
 		{
 			name:       "empty input",
-			wantOutput: []label.KeyValue{},
+			wantOutput: []attribute.KeyValue{},
 		},
 		{
 			name:       "nil input",
 			input:      nil,
-			wantOutput: []label.KeyValue{},
+			wantOutput: []attribute.KeyValue{},
 		},
 		{
 			name:  "valid key-val",
 			input: []interface{}{"apple", "ball", "cat", 4},
-			wantOutput: []label.KeyValue{
-				label.String("apple", "ball"),
-				label.Int("cat", 4),
+			wantOutput: []attribute.KeyValue{
+				attribute.String("apple", "ball"),
+				attribute.Int("cat", 4),
 			},
 		},
 		{
 			name:  "non-string key",
 			input: []interface{}{1, 2},
-			wantOutput: []label.KeyValue{
-				label.Int(nonStringKey, 2),
+			wantOutput: []attribute.KeyValue{
+				attribute.Int(nonStringKey, 2),
 			},
 		},
 		{
 			name:       "invalid input",
 			input:      []interface{}{"aa"},
-			wantOutput: []label.KeyValue{},
+			wantOutput: []attribute.KeyValue{},
 		},
 	}
 

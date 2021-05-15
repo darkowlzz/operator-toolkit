@@ -3,6 +3,7 @@ package telemetry
 import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/metric/global"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -20,7 +21,7 @@ func NewInstrumentation(name string, tp trace.TracerProvider, mp metric.MeterPro
 		tp = otel.GetTracerProvider()
 	}
 	if mp == nil {
-		mp = otel.GetMeterProvider()
+		mp = global.GetMeterProvider()
 	}
 	return &Instrumentation{
 		Tracer: tp.Tracer(name),

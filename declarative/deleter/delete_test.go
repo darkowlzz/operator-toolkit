@@ -9,7 +9,8 @@ import (
 )
 
 func TestDelete(t *testing.T) {
-	t.Skip("skip this for unit tests, it shown an example of DirectDeleter in presence of a k8s cluster")
+	// TODO: Move this into an envtest and enable it.
+	t.Skip("skip this for unit tests, it shows an example of DirectDeleter in presence of a k8s cluster")
 
 	nsManifest := `
 apiVersion: v1

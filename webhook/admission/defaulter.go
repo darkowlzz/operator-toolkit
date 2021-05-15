@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/attribute"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -83,7 +83,7 @@ func (h *mutatingHandler) Handle(ctx context.Context, req admission.Request) adm
 	// Run the defaulters only if defaulting is required.
 	if h.defaulter.RequireDefaulting(obj) {
 		span.AddEvent("Run defaulting functions")
-		span.SetAttributes(label.Int("default-func-count", len(h.defaulter.Default())))
+		span.SetAttributes(attribute.Int("default-func-count", len(h.defaulter.Default())))
 		// Process the object through the defaulting pipeline.
 		for _, m := range h.defaulter.Default() {
 			m(ctx, obj)

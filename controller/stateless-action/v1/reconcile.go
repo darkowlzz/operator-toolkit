@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -114,7 +114,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	ctx, span := r.inst.Start(ctx, r.name+": Reconcile")
 	defer span.End()
 
-	span.SetAttributes(label.String("object-key", req.NamespacedName.String()))
+	span.SetAttributes(attribute.String("object-key", req.NamespacedName.String()))
 
 	controller := r.ctrlr
 
@@ -212,9 +212,9 @@ func (r *Reconciler) RunAction(actmgr action.Manager, o interface{}) (retErr err
 	}
 
 	span.SetAttributes(
-		label.String("actionName", name),
-		label.Int64("timeout", int64(r.actionTimeout)),
-		label.Int64("retryPeriod", int64(r.actionRetryPeriod)),
+		attribute.String("actionName", name),
+		attribute.Int64("timeout", int64(r.actionTimeout)),
+		attribute.Int64("retryPeriod", int64(r.actionRetryPeriod)),
 	)
 
 	// Set up the logger with action info.

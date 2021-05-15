@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -62,7 +62,7 @@ func (exe *Executor) ExecuteOperands(
 	ctx, span := exe.inst.Start(ctx, "execute")
 	defer span.End()
 
-	span.SetAttributes(label.Int("order-length", len(order)))
+	span.SetAttributes(attribute.Int("order-length", len(order)))
 	span.AddEvent("Start operand execution")
 	// Iterate through the order steps and run the operands in the steps as per
 	// the execution strategy.
@@ -78,7 +78,7 @@ func (exe *Executor) ExecuteOperands(
 		span.AddEvent(
 			"Execute operands",
 			trace.WithAttributes(
-				label.Int("requeue-strategy", int(requeueStrategy)),
+				attribute.Int("requeue-strategy", int(requeueStrategy)),
 			),
 		)
 
@@ -130,13 +130,13 @@ func (exe *Executor) serialExec(
 
 	span.AddEvent(
 		"Execute serially",
-		trace.WithAttributes(label.Int("operand-count", len(ops))),
+		trace.WithAttributes(attribute.Int("operand-count", len(ops))),
 	)
 
 	for _, op := range ops {
 		span.AddEvent(
 			"Executing operand",
-			trace.WithAttributes(label.String("operand-name", op.Name())),
+			trace.WithAttributes(attribute.String("operand-name", op.Name())),
 		)
 		// Call the run call function. Since this is serial execution, return
 		// if an error occurs.
@@ -184,14 +184,14 @@ func (exe *Executor) concurrentExec(
 
 	span.AddEvent(
 		"Execute concurrently",
-		trace.WithAttributes(label.Int("operand-count", len(ops))),
+		trace.WithAttributes(attribute.Int("operand-count", len(ops))),
 	)
 
 	wg.Add(totalOperands)
 	for _, op := range ops {
 		span.AddEvent(
 			"Executing operand",
-			trace.WithAttributes(label.String("operand-name", op.Name())),
+			trace.WithAttributes(attribute.String("operand-name", op.Name())),
 		)
 		go exe.operateWithWaitGroup(&wg, resultChan, errChan, call(op), ctx, obj, ownerRef)
 	}

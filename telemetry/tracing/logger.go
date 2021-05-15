@@ -2,7 +2,7 @@ package tracing
 
 import (
 	"github.com/go-logr/logr"
-	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -11,12 +11,12 @@ const (
 	infoEventName  = "info"
 	errorEventName = "error"
 
-	// Trace event Label keys.
+	// Trace event attribute keys.
 	messageKey   = "message"
 	eventTypeKey = "event.type"
 	nonStringKey = "non-string"
 
-	// Label values.
+	// Attribute values.
 	logEventTypeValue = "log" // Value for trace event type log.
 )
 
@@ -39,9 +39,9 @@ func NewLogger(logger logr.Logger, span trace.Span) *TracingLogger {
 func (t TracingLogger) Info(msg string, keysAndValues ...interface{}) {
 	t.Logger.Info(msg, keysAndValues...)
 	kvs := append(
-		[]label.KeyValue{
-			label.String(messageKey, msg),
-			label.String(eventTypeKey, logEventTypeValue), // This helps identify an event as a log.
+		[]attribute.KeyValue{
+			attribute.String(messageKey, msg),
+			attribute.String(eventTypeKey, logEventTypeValue), // This helps identify an event as a log.
 		},
 		keyValues(keysAndValues...)...)
 	t.Span.AddEvent(infoEventName, trace.WithAttributes(kvs...))
@@ -51,9 +51,9 @@ func (t TracingLogger) Info(msg string, keysAndValues ...interface{}) {
 func (t TracingLogger) Error(err error, msg string, keysAndValues ...interface{}) {
 	t.Logger.Error(err, msg, keysAndValues...)
 	kvs := append(
-		[]label.KeyValue{
-			label.String(messageKey, msg),
-			label.String(eventTypeKey, logEventTypeValue), // This helps identify an event as a log.
+		[]attribute.KeyValue{
+			attribute.String(messageKey, msg),
+			attribute.String(eventTypeKey, logEventTypeValue), // This helps identify an event as a log.
 		},
 		keyValues(keysAndValues...)...)
 	t.Span.AddEvent(errorEventName, trace.WithAttributes(kvs...))
@@ -73,21 +73,21 @@ func (t TracingLogger) WithValues(keysAndValues ...interface{}) logr.Logger {
 
 // WithName implements the Logger interface.
 func (t TracingLogger) WithName(name string) logr.Logger {
-	t.Span.SetAttributes(label.String("name", name))
+	t.Span.SetAttributes(attribute.String("name", name))
 	return TracingLogger{Logger: t.Logger.WithName(name), Span: t.Span}
 }
 
 // keyValues converts the keysAndValues input from logger into a slice of
-// opentelemetry labels.
-func keyValues(keysAndValues ...interface{}) []label.KeyValue {
-	attrs := make([]label.KeyValue, 0, len(keysAndValues)/2)
+// opentelemetry attributes.
+func keyValues(keysAndValues ...interface{}) []attribute.KeyValue {
+	attrs := make([]attribute.KeyValue, 0, len(keysAndValues)/2)
 	for i := 0; i+1 < len(keysAndValues); i += 2 {
 		key, ok := keysAndValues[i].(string)
 		if !ok {
 			// The key isn't a string. Unexpected value type.
 			key = nonStringKey
 		}
-		attrs = append(attrs, label.Any(key, keysAndValues[i+1]))
+		attrs = append(attrs, attribute.Any(key, keysAndValues[i+1]))
 	}
 	return attrs
 }

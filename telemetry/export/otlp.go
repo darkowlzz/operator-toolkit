@@ -7,9 +7,10 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpgrpc"
 	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/metric/controller/push"
-	"go.opentelemetry.io/otel/sdk/metric/processor/basic"
+	controller "go.opentelemetry.io/otel/sdk/metric/controller/basic"
+	processor "go.opentelemetry.io/otel/sdk/metric/processor/basic"
 	"go.opentelemetry.io/otel/sdk/metric/selector/simple"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -20,10 +21,17 @@ import (
 // the given service name. The returned TracerShutdown can be called to perform
 // a flush of the exporter.
 // TODO: Make it more configurable and document usage.
-func InstallOTLPExporter(serviceName string, expOpts ...otlp.ExporterOption) (TracerShutdown, error) {
+func InstallOTLPExporter(serviceName string, driverOpts ...otlpgrpc.Option) (TracerShutdown, error) {
+	// If tracing is not enabled, skip setting up a Tracer Provider.
+	if getEnvAsBool(envDisableTracing, true) {
+		return func() {}, nil
+	}
+
 	ctx := context.Background()
 
-	exp, err := otlp.NewExporter(ctx, expOpts...)
+	driver := otlpgrpc.NewDriver(driverOpts...)
+
+	exp, err := otlp.NewExporter(ctx, driver)
 	if err != nil {
 		return nil, err
 	}
@@ -39,35 +47,34 @@ func InstallOTLPExporter(serviceName string, expOpts ...otlp.ExporterOption) (Tr
 
 	bsp := sdktrace.NewBatchSpanProcessor(exp)
 	tracerProvider := sdktrace.NewTracerProvider(
-		sdktrace.WithConfig(sdktrace.Config{DefaultSampler: sdktrace.AlwaysSample()}),
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
 		sdktrace.WithResource(res),
 		sdktrace.WithSpanProcessor(bsp),
 	)
 
-	pusher := push.New(
-		basic.New(
+	cont := controller.New(
+		processor.New(
 			simple.NewWithExactDistribution(),
 			exp,
 		),
-		exp,
-		push.WithPeriod(2*time.Second),
+		controller.WithExporter(exp),
+		controller.WithCollectPeriod(2*time.Second),
 	)
 
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 	otel.SetTracerProvider(tracerProvider)
 
-	pusher.Start()
+	if err := cont.Start(ctx); err != nil {
+		return nil, err
+	}
 
 	return func() {
-		err := tracerProvider.Shutdown(ctx)
-		if err != nil {
-			log.Fatalf("failed to stop trace provider: %v", err)
+		if err := cont.Stop(ctx); err != nil {
+			log.Fatalf("failed to stop controller: %v", err)
 		}
 
-		pusher.Stop()
-		err = exp.Shutdown(ctx)
-		if err != nil {
-			log.Fatalf("failed to stop trace exporter: %v", err)
+		if err = tracerProvider.Shutdown(ctx); err != nil {
+			log.Fatalf("failed to stop TraceProvider: %v", err)
 		}
 	}, nil
 }
