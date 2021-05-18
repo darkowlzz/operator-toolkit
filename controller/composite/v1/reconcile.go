@@ -10,16 +10,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/darkowlzz/operator-toolkit/object"
-	"github.com/darkowlzz/operator-toolkit/telemetry/tracing"
 )
 
 // Reconcile implements the composite controller reconciliation.
 func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, reterr error) {
-	ctx, span := c.inst.Start(ctx, "Reconcile")
+	ctx, span, _, log := c.inst.Start(ctx, "Reconcile")
 	defer span.End()
-
-	// Create a tracing logger.
-	log := tracing.NewLogger(c.log, span)
 
 	controller := c.ctrlr
 
@@ -53,7 +49,6 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// Initialize the instance if not initialized and update.
 	if !init {
-		span.AddEvent("Initialize instance")
 		log.Info("initializing", "instance", instance.GetName())
 		if initErr := controller.Initialize(ctx, instance, c.initCondition); initErr != nil {
 			log.Info("initialization failed", "error", initErr)
@@ -156,10 +151,8 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 // updated which tells the caller about an API update, usually update to the
 // finalizers in the object.
 func (c *CompositeReconciler) cleanupHandler(ctx context.Context, obj client.Object) (delEnabled bool, updated bool, result ctrl.Result, reterr error) {
-	ctx, span := c.inst.Start(ctx, "cleanupHandler")
+	ctx, span, _, log := c.inst.Start(ctx, "cleanupHandler")
 	defer span.End()
-
-	log := tracing.NewLogger(c.log, span)
 
 	if obj.GetDeletionTimestamp().IsZero() {
 		span.AddEvent("No delete timestamp")

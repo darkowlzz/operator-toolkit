@@ -80,7 +80,7 @@ func (r *GameReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		compositev1.WithName("game-controller"),
 		compositev1.WithCleanupStrategy(compositev1.OwnerReferenceCleanup),
 		compositev1.WithInitCondition(compositev1.DefaultInitCondition),
-		compositev1.WithLogger(r.Log),
+		compositev1.WithInstrumentation(nil, nil, r.Log),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create new CompositeReconciler: %w", err)

@@ -57,7 +57,7 @@ func (r *NamespaceRecorderReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		actionv1.WithScheme(mgr.GetScheme()),
 		actionv1.WithActionTimeout(10*time.Second),
 		actionv1.WithActionRetryPeriod(2*time.Second),
-		actionv1.WithLogger(r.Log),
+		actionv1.WithInstrumentation(nil, nil, r.Log),
 	)
 
 	return ctrl.NewControllerManagedBy(mgr).

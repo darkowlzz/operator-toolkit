@@ -17,17 +17,15 @@ import (
 	"github.com/darkowlzz/operator-toolkit/constant"
 	"github.com/darkowlzz/operator-toolkit/controller/stateless-action/v1/action"
 	"github.com/darkowlzz/operator-toolkit/telemetry"
-	"github.com/darkowlzz/operator-toolkit/telemetry/tracing"
 )
 
-// Name of the tracer.
-const tracerName = constant.LibraryName + "/controller/stateless-action"
+// Name of the instrumentation.
+const instrumentationName = constant.LibraryName + "/controller/stateless-action"
 
 // Reconciler is the StatelessAction reconciler.
 type Reconciler struct {
 	name   string
 	ctrlr  Controller
-	log    logr.Logger
 	client client.Client
 	scheme *runtime.Scheme
 
@@ -59,13 +57,6 @@ func WithActionTimeout(duration time.Duration) ReconcilerOption {
 	}
 }
 
-// WithLogger sets the Logger in a Reconciler.
-func WithLogger(log logr.Logger) ReconcilerOption {
-	return func(r *Reconciler) {
-		r.log = log
-	}
-}
-
 // WithScheme sets the runtime Scheme of the Reconciler.
 func WithScheme(scheme *runtime.Scheme) ReconcilerOption {
 	return func(r *Reconciler) {
@@ -74,9 +65,13 @@ func WithScheme(scheme *runtime.Scheme) ReconcilerOption {
 }
 
 // WithInstrumentation configures the instrumentation  of the Reconciler.
-func WithInstrumentation(tp trace.TracerProvider, mp metric.MeterProvider) ReconcilerOption {
+func WithInstrumentation(tp trace.TracerProvider, mp metric.MeterProvider, log logr.Logger) ReconcilerOption {
 	return func(r *Reconciler) {
-		r.inst = telemetry.NewInstrumentation(tracerName, tp, mp)
+		// Populate the instrumentation with reconciler data.
+		if log != nil && r.name != "" {
+			log = log.WithValues("reconciler", r.name)
+		}
+		r.inst = telemetry.NewInstrumentation(instrumentationName, tp, mp, log)
 	}
 }
 
@@ -90,28 +85,20 @@ func (r *Reconciler) Init(mgr ctrl.Manager, ctrlr Controller, opts ...Reconciler
 		r.scheme = mgr.GetScheme()
 	}
 
-	// Add defaults.
-	r.log = ctrl.Log
-
 	// Run the options to override the defaults.
 	for _, opt := range opts {
 		opt(r)
 	}
 
-	// If a name is set, log it as the reconciler name.
-	if r.name != "" {
-		r.log = r.log.WithValues("reconciler", r.name)
-	}
-
 	// If instrumentation is nil, create a new instrumentation with default
 	// providers.
 	if r.inst == nil {
-		r.inst = telemetry.NewInstrumentation(tracerName, nil, nil)
+		WithInstrumentation(nil, nil, ctrl.Log)(r)
 	}
 }
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, reterr error) {
-	ctx, span := r.inst.Start(ctx, r.name+": Reconcile")
+	ctx, span, _, _ := r.inst.Start(ctx, r.name+": Reconcile")
 	defer span.End()
 
 	span.SetAttributes(attribute.String("object-key", req.NamespacedName.String()))
@@ -160,10 +147,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 // RunActionManager runs the actions in the action manager based on the given
 // object.
 func (r *Reconciler) RunActionManager(ctx context.Context, o interface{}) error {
-	ctx, span := r.inst.Start(ctx, r.name+": run action manager")
+	ctx, span, _, log := r.inst.Start(ctx, r.name+": run action manager")
 	defer span.End()
-
-	log := tracing.NewLogger(r.log, span)
 
 	span.AddEvent("Build action manager")
 	actmgr, err := r.ctrlr.BuildActionManager(o)
@@ -197,30 +182,28 @@ func (r *Reconciler) RunActionManager(ctx context.Context, o interface{}) error 
 // RunAction checks if an action needs to be run before running it. It also
 // runs a deferred function at the end.
 func (r *Reconciler) RunAction(actmgr action.Manager, o interface{}) (retErr error) {
-	// Create a context with timeout to be able to cancel the action if it
-	// can't be completed within the given time.
-	ctx, cancel := context.WithTimeout(context.Background(), r.actionTimeout)
-	defer cancel()
-
-	ctx, span := r.inst.Start(ctx, r.name+": run action")
-	defer span.End()
-
 	name, err := actmgr.GetName(o)
 	if err != nil {
 		retErr = errors.Wrapf(err, "failed to get action manager name")
 		return
 	}
 
+	// Create a context with timeout to be able to cancel the action if it
+	// can't be completed within the given time.
+	ctx, cancel := context.WithTimeout(context.Background(), r.actionTimeout)
+	defer cancel()
+
+	ctx, span, _, log := r.inst.Start(ctx, r.name+": run action")
+	defer span.End()
+
+	// Set action info in the logger.
+	log = log.WithValues("action", name)
+
 	span.SetAttributes(
 		attribute.String("actionName", name),
 		attribute.Int64("timeout", int64(r.actionTimeout)),
 		attribute.Int64("retryPeriod", int64(r.actionRetryPeriod)),
 	)
-
-	// Set up the logger with action info.
-	log := r.log.WithValues("action", name)
-
-	log = tracing.NewLogger(log, span)
 
 	// Defer the action Defer() function.
 	defer func() {
@@ -256,12 +239,10 @@ func (r *Reconciler) RunAction(actmgr action.Manager, o interface{}) (retErr err
 				}
 			} else {
 				// Action successful, end the action.
-				span.AddEvent("action successful")
 				log.V(6).Info("action successful", "object", o)
 				return
 			}
 		case <-ctx.Done():
-			span.AddEvent("context cancelled")
 			log.Info("context cancelled, terminating action")
 			return
 		}

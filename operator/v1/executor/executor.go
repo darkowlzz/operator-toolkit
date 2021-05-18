@@ -19,8 +19,8 @@ import (
 	"github.com/darkowlzz/operator-toolkit/telemetry"
 )
 
-// Name of the tracer.
-const tracerName = constant.LibraryName + "/operator/executor"
+// Name of the instrumentation.
+const instrumentationName = constant.LibraryName + "/operator/executor"
 
 // ExecutionStrategy is the operands execution strategy of an operator.
 type ExecutionStrategy int
@@ -45,7 +45,7 @@ func NewExecutor(e ExecutionStrategy, r record.EventRecorder) *Executor {
 	return &Executor{
 		execStrategy: e,
 		recorder:     r,
-		inst:         telemetry.NewInstrumentation(tracerName, nil, nil),
+		inst:         telemetry.NewInstrumentation(instrumentationName, nil, nil, nil),
 	}
 }
 
@@ -59,7 +59,7 @@ func (exe *Executor) ExecuteOperands(
 	obj client.Object,
 	ownerRef metav1.OwnerReference,
 ) (result ctrl.Result, rerr error) {
-	ctx, span := exe.inst.Start(ctx, "execute")
+	ctx, span, _, _ := exe.inst.Start(ctx, "execute")
 	defer span.End()
 
 	span.SetAttributes(attribute.Int("order-length", len(order)))
@@ -123,7 +123,7 @@ func (exe *Executor) serialExec(
 	obj client.Object,
 	ownerRef metav1.OwnerReference,
 ) (result *ctrl.Result, rerr error) {
-	ctx, span := exe.inst.Start(ctx, "serial-exec")
+	ctx, span, _, _ := exe.inst.Start(ctx, "serial-exec")
 	defer span.End()
 
 	result = nil
@@ -165,7 +165,7 @@ func (exe *Executor) concurrentExec(
 	obj client.Object,
 	ownerRef metav1.OwnerReference,
 ) (result *ctrl.Result, rerr error) {
-	ctx, span := exe.inst.Start(ctx, "concurrent-exec")
+	ctx, span, _, _ := exe.inst.Start(ctx, "concurrent-exec")
 	defer span.End()
 
 	result = nil

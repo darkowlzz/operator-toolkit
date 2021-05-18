@@ -10,7 +10,7 @@ import (
 )
 
 func (s *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, reterr error) {
-	ctx, span := s.Inst.Start(ctx, "Reconcile")
+	ctx, span, _, _ := s.Inst.Start(ctx, "Reconcile")
 	defer span.End()
 
 	controller := s.Ctrlr

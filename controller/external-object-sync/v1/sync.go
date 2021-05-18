@@ -64,41 +64,40 @@ func (s *Reconciler) Init(mgr ctrl.Manager, ctrlr Controller, prototype client.O
 // objects in the external system and compares them. It deletes all the objects
 // in the external system that don't have an associated k8s object.
 func (s *Reconciler) collectGarbage() {
-	s.Log.WithValues("garbage-collector", s.Name)
-
-	controller := s.Ctrlr
-
 	// TODO: Provide option to set timeout for the garbage collection. Since
 	// this runs in a goroutine, when the reconcile has a timeout duration, use
 	// it with the created context.
-	ctx := context.Background()
+	ctx, _, _, log := s.Inst.Start(context.Background(), "collectGarbage")
+	log.WithValues("garbage-collector", s.Name)
+
+	controller := s.Ctrlr
 
 	// List all the k8s objects.
 	instances := s.PrototypeList.DeepCopyObject().(client.ObjectList)
 	// TODO: Provide option to set a namespace and other list options.
 	if listErr := s.Client.List(ctx, instances); listErr != nil {
-		s.Log.Info("failed to list", "error", listErr)
+		log.Info("failed to list", "error", listErr)
 		return
 	}
 
 	// Convert all k8s objects to list of namespaced names.
 	kObjList, nsnErr := object.NamespacedNames(instances)
 	if nsnErr != nil {
-		s.Log.Info("failed to extract namespaced names: %w", nsnErr)
+		log.Info("failed to extract namespaced names: %w", nsnErr)
 		return
 	}
 
 	// List all the external objects.
 	extObjList, listErr := controller.List(ctx)
 	if listErr != nil {
-		s.Log.Info("failed to list external objects", "error", listErr)
+		log.Info("failed to list external objects", "error", listErr)
 		return
 	}
 
 	// Get the list of external objects that are no longer in k8s.
 	delObjs := object.NamespacedNamesDiff(extObjList, kObjList)
 
-	s.Log.Info("garbage collecting external objects", "objects", delObjs)
+	log.Info("garbage collecting external objects", "objects", delObjs)
 
 	for _, obj := range delObjs {
 		// Create an instance of the object and populate with namespaced name
@@ -107,7 +106,7 @@ func (s *Reconciler) collectGarbage() {
 		instance.SetName(obj.Name)
 		instance.SetNamespace(obj.Namespace)
 		if err := controller.Delete(ctx, instance); err != nil {
-			s.Log.Info("failed to delete external object", "instance", instance, "error", err)
+			log.Info("failed to delete external object", "instance", instance, "error", err)
 		}
 	}
 }

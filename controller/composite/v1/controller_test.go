@@ -5,7 +5,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,15 +17,6 @@ import (
 	"github.com/darkowlzz/operator-toolkit/controller/composite/v1/mocks"
 	tdv1alpha1 "github.com/darkowlzz/operator-toolkit/testdata/api/v1alpha1"
 )
-
-type fakeLogger struct{}
-
-func (f fakeLogger) Info(msg string, keysAndValues ...interface{})             {}
-func (f fakeLogger) Enabled() bool                                             { return false }
-func (f fakeLogger) Error(err error, msg string, keysAndValues ...interface{}) {}
-func (f fakeLogger) V(level int) logr.InfoLogger                               { return f }
-func (f fakeLogger) WithValues(keysAndValues ...interface{}) logr.Logger       { return f }
-func (f fakeLogger) WithName(name string) logr.Logger                          { return f }
 
 func TestReconcile(t *testing.T) {
 	testFinalizerName := "foofinalizer"
@@ -93,7 +83,6 @@ func TestReconcile(t *testing.T) {
 				_ = cr.Init(nil, m, &tdv1alpha1.Game{},
 					WithScheme(scheme),
 					WithClient(cli),
-					WithLogger(fakeLogger{}),
 				)
 				return cr
 			},
@@ -112,7 +101,6 @@ func TestReconcile(t *testing.T) {
 				_ = cr.Init(nil, m, &tdv1alpha1.Game{},
 					WithScheme(scheme),
 					WithClient(cli),
-					WithLogger(fakeLogger{}),
 					WithInitCondition(DefaultInitCondition),
 				)
 				return cr
@@ -133,7 +121,6 @@ func TestReconcile(t *testing.T) {
 				_ = cr.Init(nil, m, &tdv1alpha1.Game{},
 					WithScheme(scheme),
 					WithClient(cli),
-					WithLogger(fakeLogger{}),
 					WithInitCondition(DefaultInitCondition),
 				)
 				return cr
@@ -153,7 +140,6 @@ func TestReconcile(t *testing.T) {
 				_ = cr.Init(nil, m, &tdv1alpha1.Game{},
 					WithScheme(scheme),
 					WithClient(cli),
-					WithLogger(fakeLogger{}),
 					WithInitCondition(DefaultInitCondition),
 				)
 				return cr
@@ -175,7 +161,6 @@ func TestReconcile(t *testing.T) {
 				_ = cr.Init(nil, m, &tdv1alpha1.Game{},
 					WithScheme(scheme),
 					WithClient(cli),
-					WithLogger(fakeLogger{}),
 					WithInitCondition(DefaultInitCondition),
 				)
 				return cr
@@ -197,7 +182,6 @@ func TestReconcile(t *testing.T) {
 				_ = cr.Init(nil, m, &tdv1alpha1.Game{},
 					WithScheme(scheme),
 					WithClient(cli),
-					WithLogger(fakeLogger{}),
 					WithInitCondition(DefaultInitCondition),
 				)
 				return cr
@@ -218,7 +202,6 @@ func TestReconcile(t *testing.T) {
 				_ = cr.Init(nil, m, &tdv1alpha1.Game{},
 					WithScheme(scheme),
 					WithClient(cli),
-					WithLogger(fakeLogger{}),
 					WithInitCondition(DefaultInitCondition),
 				)
 				return cr
@@ -240,7 +223,6 @@ func TestReconcile(t *testing.T) {
 				_ = cr.Init(nil, m, &tdv1alpha1.Game{},
 					WithScheme(scheme),
 					WithClient(cli),
-					WithLogger(fakeLogger{}),
 					WithInitCondition(DefaultInitCondition),
 				)
 				return cr
@@ -261,7 +243,6 @@ func TestReconcile(t *testing.T) {
 				_ = cr.Init(nil, m, &tdv1alpha1.Game{},
 					WithScheme(scheme),
 					WithClient(cli),
-					WithLogger(fakeLogger{}),
 					WithInitCondition(DefaultInitCondition),
 					WithFinalizer(testFinalizerName),
 					WithCleanupStrategy(FinalizerCleanup),
@@ -282,7 +263,6 @@ func TestReconcile(t *testing.T) {
 				_ = cr.Init(nil, m, &tdv1alpha1.Game{},
 					WithScheme(scheme),
 					WithClient(cli),
-					WithLogger(fakeLogger{}),
 					WithInitCondition(DefaultInitCondition),
 					WithFinalizer(testFinalizerName),
 					WithCleanupStrategy(FinalizerCleanup),
@@ -306,7 +286,6 @@ func TestReconcile(t *testing.T) {
 				_ = cr.Init(nil, m, &tdv1alpha1.Game{},
 					WithScheme(scheme),
 					WithClient(cli),
-					WithLogger(fakeLogger{}),
 					WithInitCondition(DefaultInitCondition),
 					WithFinalizer(testFinalizerName),
 					WithCleanupStrategy(FinalizerCleanup),

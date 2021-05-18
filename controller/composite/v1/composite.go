@@ -17,8 +17,8 @@ import (
 type CleanupStrategy int
 
 const (
-	// Name of the tracer.
-	tracerName = constant.LibraryName + "/controller/composite"
+	// Name of the instrumentation.
+	instrumentationName = constant.LibraryName + "/controller/composite"
 
 	// OwnerReferenceCleanup depends on k8s garbage collector. All the child
 	// objects of a parent are added with a reference of the parent object.
@@ -41,7 +41,6 @@ type CompositeReconciler struct {
 	initCondition   metav1.Condition
 	finalizerName   string
 	cleanupStrategy CleanupStrategy
-	log             logr.Logger
 	ctrlr           Controller
 	prototype       client.Object
 	client          client.Client
@@ -70,13 +69,6 @@ func WithClient(cli client.Client) CompositeReconcilerOption {
 func WithPrototype(obj client.Object) CompositeReconcilerOption {
 	return func(c *CompositeReconciler) {
 		c.prototype = obj
-	}
-}
-
-// WithLogger sets the Logger in a CompositeReconciler.
-func WithLogger(log logr.Logger) CompositeReconcilerOption {
-	return func(c *CompositeReconciler) {
-		c.log = log
 	}
 }
 
@@ -112,9 +104,12 @@ func WithScheme(scheme *runtime.Scheme) CompositeReconcilerOption {
 
 // WithInstrumentation configures the instrumentation  of the
 // CompositeReconciler.
-func WithInstrumentation(tp trace.TracerProvider, mp metric.MeterProvider) CompositeReconcilerOption {
+func WithInstrumentation(tp trace.TracerProvider, mp metric.MeterProvider, log logr.Logger) CompositeReconcilerOption {
 	return func(c *CompositeReconciler) {
-		c.inst = telemetry.NewInstrumentation(tracerName, tp, mp)
+		if log != nil && c.name != "" {
+			log = log.WithValues("reconciler", c.name)
+		}
+		c.inst = telemetry.NewInstrumentation(instrumentationName, tp, mp, log)
 	}
 }
 
@@ -136,18 +131,12 @@ func (c *CompositeReconciler) Init(mgr ctrl.Manager, ctrlr Controller, prototype
 	}
 
 	// Add defaults.
-	c.log = ctrl.Log
 	c.initCondition = DefaultInitCondition
 	c.cleanupStrategy = OwnerReferenceCleanup
 
 	// Run the options to override the defaults.
 	for _, opt := range opts {
 		opt(c)
-	}
-
-	// If a name is set, log it as the reconciler name.
-	if c.name != "" {
-		c.log = c.log.WithValues("reconciler", c.name)
 	}
 
 	// If finalizer name is not provided, use the controller name.
@@ -158,7 +147,7 @@ func (c *CompositeReconciler) Init(mgr ctrl.Manager, ctrlr Controller, prototype
 	// If instrumentation is nil, create a new instrumentation with default
 	// providers.
 	if c.inst == nil {
-		c.inst = telemetry.NewInstrumentation(tracerName, nil, nil)
+		WithInstrumentation(nil, nil, ctrl.Log)(c)
 	}
 
 	return nil

@@ -12,8 +12,8 @@ import (
 	"github.com/darkowlzz/operator-toolkit/telemetry"
 )
 
-// Name of the tracer.
-const tracerName = constant.LibraryName + "/controller/sync"
+// Name of the instrumentation.
+const instrumentationName = constant.LibraryName + "/controller/sync"
 
 // Reconciler defines a sync reconciler.
 type Reconciler struct {
@@ -23,7 +23,6 @@ type Reconciler struct {
 	PrototypeList client.ObjectList
 	Client        client.Client
 	Scheme        *runtime.Scheme
-	Log           logr.Logger
 	SyncFuncs     []SyncFunc
 	Inst          *telemetry.Instrumentation
 }
@@ -52,13 +51,6 @@ func WithPrototype(obj client.Object) ReconcilerOption {
 	}
 }
 
-// WithLogger sets the Logger in a Reconciler.
-func WithLogger(log logr.Logger) ReconcilerOption {
-	return func(s *Reconciler) {
-		s.Log = log
-	}
-}
-
 // WithScheme sets the runtime Scheme of the Reconciler.
 func WithScheme(scheme *runtime.Scheme) ReconcilerOption {
 	return func(s *Reconciler) {
@@ -74,9 +66,12 @@ func WithSyncFuncs(sf []SyncFunc) ReconcilerOption {
 }
 
 // WithInstrumentation configures the instrumentation of the Reconciler.
-func WithInstrumentation(tp trace.TracerProvider, mp metric.MeterProvider) ReconcilerOption {
+func WithInstrumentation(tp trace.TracerProvider, mp metric.MeterProvider, log logr.Logger) ReconcilerOption {
 	return func(s *Reconciler) {
-		s.Inst = telemetry.NewInstrumentation(tracerName, tp, mp)
+		if log != nil && s.Name != "" {
+			log = log.WithValues("reconciler", s.Name)
+		}
+		s.Inst = telemetry.NewInstrumentation(instrumentationName, tp, mp, log)
 	}
 }
 
@@ -100,23 +95,15 @@ func (s *Reconciler) Init(mgr ctrl.Manager, ctrlr Controller, prototype client.O
 		s.PrototypeList = prototypeList
 	}
 
-	// Add defaults.
-	s.Log = ctrl.Log
-
 	// Run the options to override the defaults.
 	for _, opt := range opts {
 		opt(s)
 	}
 
-	// If a name is set, log it as the reconciler name.
-	if s.Name != "" {
-		s.Log = s.Log.WithValues("reconciler", s.Name)
-	}
-
 	// If instrumentation is nil, create a new instrumentation with default
 	// providers.
 	if s.Inst == nil {
-		s.Inst = telemetry.NewInstrumentation(tracerName, nil, nil)
+		WithInstrumentation(nil, nil, ctrl.Log)(s)
 	}
 
 	// Run the sync functions.

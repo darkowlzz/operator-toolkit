@@ -15,6 +15,7 @@ import (
 	"github.com/darkowlzz/operator-toolkit/operator/v1/executor"
 	"github.com/darkowlzz/operator-toolkit/operator/v1/operand"
 	"github.com/darkowlzz/operator-toolkit/telemetry"
+	"github.com/go-logr/logr"
 )
 
 // CompositeOperator contains all the operands and the relationship between
@@ -62,9 +63,9 @@ func WithEventRecorder(recorder record.EventRecorder) CompositeOperatorOption {
 }
 
 // WithInstrumentation configures the instrumentation of the CompositeOperator.
-func WithInstrumentation(tp trace.TracerProvider, mp metric.MeterProvider) CompositeOperatorOption {
+func WithInstrumentation(tp trace.TracerProvider, mp metric.MeterProvider, log logr.Logger) CompositeOperatorOption {
 	return func(c *CompositeOperator) {
-		c.inst = telemetry.NewInstrumentation(tracerName, tp, mp)
+		c.inst = telemetry.NewInstrumentation(instrumentationName, tp, mp, log)
 	}
 }
 
@@ -93,7 +94,7 @@ func NewCompositeOperator(opts ...CompositeOperatorOption) (*CompositeOperator, 
 	// If instrumentation is nil, create a new instrumentation with default
 	// providers.
 	if c.inst == nil {
-		c.inst = telemetry.NewInstrumentation(tracerName, nil, nil)
+		c.inst = telemetry.NewInstrumentation(instrumentationName, nil, nil, nil)
 	}
 
 	// Initialize the operator DAG.
@@ -126,7 +127,7 @@ func (co *CompositeOperator) Order() operand.OperandOrder {
 // IsSuspend implements the Operator interface. It checks if the operator can
 // run or if it's suspended and shouldn't run.
 func (co *CompositeOperator) IsSuspended(ctx context.Context, obj client.Object) bool {
-	ctx, span := co.inst.Start(ctx, "IsSuspended")
+	ctx, span, _, _ := co.inst.Start(ctx, "IsSuspended")
 	defer span.End()
 
 	return co.isSuspended(ctx, obj)
@@ -136,7 +137,7 @@ func (co *CompositeOperator) IsSuspended(ctx context.Context, obj client.Object)
 // order of their dependencies, to ensure all the operations the individual
 // operands perform.
 func (co *CompositeOperator) Ensure(ctx context.Context, obj client.Object, ownerRef metav1.OwnerReference) (result ctrl.Result, rerr error) {
-	ctx, span := co.inst.Start(ctx, "Ensure")
+	ctx, span, _, _ := co.inst.Start(ctx, "Ensure")
 	defer span.End()
 
 	if !co.IsSuspended(ctx, obj) {
@@ -147,7 +148,7 @@ func (co *CompositeOperator) Ensure(ctx context.Context, obj client.Object, owne
 
 // Cleanup implements the Operator interface.
 func (co *CompositeOperator) Cleanup(ctx context.Context, obj client.Object) (result ctrl.Result, rerr error) {
-	ctx, span := co.inst.Start(ctx, "Cleanup")
+	ctx, span, _, _ := co.inst.Start(ctx, "Cleanup")
 	defer span.End()
 
 	if !co.IsSuspended(ctx, obj) {

@@ -56,7 +56,7 @@ func (r *ExternalGameSyncReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		syncv1.WithName("external-game-sync-controller"),
 		syncv1.WithScheme(r.Scheme),
 		syncv1.WithClient(r.Client),
-		syncv1.WithLogger(r.Log),
+		syncv1.WithInstrumentation(nil, nil, r.Log),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create new ExternalObjectSyncReconciler: %w", err)

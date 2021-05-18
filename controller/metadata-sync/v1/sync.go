@@ -57,47 +57,46 @@ func (s *Reconciler) Init(mgr ctrl.Manager, ctrlr Controller, prototype client.O
 // objects in the external system.  Any objects that are determined to require a
 // resynchronization then get the metadata re-applied.
 func (s *Reconciler) resync() {
-	s.Log.WithValues("resync", s.Name)
-
-	controller := s.Ctrlr
-
 	// TODO: Provide option to set timeout for the resync. Since this runs in a
 	// goroutine, when the reconcile has a timeout duration, use it with the
 	// created context.
-	ctx := context.Background()
+	ctx, _, _, log := s.Inst.Start(context.Background(), "resync")
+	log.WithValues("resync", s.Name)
+
+	controller := s.Ctrlr
 
 	// List all the k8s objects.
 	instances := s.PrototypeList.DeepCopyObject().(client.ObjectList)
 	// TODO: Provide option to set a namespace and other list options.
 	if listErr := s.Client.List(ctx, instances); listErr != nil {
-		s.Log.Info("failed to list", "error", listErr)
+		log.Info("failed to list", "error", listErr)
 		return
 	}
 
 	items, err := apimeta.ExtractList(instances)
 	if err != nil {
-		s.Log.Info("failed to extract list", "error", err)
+		log.Info("failed to extract list", "error", err)
 		return
 	}
 
 	k8sObjList, err := object.ClientObjects(s.Scheme, items)
 	if err != nil {
-		s.Log.Info("failed to convert", "error", err)
+		log.Info("failed to convert", "error", err)
 		return
 	}
 
 	// Get list of objects requiring resync.
 	resyncObjs, listErr := controller.Diff(ctx, k8sObjList)
 	if listErr != nil {
-		s.Log.Info("failed to list external objects", "error", listErr)
+		log.Info("failed to list external objects", "error", listErr)
 		return
 	}
 
 	// Apply metadata for each object.
 	for _, obj := range resyncObjs {
 		if err := controller.Ensure(ctx, obj); err != nil {
-			s.Log.Info("failed to resync metadata to external object", "name", obj.GetName(), "error", err)
+			log.Info("failed to resync metadata to external object", "name", obj.GetName(), "error", err)
 		}
 	}
-	s.Log.Info("resync of metadata completed", "count", len(resyncObjs))
+	log.Info("resync of metadata completed", "count", len(resyncObjs))
 }

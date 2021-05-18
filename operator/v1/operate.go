@@ -10,8 +10,8 @@ import (
 	"github.com/darkowlzz/operator-toolkit/constant"
 )
 
-// Name of the tracer.
-const tracerName = constant.LibraryName + "/operator"
+// Name of the instrumentation.
+const instrumentationName = constant.LibraryName + "/operator"
 
 // Operator is the operator interface that can be implemented by an operator to
 // be used in a controller control loop.

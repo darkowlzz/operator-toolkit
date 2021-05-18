@@ -167,9 +167,8 @@ func TestRunAction(t *testing.T) {
 			tc.expectations(m)
 
 			r := &Reconciler{
-				log:           ctrl.Log,
 				actionTimeout: 5 * time.Second,
-				inst:          telemetry.NewInstrumentation(tracerName, nil, nil),
+				inst:          telemetry.NewInstrumentation(instrumentationName, nil, nil, nil),
 			}
 
 			actionErr := r.RunAction(m, objA)
