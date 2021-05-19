@@ -22,7 +22,9 @@ type PodInformer1Reconciler struct {
 }
 
 func (r *PodInformer1Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_, _, _, log := r.Instrumentation.Start(ctx, "podInformer1.Reconcile")
+	_, span, _, log := r.Instrumentation.Start(ctx, "podInformer1.Reconcile")
+	defer span.End()
+
 	log = log.WithValues("podinformer1", req.NamespacedName)
 
 	log.Info("reconciling pod", "req", req)

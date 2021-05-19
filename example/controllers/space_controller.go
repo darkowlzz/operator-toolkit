@@ -44,7 +44,9 @@ type SpaceReconciler struct {
 // Reconcile is part of the main space reconciles loop which aims to move the
 // current state of the cluster closer to the desired state.
 func (r *SpaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_, _, _, log := r.Instrumentation.Start(ctx, "space.Reconcile")
+	_, span, _, log := r.Instrumentation.Start(ctx, "space.Reconcile")
+	defer span.End()
+
 	log = log.WithValues("space", req.NamespacedName)
 
 	nn := req.NamespacedName
@@ -62,7 +64,8 @@ func (r *SpaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 }
 
 func (r *SpaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	_, _, _, log := r.Instrumentation.Start(context.Background(), "space.SetupWithManager")
+	_, span, _, log := r.Instrumentation.Start(context.Background(), "space.SetupWithManager")
+	defer span.End()
 
 	// Create an generic event source. This is used by the Channel type source
 	// to collect the events and process with source event handler.
@@ -77,12 +80,13 @@ func (r *SpaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	// Periodically populate the cache from space.
 	go func() {
-		_, _, _, pLog := r.Instrumentation.Start(context.Background(), "space.spacePoller")
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
 
 		for {
 			<-ticker.C
+			// Start a new instrumentation for every tick in the goroutine.
+			_, pSpan, _, pLog := r.Instrumentation.Start(context.Background(), "space.spacePoller")
 			pLog.Info("polling space for data")
 			src <- event.GenericEvent{
 				Object: &appv1alpha1.Game{
@@ -92,6 +96,7 @@ func (r *SpaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 					},
 				},
 			}
+			pSpan.End()
 		}
 	}()
 

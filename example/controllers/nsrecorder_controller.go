@@ -45,7 +45,8 @@ type NamespaceRecorderReconciler struct {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *NamespaceRecorderReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	_, _, _, log := r.Instrumentation.Start(context.Background(), "namespaceRecorder.SetupWithManager")
+	_, span, _, log := r.Instrumentation.Start(context.Background(), "namespaceRecorder.SetupWithManager")
+	defer span.End()
 
 	nsc := &nsRecorder{
 		Client: r.Client,
@@ -90,7 +91,8 @@ func (n *nsRecorder) GetObject(ctx context.Context, key client.ObjectKey) (inter
 // RequireAction implements the stateless-action controller interface. It
 // checks if an action is required given a target object.
 func (n *nsRecorder) RequireAction(ctx context.Context, i interface{}) (bool, error) {
-	_, _, _, log := n.instrumentation.Start(ctx, "nsRecorder.RequireAction")
+	_, span, _, log := n.instrumentation.Start(ctx, "nsRecorder.RequireAction")
+	defer span.End()
 
 	ns, ok := i.(*corev1.Namespace)
 	if !ok {
@@ -115,7 +117,8 @@ func (n *nsRecorder) RequireAction(ctx context.Context, i interface{}) (bool, er
 // BuildActionManager implements the stateless-action controller interface. It
 // builds an action manager with the target object and returns it.
 func (n *nsRecorder) BuildActionManager(i interface{}) (action.Manager, error) {
-	_, _, _, log := n.instrumentation.Start(context.Background(), "nsRecorder.BuildActionManager")
+	_, span, _, log := n.instrumentation.Start(context.Background(), "nsRecorder.BuildActionManager")
+	defer span.End()
 
 	ns, ok := i.(*corev1.Namespace)
 	if !ok {
@@ -145,7 +148,9 @@ type nsActionManager struct {
 // GetName implements the action manager interface. It returns a unique name
 // for the manager based on the given object.
 func (am *nsActionManager) GetName(i interface{}) (string, error) {
-	_, _, _, log := am.instrumentation.Start(context.Background(), "nsActionManager.GetName")
+	_, span, _, log := am.instrumentation.Start(context.Background(), "nsActionManager.GetName")
+	defer span.End()
+
 	ns, ok := i.(*corev1.Namespace)
 	if !ok {
 		log.Info("failed to convert into Namespace", "object", i)

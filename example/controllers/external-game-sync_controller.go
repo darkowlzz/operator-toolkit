@@ -48,7 +48,8 @@ type ExternalGameSyncReconciler struct {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ExternalGameSyncReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	_, _, _, log := r.Instrumentation.Start(context.Background(), "externalGameSync.SetupWithManager")
+	_, span, _, log := r.Instrumentation.Start(context.Background(), "externalGameSync.SetupWithManager")
+	defer span.End()
 
 	c := externalGameSync.NewExternalGameSyncController()
 

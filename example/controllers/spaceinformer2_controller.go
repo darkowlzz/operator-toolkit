@@ -23,7 +23,9 @@ type SpaceInformer2Reconciler struct {
 }
 
 func (r *SpaceInformer2Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_, _, _, log := r.Instrumentation.Start(ctx, "spaceInformer2.Reconcile")
+	_, span, _, log := r.Instrumentation.Start(ctx, "spaceInformer2.Reconcile")
+	defer span.End()
+
 	log = log.WithValues("spaceinformer2", req.NamespacedName)
 
 	log.Info("reconciling game", "req", req)

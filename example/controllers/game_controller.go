@@ -67,7 +67,8 @@ type GameReconciler struct {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *GameReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	_, _, _, log := r.Instrumentation.Start(context.Background(), "game.SetupWithManager")
+	_, span, _, log := r.Instrumentation.Start(context.Background(), "game.SetupWithManager")
+	defer span.End()
 
 	// Load manifests in an in-memory filesystem.
 	fs, err := loader.NewLoadedManifestFileSystem("channels", "stable")
