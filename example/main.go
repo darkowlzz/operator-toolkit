@@ -29,6 +29,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	extcache "github.com/darkowlzz/operator-toolkit/cache"
+	"github.com/darkowlzz/operator-toolkit/telemetry"
 	"github.com/darkowlzz/operator-toolkit/telemetry/export"
 	"github.com/darkowlzz/operator-toolkit/webhook/cert"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
@@ -152,7 +153,11 @@ func main() {
 
 	if err = (&controllers.GameReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Game"),
+		Instrumentation: telemetry.NewInstrumentationWithProviders(
+			controllers.InstrumentationName,
+			nil, nil,
+			ctrl.Log.WithName("controllers").WithName("Game"),
+		),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Game")
@@ -161,7 +166,11 @@ func main() {
 
 	if err = (&controllers.ExternalGameSyncReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("ExternalGameSync"),
+		Instrumentation: telemetry.NewInstrumentationWithProviders(
+			controllers.InstrumentationName,
+			nil, nil,
+			ctrl.Log.WithName("controllers").WithName("ExternalGameSync"),
+		),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ExternalGameSync")
@@ -174,7 +183,11 @@ func main() {
 	// controllers.
 	if err = (&controllers.SpaceReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Space"),
+		Instrumentation: telemetry.NewInstrumentationWithProviders(
+			controllers.InstrumentationName,
+			nil, nil,
+			ctrl.Log.WithName("controllers").WithName("Space"),
+		),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Space")
@@ -186,7 +199,11 @@ func main() {
 	// This controller watches and reconciles Game objects.
 	if err = (&controllers.SpaceInformer1Reconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("SpaceInformer1"),
+		Instrumentation: telemetry.NewInstrumentationWithProviders(
+			controllers.InstrumentationName,
+			nil, nil,
+			ctrl.Log.WithName("controllers").WithName("SpaceInformer1"),
+		),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr, spaceCache); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "SpaceInformer1")
@@ -199,7 +216,11 @@ func main() {
 	// predicates to filter the events they receive and selectively reconcile.
 	if err = (&controllers.SpaceInformer2Reconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("SpaceInformer2"),
+		Instrumentation: telemetry.NewInstrumentationWithProviders(
+			controllers.InstrumentationName,
+			nil, nil,
+			ctrl.Log.WithName("controllers").WithName("SpaceInformer2"),
+		),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr, spaceCache); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "SpaceInformer2")
@@ -212,7 +233,11 @@ func main() {
 	// same API scheme to construct Pod from a different data source.
 	if err = (&controllers.PodInformer1Reconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("PodInformer1"),
+		Instrumentation: telemetry.NewInstrumentationWithProviders(
+			controllers.InstrumentationName,
+			nil, nil,
+			ctrl.Log.WithName("controllers").WithName("PodInformer1"),
+		),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr, spaceCache); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PodInformer1")
@@ -221,7 +246,11 @@ func main() {
 
 	if err = (&controllers.NamespaceRecorderReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("nsRecorder"),
+		Instrumentation: telemetry.NewInstrumentationWithProviders(
+			controllers.InstrumentationName,
+			nil, nil,
+			ctrl.Log.WithName("controllers").WithName("nsRecorder"),
+		),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NamespaceRecorder")

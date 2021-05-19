@@ -168,7 +168,7 @@ func TestRunAction(t *testing.T) {
 
 			r := &Reconciler{
 				actionTimeout: 5 * time.Second,
-				inst:          telemetry.NewInstrumentation(instrumentationName, nil, nil, nil),
+				inst:          telemetry.NewInstrumentation(instrumentationName),
 			}
 
 			actionErr := r.RunAction(m, objA)

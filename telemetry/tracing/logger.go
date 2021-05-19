@@ -30,10 +30,12 @@ type TracingLogger struct {
 
 // NewLogger creates and returns a TracingLogger.
 func NewLogger(logger logr.Logger, span trace.Span) *TracingLogger {
-	// Add tracing info in the logger.
-	log := logger.WithValues("SpanID", span.SpanContext().SpanID(), "TraceID", span.SpanContext().TraceID())
+	// Add tracing info in the logger if tracing is active.
+	if span.IsRecording() {
+		logger = logger.WithValues("SpanID", span.SpanContext().SpanID(), "TraceID", span.SpanContext().TraceID())
+	}
 	return &TracingLogger{
-		Logger: log,
+		Logger: logger,
 		Span:   span,
 	}
 }

@@ -17,25 +17,29 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/darkowlzz/operator-toolkit/constant"
 	compositev1 "github.com/darkowlzz/operator-toolkit/controller/composite/v1"
 	"github.com/darkowlzz/operator-toolkit/declarative/loader"
 	appv1alpha1 "github.com/darkowlzz/operator-toolkit/example/api/v1alpha1"
 	"github.com/darkowlzz/operator-toolkit/example/controllers/game"
 	"github.com/darkowlzz/operator-toolkit/operator/v1/executor"
+	"github.com/darkowlzz/operator-toolkit/telemetry"
 )
+
+const InstrumentationName = constant.LibraryName + "/example/controllers"
 
 // GameReconciler reconciles a Game object
 type GameReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Scheme          *runtime.Scheme
+	Instrumentation *telemetry.Instrumentation
 
 	compositev1.CompositeReconciler
 }
@@ -63,6 +67,8 @@ type GameReconciler struct {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *GameReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	_, _, _, log := r.Instrumentation.Start(context.Background(), "game.SetupWithManager")
+
 	// Load manifests in an in-memory filesystem.
 	fs, err := loader.NewLoadedManifestFileSystem("channels", "stable")
 	if err != nil {
@@ -80,7 +86,7 @@ func (r *GameReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		compositev1.WithName("game-controller"),
 		compositev1.WithCleanupStrategy(compositev1.OwnerReferenceCleanup),
 		compositev1.WithInitCondition(compositev1.DefaultInitCondition),
-		compositev1.WithInstrumentation(nil, nil, r.Log),
+		compositev1.WithInstrumentation(nil, nil, log),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create new CompositeReconciler: %w", err)

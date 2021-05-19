@@ -65,7 +65,7 @@ func WithEventRecorder(recorder record.EventRecorder) CompositeOperatorOption {
 // WithInstrumentation configures the instrumentation of the CompositeOperator.
 func WithInstrumentation(tp trace.TracerProvider, mp metric.MeterProvider, log logr.Logger) CompositeOperatorOption {
 	return func(c *CompositeOperator) {
-		c.inst = telemetry.NewInstrumentation(instrumentationName, tp, mp, log)
+		c.inst = telemetry.NewInstrumentationWithProviders(instrumentationName, tp, mp, log)
 	}
 }
 
@@ -94,7 +94,7 @@ func NewCompositeOperator(opts ...CompositeOperatorOption) (*CompositeOperator, 
 	// If instrumentation is nil, create a new instrumentation with default
 	// providers.
 	if c.inst == nil {
-		c.inst = telemetry.NewInstrumentation(instrumentationName, nil, nil, nil)
+		WithInstrumentation(nil, nil, nil)(c)
 	}
 
 	// Initialize the operator DAG.

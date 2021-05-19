@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/darkowlzz/operator-toolkit/source"
-	"github.com/go-logr/logr"
+	"github.com/darkowlzz/operator-toolkit/telemetry"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -18,12 +18,13 @@ import (
 // SpaceInformer2Reconciler reconciles external object from space.
 type SpaceInformer2Reconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Scheme          *runtime.Scheme
+	Instrumentation *telemetry.Instrumentation
 }
 
 func (r *SpaceInformer2Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.WithValues("spaceinformer2", req.NamespacedName)
+	_, _, _, log := r.Instrumentation.Start(ctx, "spaceInformer2.Reconcile")
+	log = log.WithValues("spaceinformer2", req.NamespacedName)
 
 	log.Info("reconciling game", "req", req)
 

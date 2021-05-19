@@ -17,10 +17,10 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"time"
 
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -29,14 +29,15 @@ import (
 	syncv1 "github.com/darkowlzz/operator-toolkit/controller/sync/v1"
 	appv1alpha1 "github.com/darkowlzz/operator-toolkit/example/api/v1alpha1"
 	"github.com/darkowlzz/operator-toolkit/example/controllers/externalGameSync"
+	"github.com/darkowlzz/operator-toolkit/telemetry"
 )
 
 // ExternalGameSyncReconciler reconciles a Game object to keep it in sync with
 // the corresponding external system object.
 type ExternalGameSyncReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Scheme          *runtime.Scheme
+	Instrumentation *telemetry.Instrumentation
 
 	extobjsyncv1.Reconciler
 }
@@ -47,6 +48,8 @@ type ExternalGameSyncReconciler struct {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ExternalGameSyncReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	_, _, _, log := r.Instrumentation.Start(context.Background(), "externalGameSync.SetupWithManager")
+
 	c := externalGameSync.NewExternalGameSyncController()
 
 	// Set the garbage collection period and initialize the reconciler,
@@ -56,7 +59,7 @@ func (r *ExternalGameSyncReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		syncv1.WithName("external-game-sync-controller"),
 		syncv1.WithScheme(r.Scheme),
 		syncv1.WithClient(r.Client),
-		syncv1.WithInstrumentation(nil, nil, r.Log),
+		syncv1.WithInstrumentation(nil, nil, log),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create new ExternalObjectSyncReconciler: %w", err)

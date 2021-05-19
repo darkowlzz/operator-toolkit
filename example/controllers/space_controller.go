@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -14,6 +13,7 @@ import (
 	"github.com/darkowlzz/operator-toolkit/controller/external/builder"
 	"github.com/darkowlzz/operator-toolkit/controller/external/handler"
 	appv1alpha1 "github.com/darkowlzz/operator-toolkit/example/api/v1alpha1"
+	"github.com/darkowlzz/operator-toolkit/telemetry"
 )
 
 // NOTE: In the comments below, the term "space" is used instead of
@@ -32,8 +32,8 @@ import (
 // SpaceReconciler reconciles external object from space.
 type SpaceReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Scheme          *runtime.Scheme
+	Instrumentation *telemetry.Instrumentation
 
 	// Cache is the external object cache. The data obtained from space is
 	// stored in the cache. This is also used by the event handler to determine
@@ -44,7 +44,8 @@ type SpaceReconciler struct {
 // Reconcile is part of the main space reconciles loop which aims to move the
 // current state of the cluster closer to the desired state.
 func (r *SpaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.WithValues("space", req.NamespacedName)
+	_, _, _, log := r.Instrumentation.Start(ctx, "space.Reconcile")
+	log = log.WithValues("space", req.NamespacedName)
 
 	nn := req.NamespacedName
 	key := getKey(nn.Name, nn.Namespace)
@@ -61,12 +62,14 @@ func (r *SpaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 }
 
 func (r *SpaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	_, _, _, log := r.Instrumentation.Start(context.Background(), "space.SetupWithManager")
+
 	// Create an generic event source. This is used by the Channel type source
 	// to collect the events and process with source event handler.
 	src := make(chan event.GenericEvent)
 
 	// Initialize the cache.
-	r.Cache = NewFakeCache(r.Log)
+	r.Cache = NewFakeCache(log)
 
 	// Create an event handler that uses the cache to make reconciliation
 	// decisions.
@@ -74,12 +77,13 @@ func (r *SpaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	// Periodically populate the cache from space.
 	go func() {
+		_, _, _, pLog := r.Instrumentation.Start(context.Background(), "space.spacePoller")
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
 
 		for {
 			<-ticker.C
-			r.Log.Info("polling space for data")
+			pLog.Info("polling space for data")
 			src <- event.GenericEvent{
 				Object: &appv1alpha1.Game{
 					ObjectMeta: metav1.ObjectMeta{

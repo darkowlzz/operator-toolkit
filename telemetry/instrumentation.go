@@ -13,6 +13,9 @@ import (
 	"github.com/darkowlzz/operator-toolkit/telemetry/tracing"
 )
 
+// Name of the logger library key.
+const logLibraryKey = "library"
+
 // Instrumentation provides instrumentation builder consisting of tracer, meter
 // and logger.
 type Instrumentation struct {
@@ -21,9 +24,9 @@ type Instrumentation struct {
 	log    logr.Logger
 }
 
-// NewInstrumentation constructs and returns a new Instrumentation. The tracer
-// and meter can be configured by passing trace or meter providers.
-func NewInstrumentation(name string, tp trace.TracerProvider, mp metric.MeterProvider, log logr.Logger) *Instrumentation {
+// NewInstrumentation constructs and returns a new Instrumentation based on the
+// given providers.
+func NewInstrumentationWithProviders(name string, tp trace.TracerProvider, mp metric.MeterProvider, log logr.Logger) *Instrumentation {
 	if tp == nil {
 		tp = otel.GetTracerProvider()
 	}
@@ -36,7 +39,17 @@ func NewInstrumentation(name string, tp trace.TracerProvider, mp metric.MeterPro
 	return &Instrumentation{
 		trace:  tp.Tracer(name),
 		metric: mp.Meter(name),
-		log:    log.WithValues("library", name),
+		log:    log.WithValues(logLibraryKey, name),
+	}
+}
+
+// NewInstrumentation constructs and returns a new Instrumentation with default
+// providers.
+func NewInstrumentation(name string) *Instrumentation {
+	return &Instrumentation{
+		trace:  otel.GetTracerProvider().Tracer(name),
+		metric: global.GetMeterProvider().Meter(name),
+		log:    ctrl.Log.WithValues(logLibraryKey, name),
 	}
 }
 
@@ -44,6 +57,6 @@ func NewInstrumentation(name string, tp trace.TracerProvider, mp metric.MeterPro
 func (i *Instrumentation) Start(ctx context.Context, name string, opts ...trace.SpanOption) (context.Context, trace.Span, metric.Meter, logr.Logger) {
 	ctx, span := i.trace.Start(ctx, name, opts...)
 	// Use the created span to create a tracing logger with the span name.
-	tl := tracing.NewLogger(i.log.WithName(name), span)
+	tl := tracing.NewLogger(i.log.WithValues("spanName", name), span)
 	return ctx, span, i.metric, tl
 }

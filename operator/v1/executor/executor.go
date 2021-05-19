@@ -45,7 +45,7 @@ func NewExecutor(e ExecutionStrategy, r record.EventRecorder) *Executor {
 	return &Executor{
 		execStrategy: e,
 		recorder:     r,
-		inst:         telemetry.NewInstrumentation(instrumentationName, nil, nil, nil),
+		inst:         telemetry.NewInstrumentation(instrumentationName),
 	}
 }
 

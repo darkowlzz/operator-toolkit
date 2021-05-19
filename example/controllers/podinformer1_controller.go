@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/darkowlzz/operator-toolkit/source"
-	"github.com/go-logr/logr"
+	"github.com/darkowlzz/operator-toolkit/telemetry"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -17,12 +17,13 @@ import (
 // PodInformer1Reconciler reconciles external object from space.
 type PodInformer1Reconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Scheme          *runtime.Scheme
+	Instrumentation *telemetry.Instrumentation
 }
 
 func (r *PodInformer1Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.WithValues("podinformer1", req.NamespacedName)
+	_, _, _, log := r.Instrumentation.Start(ctx, "podInformer1.Reconcile")
+	log = log.WithValues("podinformer1", req.NamespacedName)
 
 	log.Info("reconciling pod", "req", req)
 

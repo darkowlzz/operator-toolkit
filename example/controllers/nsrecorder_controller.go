@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -16,6 +15,7 @@ import (
 
 	actionv1 "github.com/darkowlzz/operator-toolkit/controller/stateless-action/v1"
 	"github.com/darkowlzz/operator-toolkit/controller/stateless-action/v1/action"
+	"github.com/darkowlzz/operator-toolkit/telemetry"
 )
 
 const (
@@ -37,17 +37,20 @@ const (
 // the record already exists, the action is not executed.
 type NamespaceRecorderReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Scheme          *runtime.Scheme
+	Instrumentation *telemetry.Instrumentation
 
 	actionv1.Reconciler
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *NamespaceRecorderReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	_, _, _, log := r.Instrumentation.Start(context.Background(), "namespaceRecorder.SetupWithManager")
+
 	nsc := &nsRecorder{
-		Client:             r.Client,
-		log:                r.Log.WithName("nsRecorder-action-controller"),
+		Client: r.Client,
+		instrumentation: telemetry.NewInstrumentationWithProviders(
+			InstrumentationName, nil, nil, log),
 		configmapNamespace: "default",
 	}
 
@@ -57,7 +60,7 @@ func (r *NamespaceRecorderReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		actionv1.WithScheme(mgr.GetScheme()),
 		actionv1.WithActionTimeout(10*time.Second),
 		actionv1.WithActionRetryPeriod(2*time.Second),
-		actionv1.WithInstrumentation(nil, nil, r.Log),
+		actionv1.WithInstrumentation(nil, nil, log),
 	)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -69,7 +72,7 @@ func (r *NamespaceRecorderReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // namespace recorder controller.
 type nsRecorder struct {
 	client.Client
-	log logr.Logger
+	instrumentation *telemetry.Instrumentation
 
 	// configmapNamespace is the namespace where the configmaps will be created.
 	configmapNamespace string
@@ -87,9 +90,11 @@ func (n *nsRecorder) GetObject(ctx context.Context, key client.ObjectKey) (inter
 // RequireAction implements the stateless-action controller interface. It
 // checks if an action is required given a target object.
 func (n *nsRecorder) RequireAction(ctx context.Context, i interface{}) (bool, error) {
+	_, _, _, log := n.instrumentation.Start(ctx, "nsRecorder.RequireAction")
+
 	ns, ok := i.(*corev1.Namespace)
 	if !ok {
-		n.log.Info("failed to convert into Namespace", "object", i)
+		log.Info("failed to convert into Namespace", "object", i)
 		return false, fmt.Errorf("failed to convert into Namespace")
 	}
 
@@ -101,7 +106,7 @@ func (n *nsRecorder) RequireAction(ctx context.Context, i interface{}) (bool, er
 		if apierrors.IsNotFound(err) {
 			return true, nil
 		}
-		n.log.Info("failed to get configmap", "error", err)
+		log.Info("failed to get configmap", "error", err)
 	}
 
 	return false, nil
@@ -110,15 +115,18 @@ func (n *nsRecorder) RequireAction(ctx context.Context, i interface{}) (bool, er
 // BuildActionManager implements the stateless-action controller interface. It
 // builds an action manager with the target object and returns it.
 func (n *nsRecorder) BuildActionManager(i interface{}) (action.Manager, error) {
+	_, _, _, log := n.instrumentation.Start(context.Background(), "nsRecorder.BuildActionManager")
+
 	ns, ok := i.(*corev1.Namespace)
 	if !ok {
-		n.log.Info("failed to convert into Namespace", "object", i)
+		log.Info("failed to convert into Namespace", "object", i)
 		return nil, fmt.Errorf("failed to convert into Namespace")
 	}
 
 	return &nsActionManager{
-		Client:             n.Client,
-		log:                n.log,
+		Client: n.Client,
+		instrumentation: telemetry.NewInstrumentationWithProviders(
+			InstrumentationName, nil, nil, log),
 		ns:                 ns,
 		configmapNamespace: n.configmapNamespace,
 	}, nil
@@ -128,7 +136,7 @@ func (n *nsRecorder) BuildActionManager(i interface{}) (action.Manager, error) {
 // stateless-action controller. It manages the actions for recording namespace.
 type nsActionManager struct {
 	client.Client
-	log logr.Logger
+	instrumentation *telemetry.Instrumentation
 
 	ns                 *corev1.Namespace
 	configmapNamespace string
@@ -137,9 +145,10 @@ type nsActionManager struct {
 // GetName implements the action manager interface. It returns a unique name
 // for the manager based on the given object.
 func (am *nsActionManager) GetName(i interface{}) (string, error) {
+	_, _, _, log := am.instrumentation.Start(context.Background(), "nsActionManager.GetName")
 	ns, ok := i.(*corev1.Namespace)
 	if !ok {
-		am.log.Info("failed to convert into Namespace", "object", i)
+		log.Info("failed to convert into Namespace", "object", i)
 		return "", fmt.Errorf("failed to convert into Namespace")
 	}
 

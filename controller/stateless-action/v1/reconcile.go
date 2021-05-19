@@ -71,7 +71,7 @@ func WithInstrumentation(tp trace.TracerProvider, mp metric.MeterProvider, log l
 		if log != nil && r.name != "" {
 			log = log.WithValues("reconciler", r.name)
 		}
-		r.inst = telemetry.NewInstrumentation(instrumentationName, tp, mp, log)
+		r.inst = telemetry.NewInstrumentationWithProviders(instrumentationName, tp, mp, log)
 	}
 }
 
