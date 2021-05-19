@@ -3,6 +3,7 @@ package tracing
 import (
 	"github.com/go-logr/logr"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -29,8 +30,10 @@ type TracingLogger struct {
 
 // NewLogger creates and returns a TracingLogger.
 func NewLogger(logger logr.Logger, span trace.Span) *TracingLogger {
+	// Add tracing info in the logger.
+	log := logger.WithValues("SpanID", span.SpanContext().SpanID(), "TraceID", span.SpanContext().TraceID())
 	return &TracingLogger{
-		Logger: logger,
+		Logger: log,
 		Span:   span,
 	}
 }
@@ -58,6 +61,7 @@ func (t TracingLogger) Error(err error, msg string, keysAndValues ...interface{}
 		keyValues(keysAndValues...)...)
 	t.Span.AddEvent(errorEventName, trace.WithAttributes(kvs...))
 	t.Span.RecordError(err)
+	t.Span.SetStatus(codes.Error, err.Error())
 }
 
 // V implements the Logger interface.

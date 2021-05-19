@@ -76,7 +76,7 @@ func (s *Reconciler) collectGarbage() {
 	instances := s.PrototypeList.DeepCopyObject().(client.ObjectList)
 	// TODO: Provide option to set a namespace and other list options.
 	if listErr := s.Client.List(ctx, instances); listErr != nil {
-		log.Info("failed to list", "error", listErr)
+		log.Error(listErr, "failed to list")
 		return
 	}
 
@@ -90,7 +90,7 @@ func (s *Reconciler) collectGarbage() {
 	// List all the external objects.
 	extObjList, listErr := controller.List(ctx)
 	if listErr != nil {
-		log.Info("failed to list external objects", "error", listErr)
+		log.Error(listErr, "failed to list external objects")
 		return
 	}
 
@@ -106,7 +106,7 @@ func (s *Reconciler) collectGarbage() {
 		instance.SetName(obj.Name)
 		instance.SetNamespace(obj.Namespace)
 		if err := controller.Delete(ctx, instance); err != nil {
-			log.Info("failed to delete external object", "instance", instance, "error", err)
+			log.Error(err, "failed to delete external object", "instance", instance)
 		}
 	}
 }

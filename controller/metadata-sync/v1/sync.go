@@ -69,33 +69,33 @@ func (s *Reconciler) resync() {
 	instances := s.PrototypeList.DeepCopyObject().(client.ObjectList)
 	// TODO: Provide option to set a namespace and other list options.
 	if listErr := s.Client.List(ctx, instances); listErr != nil {
-		log.Info("failed to list", "error", listErr)
+		log.Error(listErr, "failed to list")
 		return
 	}
 
 	items, err := apimeta.ExtractList(instances)
 	if err != nil {
-		log.Info("failed to extract list", "error", err)
+		log.Error(err, "failed to extract list")
 		return
 	}
 
 	k8sObjList, err := object.ClientObjects(s.Scheme, items)
 	if err != nil {
-		log.Info("failed to convert", "error", err)
+		log.Error(err, "failed to convert")
 		return
 	}
 
 	// Get list of objects requiring resync.
 	resyncObjs, listErr := controller.Diff(ctx, k8sObjList)
 	if listErr != nil {
-		log.Info("failed to list external objects", "error", listErr)
+		log.Error(listErr, "failed to list external objects")
 		return
 	}
 
 	// Apply metadata for each object.
 	for _, obj := range resyncObjs {
 		if err := controller.Ensure(ctx, obj); err != nil {
-			log.Info("failed to resync metadata to external object", "name", obj.GetName(), "error", err)
+			log.Error(err, "failed to resync metadata to external object", "name", obj.GetName())
 		}
 	}
 	log.Info("resync of metadata completed", "count", len(resyncObjs))

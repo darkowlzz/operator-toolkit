@@ -113,8 +113,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	// from other backend, return a nil object.
 	obj, err := controller.GetObject(ctx, req.NamespacedName)
 	if err != nil {
-		span.RecordError(err)
 		reterr = client.IgnoreNotFound(err)
+		if reterr != nil {
+			span.RecordError(reterr)
+		}
 		return
 	}
 	// Return if the object is nil.
@@ -170,8 +172,7 @@ func (r *Reconciler) RunActionManager(ctx context.Context, o interface{}) error 
 	for _, obj := range objects {
 		go func(o interface{}) {
 			if runErr := r.RunAction(actmgr, o); runErr != nil {
-				span.RecordError(runErr)
-				log.Info("failed to run action", "error", runErr)
+				log.Error(runErr, "failed to run action")
 			}
 		}(obj)
 	}
@@ -227,15 +228,13 @@ func (r *Reconciler) RunAction(actmgr action.Manager, o interface{}) (retErr err
 		case <-time.After(r.actionRetryPeriod):
 			checkResult, checkErr := actmgr.Check(ctx, o)
 			if checkErr != nil {
-				span.RecordError(checkErr)
-				log.Info("failed to perform action check, retrying", "error", checkErr)
+				log.Error(checkErr, "failed to perform action check, retrying")
 				continue
 			}
 			if checkResult {
 				span.AddEvent("Check result true, rerun action")
 				if runErr := actmgr.Run(ctx, o); runErr != nil {
-					span.RecordError(runErr)
-					log.Info("action run retry failed", "error", runErr)
+					log.Error(runErr, "action run retry failed")
 				}
 			} else {
 				// Action successful, end the action.

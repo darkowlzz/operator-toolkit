@@ -34,7 +34,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	span.AddEvent("Validate")
 	if valErr := controller.Validate(ctx, instance); valErr != nil {
 		reterr = valErr
-		log.Info("object validation failed", "error", valErr)
+		log.Error(valErr, "object validation failed")
 		return
 	}
 
@@ -51,15 +51,14 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if !init {
 		log.Info("initializing", "instance", instance.GetName())
 		if initErr := controller.Initialize(ctx, instance, c.initCondition); initErr != nil {
-			log.Info("initialization failed", "error", initErr)
+			log.Error(initErr, "initialization failed")
 			reterr = initErr
 			return
 		}
 
 		// Update the object status in the API.
 		if updateErr := c.client.Status().Update(ctx, instance); updateErr != nil {
-			span.RecordError(updateErr)
-			log.Info("failed to update initialized object", "error", updateErr)
+			log.Error(updateErr, "failed to update initialized object")
 		}
 		span.AddEvent("Updated object status")
 		return
@@ -137,7 +136,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	span.AddEvent("Run Operate")
 	result, reterr = controller.Operate(ctx, instance)
 	if reterr != nil {
-		log.Info("failed to finish Operation", "error", reterr)
+		log.Error(reterr, "failed to finish Operation")
 	}
 
 	return
@@ -161,8 +160,7 @@ func (c *CompositeReconciler) cleanupHandler(ctx context.Context, obj client.Obj
 			span.AddEvent("Finalizer not found, updating object to add finalizer")
 			controllerutil.AddFinalizer(obj, c.finalizerName)
 			if updateErr := c.client.Update(ctx, obj); updateErr != nil {
-				span.RecordError(updateErr)
-				log.Info("failed to add finalizer", "error", updateErr)
+				log.Error(updateErr, "failed to add finalizer")
 			}
 			// Mark API object update.
 			updated = true
@@ -178,15 +176,13 @@ func (c *CompositeReconciler) cleanupHandler(ctx context.Context, obj client.Obj
 			span.AddEvent("Finalizer found, run cleanup")
 			result, reterr = c.ctrlr.Cleanup(ctx, obj)
 			if reterr != nil {
-				span.RecordError(reterr)
-				log.Info("failed to cleanup", "error", reterr)
+				log.Error(reterr, "failed to cleanup")
 			} else {
 				// Cleanup successful, remove the finalizer.
 				span.AddEvent("Cleanup completed, remove finalizer")
 				controllerutil.RemoveFinalizer(obj, c.finalizerName)
 				if updateErr := c.client.Update(ctx, obj); updateErr != nil {
-					span.RecordError(updateErr)
-					log.Info("failed to remove finalizer", "error", updateErr)
+					log.Error(updateErr, "failed to remove finalizer")
 				}
 				// Mark API object update.
 				updated = true

@@ -234,7 +234,7 @@ func (m *Manager) Start(ctx context.Context) error {
 			case <-ticker.C:
 				log.Info("cert refresh check")
 				if err := m.run(); err != nil {
-					log.Info("failed to run cert provisioner", "error", err)
+					log.Error(err, "failed to run cert provisioner")
 				}
 			}
 		}
