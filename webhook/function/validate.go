@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/darkowlzz/operator-toolkit/webhook/admission"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/darkowlzz/operator-toolkit/singleton"
+	"github.com/darkowlzz/operator-toolkit/webhook/admission"
 )
 
 // ValidateLabels takes an object and a set of labels and validates the
@@ -30,5 +32,22 @@ func ValidateLabelsCreate(labels map[string]string) admission.ValidateCreateFunc
 func ValidateLabelsUpdate(labels map[string]string) admission.ValidateUpdateFunc {
 	return func(ctx context.Context, obj client.Object, oldobj client.Object) error {
 		return ValidateLabels(obj, labels)
+	}
+}
+
+// ValidateSingletonCreate allows singleton of an object type. If an instance
+// of an object already exists, this will prevent creation of another object.
+func ValidateSingletonCreate(sf singleton.GetInstanceFunc, c client.Client) admission.ValidateCreateFunc {
+	return func(ctx context.Context, obj client.Object) error {
+		// Get singleton.
+		o, err := sf(ctx, c)
+		if err != nil {
+			return err
+		}
+		// If the returned object isn't nil, an instance already exists.
+		if o != nil {
+			return fmt.Errorf("an instance of %q - %s already exists", o.GetObjectKind().GroupVersionKind().Kind, client.ObjectKeyFromObject(o))
+		}
+		return nil
 	}
 }

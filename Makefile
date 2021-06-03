@@ -11,12 +11,16 @@ export PATH := $(BIN_PATH):$(PATH)
 ENVTEST_BIN_VERSION = 1.19.2
 KUBEBUILDER_ASSETS = $(shell $(SETUP_ENVTEST) use -i -p path $(ENVTEST_BIN_VERSION))
 
+# Target directory for tests and test name.
+TEST_DIR = "./..."
+TEST_NAME = ""
+
 generate: mockgen
 	go generate ./...
 
 test: generate setup-envtest
 	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS) \
-		go test -v -timeout 300s -race ./... -count=1 \
+		go test -v -timeout 300s -race $(TEST_DIR) -run=$(TEST_NAME) -count=1 \
 		-coverprofile cover.out
 
 update-diagrams:
