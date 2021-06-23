@@ -2,7 +2,9 @@ package v1
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
@@ -18,6 +20,9 @@ import (
 	"github.com/go-logr/logr"
 )
 
+// defaultRetryPeriod is used for waiting before a retry.
+const defaultRetryPeriod = 5 * time.Second
+
 // CompositeOperator contains all the operands and the relationship between
 // them. It implements the Operator interface.
 type CompositeOperator struct {
@@ -29,6 +34,7 @@ type CompositeOperator struct {
 	recorder          record.EventRecorder
 	executor          *executor.Executor
 	inst              *telemetry.Instrumentation
+	retryPeriod       time.Duration
 }
 
 // CompositeOperatorOption is used to configure CompositeOperator.
@@ -62,6 +68,14 @@ func WithEventRecorder(recorder record.EventRecorder) CompositeOperatorOption {
 	}
 }
 
+// WithRetryPeriod sets the wait period of the operator before performing a
+// retry in the event of a failure.
+func WithRetryPeriod(duration time.Duration) CompositeOperatorOption {
+	return func(c *CompositeOperator) {
+		c.retryPeriod = duration
+	}
+}
+
 // WithInstrumentation configures the instrumentation of the CompositeOperator.
 func WithInstrumentation(tp trace.TracerProvider, mp metric.MeterProvider, log logr.Logger) CompositeOperatorOption {
 	return func(c *CompositeOperator) {
@@ -79,6 +93,7 @@ func NewCompositeOperator(opts ...CompositeOperatorOption) (*CompositeOperator, 
 	c := &CompositeOperator{
 		isSuspended:       defaultIsSuspended,
 		executionStrategy: executor.Parallel,
+		retryPeriod:       defaultRetryPeriod,
 	}
 
 	// Loop through each option.
@@ -136,14 +151,31 @@ func (co *CompositeOperator) IsSuspended(ctx context.Context, obj client.Object)
 // Ensure implements the Operator interface. It runs all the operands, in the
 // order of their dependencies, to ensure all the operations the individual
 // operands perform.
-func (co *CompositeOperator) Ensure(ctx context.Context, obj client.Object, ownerRef metav1.OwnerReference) (result ctrl.Result, rerr error) {
-	ctx, span, _, _ := co.inst.Start(ctx, "Ensure")
+func (co *CompositeOperator) Ensure(ctx context.Context, obj client.Object, ownerRef metav1.OwnerReference) (ctrl.Result, error) {
+	ctx, span, _, log := co.inst.Start(ctx, "Ensure")
 	defer span.End()
 
+	result := ctrl.Result{}
+
 	if !co.IsSuspended(ctx, obj) {
-		return co.executor.ExecuteOperands(co.order, operand.CallEnsure, ctx, obj, ownerRef)
+		res, err := co.executor.ExecuteOperands(co.order, operand.CallEnsure, ctx, obj, ownerRef)
+		if err != nil {
+			// Not ready error shouldn't be propagated to the caller. Handle
+			// the error gracefully by returning a requeue result with a wait
+			// period. Set explicit requeue regardless of the returned result
+			// because an error was found.
+			if errors.Is(err, operand.ErrNotReady) {
+				log.Info("components not ready, retrying in a few seconds...", "waitPeriod", co.retryPeriod, "failure", err)
+				return ctrl.Result{Requeue: true, RequeueAfter: co.retryPeriod}, nil
+			}
+			return ctrl.Result{Requeue: true}, err
+		}
+		result = res
+		span.AddEvent("CompositeOperator Ensure executed successfully")
+	} else {
+		span.AddEvent("CompositeOperator Ensure skipped because it's suspended")
 	}
-	return
+	return result, nil
 }
 
 // Cleanup implements the Operator interface.

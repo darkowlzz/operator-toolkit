@@ -4,6 +4,7 @@ package operand
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,6 +23,9 @@ const (
 	// RequeueAlways is used to requeue result after every applied change.
 	RequeueAlways
 )
+
+// ErrNotReady is returned by operand when the ready check fails.
+var ErrNotReady = errors.New("operand not ready")
 
 // Operand defines a single operation that's part of a composite operator. It
 // contains implementation details about how an action is performed, maybe for
@@ -77,7 +81,7 @@ func CallEnsure(op Operand) func(context.Context, client.Object, metav1.OwnerRef
 		}
 
 		if !ready {
-			err = fmt.Errorf("operand %q readiness check failed: not in the desired state yet", op.Name())
+			err = fmt.Errorf("operand %q readiness check failed: not in the desired state yet: %w", op.Name(), ErrNotReady)
 		}
 
 		return

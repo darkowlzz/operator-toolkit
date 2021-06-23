@@ -71,6 +71,9 @@ func (exe *Executor) ExecuteOperands(
 		var execErr error
 
 		// res is the Result of the step.
+		// TODO: Change the type of res to something that reflects that a
+		// change took place. The value of Result is not propagated to the
+		// caller.
 		var res *ctrl.Result
 
 		requeueStrategy := operand.StepRequeueStrategy(ops)
@@ -238,7 +241,7 @@ func (exe *Executor) operateWithWaitGroup(
 		errChan <- err
 	}
 
-	// Event is used to determine if a change tool place. Send a result to the
+	// Event is used to determine if a change took place. Send a result to the
 	// result channel when an event is received.
 	if event != nil {
 		event.Record(exe.recorder)
