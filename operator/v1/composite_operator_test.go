@@ -74,12 +74,15 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 				opA.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any())
 				opA.EXPECT().RequeueStrategy()
 				opA.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
+				opA.EXPECT().PostReady(gomock.Any(), gomock.Any()).Return(nil)
 				opB.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any())
 				opB.EXPECT().RequeueStrategy()
 				opB.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
+				opB.EXPECT().PostReady(gomock.Any(), gomock.Any()).Return(nil)
 				opC.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any())
 				opC.EXPECT().RequeueStrategy()
 				opC.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
+				opC.EXPECT().PostReady(gomock.Any(), gomock.Any()).Return(nil)
 			},
 			times: 1,
 		},
@@ -95,9 +98,11 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 				opA.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(conditionalEnsure)
 				opA.EXPECT().RequeueStrategy().Return(operand.RequeueAlways)
 				opA.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
+				opA.EXPECT().PostReady(gomock.Any(), gomock.Any()).Return(nil)
 				opB.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any())
 				opB.EXPECT().RequeueStrategy().AnyTimes()
 				opB.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
+				opB.EXPECT().PostReady(gomock.Any(), gomock.Any()).Return(nil)
 				// No execution of opC.
 			},
 			times: 1,
@@ -114,12 +119,15 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 				opA.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(conditionalEnsure).Times(2)
 				opA.EXPECT().RequeueStrategy().Return(operand.RequeueAlways).Times(2)
 				opA.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil).Times(2)
+				opA.EXPECT().PostReady(gomock.Any(), gomock.Any()).Return(nil).Times(2)
 				opB.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any()).Times(2)
 				opB.EXPECT().RequeueStrategy().AnyTimes()
 				opB.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil).Times(2)
+				opB.EXPECT().PostReady(gomock.Any(), gomock.Any()).Return(nil).Times(2)
 				opC.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any())
 				opC.EXPECT().RequeueStrategy()
 				opC.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
+				opC.EXPECT().PostReady(gomock.Any(), gomock.Any()).Return(nil)
 			},
 			times: 2,
 		},
@@ -133,12 +141,15 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 				opA.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any())
 				opA.EXPECT().RequeueStrategy()
 				opA.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
+				opA.EXPECT().PostReady(gomock.Any(), gomock.Any()).Return(nil)
 				opB.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any())
 				opB.EXPECT().RequeueStrategy()
 				opB.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
+				opB.EXPECT().PostReady(gomock.Any(), gomock.Any()).Return(nil)
 				opC.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any())
 				opC.EXPECT().RequeueStrategy()
 				opC.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
+				opC.EXPECT().PostReady(gomock.Any(), gomock.Any()).Return(nil)
 			},
 			times: 1,
 		},
@@ -154,9 +165,11 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 				opA.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(conditionalEnsure)
 				opA.EXPECT().RequeueStrategy().Return(operand.RequeueAlways)
 				opA.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
+				opA.EXPECT().PostReady(gomock.Any(), gomock.Any()).Return(nil)
 				opB.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any())
 				opB.EXPECT().RequeueStrategy().AnyTimes()
 				opB.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
+				opB.EXPECT().PostReady(gomock.Any(), gomock.Any()).Return(nil)
 				// No execution of opC.
 			},
 			times: 1,
@@ -173,12 +186,15 @@ func TestCompositeOperatorEnsure(t *testing.T) {
 				opA.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(conditionalEnsure).Times(2)
 				opA.EXPECT().RequeueStrategy().Return(operand.RequeueAlways).AnyTimes()
 				opA.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil).Times(2)
+				opA.EXPECT().PostReady(gomock.Any(), gomock.Any()).Return(nil).Times(2)
 				opB.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any()).Times(2)
 				opB.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil).Times(2)
 				opB.EXPECT().RequeueStrategy().AnyTimes()
+				opB.EXPECT().PostReady(gomock.Any(), gomock.Any()).Return(nil).Times(2)
 				opC.EXPECT().Ensure(gomock.Any(), gomock.Any(), gomock.Any())
 				opC.EXPECT().RequeueStrategy()
 				opC.EXPECT().ReadyCheck(gomock.Any(), gomock.Any()).Return(true, nil)
+				opC.EXPECT().PostReady(gomock.Any(), gomock.Any()).Return(nil)
 			},
 			times: 2,
 		},

@@ -38,6 +38,7 @@ func (c *ConfigmapOperand) RequeueStrategy() operand.RequeueStrategy { return c.
 func (c *ConfigmapOperand) ReadyCheck(ctx context.Context, obj client.Object) (bool, error) {
 	return true, nil
 }
+func (c *ConfigmapOperand) PostReady(ctx context.Context, obj client.Object) error { return nil }
 
 func (c *ConfigmapOperand) Ensure(ctx context.Context, obj client.Object, ownerRef metav1.OwnerReference) (eventv1.ReconcilerEvent, error) {
 	// Setup a tracer and start a span.

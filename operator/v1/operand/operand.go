@@ -55,6 +55,10 @@ type Operand interface {
 	// ReadyCheck allows writing custom logic for checking if an object is
 	// ready.
 	ReadyCheck(context.Context, client.Object) (bool, error)
+
+	// PostReady allows performing actions once the target object of the
+	// operand is ready.
+	PostReady(context.Context, client.Object) error
 }
 
 // OperandRunCall defines a function type used to define a function that
@@ -62,33 +66,36 @@ type Operand interface {
 // execute function (Ensure or Delete) in a generic way.
 type OperandRunCall func(op Operand) func(context.Context, client.Object, metav1.OwnerReference) (eventv1.ReconcilerEvent, error)
 
-// callEnsure is an OperandRunCall type function that calls the Ensure function
+// CallEnsure is an OperandRunCall type function that calls the Ensure function
 // and the ReadyCheck of a given operand. The Ensure function ensures that the
 // desired change is applied to the world and ReadyCheck helps proceed only
 // when the desired state of the world is reached. This helps run dependent
 // operands only after a successful operand execution.
 func CallEnsure(op Operand) func(context.Context, client.Object, metav1.OwnerReference) (eventv1.ReconcilerEvent, error) {
-	return func(ctx context.Context, obj client.Object, ownerRef metav1.OwnerReference) (event eventv1.ReconcilerEvent, err error) {
-		event, err = op.Ensure(ctx, obj, ownerRef)
+	return func(ctx context.Context, obj client.Object, ownerRef metav1.OwnerReference) (eventv1.ReconcilerEvent, error) {
+		event, err := op.Ensure(ctx, obj, ownerRef)
 		if err != nil {
-			return
+			return nil, err
 		}
 
 		ready, readyErr := op.ReadyCheck(ctx, obj)
 		if readyErr != nil {
-			err = readyErr
-			return
+			return nil, readyErr
 		}
 
 		if !ready {
-			err = fmt.Errorf("operand %q readiness check failed: not in the desired state yet: %w", op.Name(), ErrNotReady)
+			return nil, fmt.Errorf("operand %q readiness check failed: not in the desired state yet: %w", op.Name(), ErrNotReady)
 		}
 
-		return
+		if err := op.PostReady(ctx, obj); err != nil {
+			return nil, err
+		}
+
+		return event, nil
 	}
 }
 
-// callCleanup is an OperandRunCall type function that calls the Cleanup
+// CallCleanup is an OperandRunCall type function that calls the Cleanup
 // function of a given operand.
 func CallCleanup(op Operand) func(context.Context, client.Object, metav1.OwnerReference) (eventv1.ReconcilerEvent, error) {
 	// Wrap Delete with OperandRunCall, ignoring the arguments that aren't

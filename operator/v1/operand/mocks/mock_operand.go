@@ -82,6 +82,20 @@ func (mr *MockOperandMockRecorder) Name() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockOperand)(nil).Name))
 }
 
+// PostReady mocks base method.
+func (m *MockOperand) PostReady(arg0 context.Context, arg1 client.Object) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PostReady", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PostReady indicates an expected call of PostReady.
+func (mr *MockOperandMockRecorder) PostReady(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostReady", reflect.TypeOf((*MockOperand)(nil).PostReady), arg0, arg1)
+}
+
 // ReadyCheck mocks base method.
 func (m *MockOperand) ReadyCheck(arg0 context.Context, arg1 client.Object) (bool, error) {
 	m.ctrl.T.Helper()
