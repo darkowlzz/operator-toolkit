@@ -17,11 +17,25 @@ import (
 // DirectDeleter deletes a given manifest. It is based on DirectApplier.
 // NOTE: This implementation will change after the upstream deleter package is
 // refactored to be more like the applier.
-type DirectDeleter struct{}
+type DirectDeleter struct {
+	ioStreams genericclioptions.IOStreams
+}
 
 // NewDirectDeleter returns an instance of a DirectDeleter.
 func NewDirectDeleter() *DirectDeleter {
-	return &DirectDeleter{}
+	return &DirectDeleter{
+		ioStreams: genericclioptions.IOStreams{
+			In:     os.Stdin,
+			Out:    os.Stdout,
+			ErrOut: os.Stderr,
+		},
+	}
+}
+
+// IOStreams sets the IOStreams of the deleter.
+func (d *DirectDeleter) IOStreams(ioStreams genericclioptions.IOStreams) *DirectDeleter {
+	d.ioStreams = ioStreams
+	return d
 }
 
 // Delete deletes the given manifest.
@@ -30,14 +44,6 @@ func NewDirectDeleter() *DirectDeleter {
 // Applier interface. They are not part of the DeleteOptions at the moment.
 // This will change as the upstream delete package is refactored in the future.
 func (d *DirectDeleter) Delete(ctx context.Context, namespace string, manifest string, validate bool, extraArgs ...string) error {
-	// Create iostreams for the deleter.
-	// TODO: Make this configurable.
-	ioStreams := genericclioptions.IOStreams{
-		In:     os.Stdin,
-		Out:    os.Stdout,
-		ErrOut: os.Stderr,
-	}
-
 	// Create a new factory for the deleter.
 	restClient := genericclioptions.NewConfigFlags(true).WithDeprecatedPasswordFlag()
 	f := cmdutil.NewFactory(restClient)
@@ -69,7 +75,7 @@ func (d *DirectDeleter) Delete(ctx context.Context, namespace string, manifest s
 	}
 
 	// Create new delete options, populate the options and run delete.
-	opts := NewDeleteOptions(ioStreams, fopts)
+	opts := NewDeleteOptions(d.ioStreams, fopts)
 	if err := complete(opts, f, []string{}); err != nil {
 		return err
 	}

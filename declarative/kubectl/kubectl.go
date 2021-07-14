@@ -3,8 +3,9 @@ package kubectl
 import (
 	"context"
 
-	"sigs.k8s.io/kubebuilder-declarative-pattern/pkg/patterns/declarative/pkg/applier"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 
+	"github.com/darkowlzz/operator-toolkit/declarative/applier"
 	"github.com/darkowlzz/operator-toolkit/declarative/deleter"
 )
 
@@ -28,4 +29,11 @@ func New() *DefaultKubectl {
 		DirectApplier: applier.NewDirectApplier(),
 		DirectDeleter: deleter.NewDirectDeleter(),
 	}
+}
+
+// IOStreams sets the IOStreams of the applier and deleter.
+func (d *DefaultKubectl) IOStreams(ioStreams genericclioptions.IOStreams) *DefaultKubectl {
+	d.DirectApplier = d.DirectApplier.IOStreams(ioStreams)
+	d.DirectDeleter = d.DirectDeleter.IOStreams(ioStreams)
+	return d
 }
