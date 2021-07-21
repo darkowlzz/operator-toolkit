@@ -130,7 +130,7 @@ func TestReconcile(t *testing.T) {
 				m.EXPECT().Validate(gomock.Any(), gomock.Any()).Return(nil)
 				m.EXPECT().Initialize(gomock.Any(), gomock.Any(), gomock.Any())
 			},
-			wantResult: ctrl.Result{},
+			wantResult: ctrl.Result{Requeue: true},
 		},
 		{
 			name:         "fetch status failure",

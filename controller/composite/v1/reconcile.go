@@ -3,12 +3,14 @@ package v1
 import (
 	"context"
 	"fmt"
+	"time"
 
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	tkctrl "github.com/darkowlzz/operator-toolkit/controller"
 	"github.com/darkowlzz/operator-toolkit/object"
 )
 
@@ -16,6 +18,9 @@ import (
 func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, reterr error) {
 	ctx, span, _, log := c.inst.Start(ctx, "Reconcile")
 	defer span.End()
+
+	start := time.Now()
+	defer tkctrl.LogReconcileFinish(log, "reconciliation finished", start, &result, &reterr)
 
 	controller := c.ctrlr
 
@@ -47,6 +52,12 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return
 	}
 
+	// NOTE: The init and finalizer blocks below return with `Requeue: true`
+	// to keep the main reconciliation action separate from initial setup
+	// steps. This helps ensure that the status and finalizers of the object
+	// have the correct data while the main reconciliation actions are in
+	// progress.
+
 	// Initialize the instance if not initialized and update.
 	if !init {
 		log.Info("initializing", "instance", instance.GetName())
@@ -61,6 +72,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			log.Error(updateErr, "failed to update initialized object")
 		}
 		span.AddEvent("Updated object status")
+		result = ctrl.Result{Requeue: true}
 		return
 	}
 
@@ -119,6 +131,7 @@ func (c *CompositeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		span.AddEvent("Handle finalizers")
 		delEnabled, updated, cResult, cErr := c.cleanupHandler(ctx, instance)
 		if updated {
+			log.Info("Finalizers updated")
 			// Object updated, skip deferred status update and let the
 			// subsequent reconciliation handle the status udpate.
 			skipStatusUpdate = true

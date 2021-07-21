@@ -3,15 +3,21 @@ package v1
 import (
 	"context"
 	"fmt"
+	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	tkctrl "github.com/darkowlzz/operator-toolkit/controller"
 )
 
 func (s *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, reterr error) {
-	ctx, span, _, _ := s.Inst.Start(ctx, "Reconcile")
+	ctx, span, _, log := s.Inst.Start(ctx, "Reconcile")
 	defer span.End()
+
+	start := time.Now()
+	defer tkctrl.LogReconcileFinish(log, "reconciliation finished", start, &result, &reterr)
 
 	controller := s.Ctrlr
 

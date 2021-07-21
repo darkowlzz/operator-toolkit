@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/darkowlzz/operator-toolkit/constant"
+	tkctrl "github.com/darkowlzz/operator-toolkit/controller"
 	"github.com/darkowlzz/operator-toolkit/controller/stateless-action/v1/action"
 	"github.com/darkowlzz/operator-toolkit/telemetry"
 )
@@ -98,8 +99,11 @@ func (r *Reconciler) Init(mgr ctrl.Manager, ctrlr Controller, opts ...Reconciler
 }
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, reterr error) {
-	ctx, span, _, _ := r.inst.Start(ctx, r.name+": Reconcile")
+	ctx, span, _, log := r.inst.Start(ctx, r.name+": Reconcile")
 	defer span.End()
+
+	start := time.Now()
+	defer tkctrl.LogReconcileFinish(log, "reconciliation finished", start, &result, &reterr)
 
 	span.SetAttributes(attribute.String("object-key", req.NamespacedName.String()))
 

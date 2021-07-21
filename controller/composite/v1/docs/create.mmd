@@ -11,7 +11,7 @@ sequenceDiagram
     participant SU as Status Update
     R->>SU: Update the API object status
 
-    Note over R, SU: Status update results in an event that causes another reconcile
+    Note over R, SU: Return with Requeue: true
 
     participant CH as Cleanup Handler
     R->>CH: Looks at the cleanup strategy and adds finalizer. Update the API object.
