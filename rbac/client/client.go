@@ -56,7 +56,7 @@ func WithClusterRoleName(name string) ClientOption {
 	}
 }
 
-// WithLogger sets the Logger in a Reconciler.
+// WithLogger sets the Logger in Client.
 func WithLogger(log logr.Logger) ClientOption {
 	return func(c *Client) {
 		c.Log = log

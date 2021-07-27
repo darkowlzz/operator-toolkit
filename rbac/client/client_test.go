@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -20,6 +21,7 @@ var _ = Describe("RBAC client recording", func() {
 	var ns *corev1.Namespace
 	var gameObj *tdv1alpha1.Game
 	var gameList *tdv1alpha1.GameList
+	var testClusterRole *rbacv1.ClusterRole
 	ctx := context.TODO()
 
 	BeforeEach(func(done Done) {
@@ -42,6 +44,12 @@ var _ = Describe("RBAC client recording", func() {
 
 		gameList = &tdv1alpha1.GameList{}
 
+		testClusterRole = &rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-cluster-role",
+			},
+		}
+
 		close(done)
 	}, 10)
 
@@ -59,6 +67,11 @@ var _ = Describe("RBAC client recording", func() {
 				err := cli.Create(ctx, gameObj)
 				Expect(err).NotTo(HaveOccurred(), "failed to create game obj")
 
+				defer func() {
+					err := cli.Delete(ctx, gameObj)
+					Expect(err).NotTo(HaveOccurred(), "failed to delete game obj")
+				}()
+
 				err = cli.Get(ctx, client.ObjectKeyFromObject(gameObj), gameObj)
 				Expect(err).NotTo(HaveOccurred(), "failed to get game obj")
 
@@ -72,9 +85,12 @@ var _ = Describe("RBAC client recording", func() {
 				err = cli.Status().Update(ctx, gameObj)
 				Expect(err).NotTo(HaveOccurred(), "failed to update game obj status")
 
+				err = cli.Create(ctx, testClusterRole)
+				Expect(err).NotTo(HaveOccurred(), "failed to create cluster role")
+
 				defer func() {
-					err := cli.Delete(ctx, gameObj)
-					Expect(err).NotTo(HaveOccurred(), "failed to delete game obj")
+					err := cli.Delete(ctx, testClusterRole)
+					Expect(err).NotTo(HaveOccurred(), "failed to delete cluster role")
 				}()
 
 				Expect(Result(cli, os.Stdout, os.Stdout)).NotTo(HaveOccurred(), "failed to get RBAC result")

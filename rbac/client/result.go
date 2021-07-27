@@ -108,7 +108,7 @@ func reorderRules(rules []rbacv1.PolicyRule) []rbacv1.PolicyRule {
 		}
 	}
 
-	// Conver the map of group resource into a list of result policy rules.
+	// Convert the map of group resource into a list of result policy rules.
 	for _, groupResourceName := range groupResourceNameList {
 		policyRule := rulesByGroupResource[groupResourceName]
 		result = append(result, policyRule)
