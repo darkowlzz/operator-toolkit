@@ -9,6 +9,7 @@ import (
 	"net/url"
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
+	apix "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/darkowlzz/operator-toolkit/internal/webhook/cert/generator"
@@ -68,7 +69,8 @@ func (cp *Provisioner) Provision(ctx context.Context, options Options) (bool, er
 }
 
 // Inject the ClientConfig to the objects.
-// It supports MutatingWebhookConfiguration and ValidatingWebhookConfiguration.
+// It supports MutatingWebhookConfiguration, ValidatingWebhookConfiguration and
+// CRD.
 func (cp *Provisioner) inject(ctx context.Context, cc *admissionregistrationv1.WebhookClientConfig, objs []client.Object) error {
 	if cc == nil {
 		return nil
@@ -79,6 +81,8 @@ func (cp *Provisioner) inject(ctx context.Context, cc *admissionregistrationv1.W
 			injectForMutatingWebhook(cc, typed.Webhooks)
 		case *admissionregistrationv1.ValidatingWebhookConfiguration:
 			injectForValidatingWebhook(cc, typed.Webhooks)
+		case *apix.CustomResourceDefinition:
+			injectForCRD(cc, typed.Spec.Conversion.Webhook)
 		default:
 			return fmt.Errorf("%#v is not supported for injecting a webhookClientConfig",
 				objs[i].GetObjectKind().GroupVersionKind())
@@ -103,6 +107,12 @@ func injectForValidatingWebhook(
 		// only replacing the CA bundle to preserve the path in the WebhookClientConfig
 		webhooks[i].ClientConfig.CABundle = cc.CABundle
 	}
+}
+
+func injectForCRD(
+	cc *admissionregistrationv1.WebhookClientConfig,
+	webhook *apix.WebhookConversion) {
+	webhook.ClientConfig.CABundle = cc.CABundle
 }
 
 func dnsNameFromClientConfig(config *admissionregistrationv1.WebhookClientConfig) (string, error) {

@@ -11,8 +11,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
+	apix "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -20,7 +22,11 @@ import (
 )
 
 // getTestResources returns the basic objects required in cert manager tests.
-func getTestResources() (*corev1.Secret, *admissionregistrationv1.MutatingWebhookConfiguration, *admissionregistrationv1.ValidatingWebhookConfiguration) {
+func getTestResources() (
+	*corev1.Secret,
+	*admissionregistrationv1.MutatingWebhookConfiguration,
+	*admissionregistrationv1.ValidatingWebhookConfiguration,
+	*apix.CustomResourceDefinition) {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "webhook-secret",
@@ -44,8 +50,20 @@ func getTestResources() (*corev1.Secret, *admissionregistrationv1.MutatingWebhoo
 			{Name: "foo"},
 		},
 	}
+	crd := &apix.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "some-custom-resource-definition",
+		},
+		Spec: apix.CustomResourceDefinitionSpec{
+			Conversion: &apix.CustomResourceConversion{
+				Webhook: &apix.WebhookConversion{
+					ClientConfig: &apix.WebhookClientConfig{},
+				},
+			},
+		},
+	}
 
-	return secret, mutatingWebhookConfig, validatingWebhookConfig
+	return secret, mutatingWebhookConfig, validatingWebhookConfig, crd
 }
 
 func TestManager(t *testing.T) {
@@ -53,10 +71,13 @@ func TestManager(t *testing.T) {
 	// create it.
 	// Create webhook configurations, they must exist for the the cert manager
 	// to work.
-	secret, mutatingWebhookConfig, validatingWebhookConfig := getTestResources()
+	secret, mutatingWebhookConfig, validatingWebhookConfig, crd := getTestResources()
+
+	tscheme := scheme.Scheme
+	assert.Nil(t, apix.AddToScheme(tscheme))
 
 	// Create a fake client with the webhook configurations.
-	cli := fake.NewClientBuilder().WithObjects(mutatingWebhookConfig, validatingWebhookConfig).Build()
+	cli := fake.NewClientBuilder().WithScheme(tscheme).WithObjects(mutatingWebhookConfig, validatingWebhookConfig, crd).Build()
 
 	certDir, err := ioutil.TempDir("", "cert-test")
 	assert.Nil(t, err)
@@ -73,6 +94,7 @@ func TestManager(t *testing.T) {
 		SecretRef:                   &types.NamespacedName{Name: secret.Name, Namespace: secret.Namespace},
 		MutatingWebhookConfigRefs:   []types.NamespacedName{{Name: mutatingWebhookConfig.Name}},
 		ValidatingWebhookConfigRefs: []types.NamespacedName{{Name: validatingWebhookConfig.Name}},
+		CRDRefs:                     []types.NamespacedName{{Name: crd.Name}},
 		CertValidity:                24 * time.Hour,
 	}
 
@@ -125,10 +147,13 @@ func TestManager(t *testing.T) {
 
 func TestMultipleManagers(t *testing.T) {
 	// Get the basic resources needed to run the cert manager.
-	secret, mutatingWebhookConfig, validatingWebhookConfig := getTestResources()
+	secret, mutatingWebhookConfig, validatingWebhookConfig, crd := getTestResources()
+
+	tscheme := scheme.Scheme
+	assert.Nil(t, apix.AddToScheme(tscheme))
 
 	// Create a fake client with the webhook configurations.
-	cli := fake.NewClientBuilder().WithObjects(mutatingWebhookConfig, validatingWebhookConfig).Build()
+	cli := fake.NewClientBuilder().WithScheme(tscheme).WithObjects(mutatingWebhookConfig, validatingWebhookConfig, crd).Build()
 
 	// Create two cert dirs for the two managers.
 	certDir1, err := ioutil.TempDir("", "cert-test")
@@ -150,6 +175,7 @@ func TestMultipleManagers(t *testing.T) {
 		SecretRef:                   &types.NamespacedName{Name: secret.Name, Namespace: secret.Namespace},
 		MutatingWebhookConfigRefs:   []types.NamespacedName{{Name: mutatingWebhookConfig.Name}},
 		ValidatingWebhookConfigRefs: []types.NamespacedName{{Name: validatingWebhookConfig.Name}},
+		CRDRefs:                     []types.NamespacedName{{Name: crd.Name}},
 	}
 	// Copy and set the cert dir.
 	certOpts2 := certOpts1

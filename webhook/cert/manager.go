@@ -15,6 +15,7 @@ import (
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
+	apix "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -80,6 +81,10 @@ type Options struct {
 	// ValidatingWebhookConfigRefs is the reference to validating webhook
 	// configurations to update with the provisioned certificate.
 	ValidatingWebhookConfigRefs []types.NamespacedName
+
+	// CRDRefs is the reference to CRD configurations to update with the
+	// provisioned certificate.
+	CRDRefs []types.NamespacedName
 
 	// Client is a k8s client.
 	Client client.Client
@@ -355,6 +360,25 @@ func (m *Manager) refreshCert(ctx context.Context) (bool, error) {
 				break
 			}
 			caBundle, differentCABundles = compareCABundles(caBundle, wh.ClientConfig.CABundle)
+		}
+	}
+
+	for _, nn := range m.CRDRefs {
+		crd := &apix.CustomResourceDefinition{}
+		if err := m.Client.Get(ctx, nn, crd); err != nil {
+			return false, err
+		}
+		whConfigs = append(whConfigs, crd)
+
+		// Ensure CABundles are equal. Skip comparison once differentCABundles
+		// is true.
+		// Check for nil values to avoid panicking and return helpful error.
+		if crd.Spec.Conversion != nil &&
+			crd.Spec.Conversion.Webhook != nil &&
+			crd.Spec.Conversion.Webhook.ClientConfig != nil {
+			caBundle, _ = compareCABundles(caBundle, crd.Spec.Conversion.Webhook.ClientConfig.CABundle)
+		} else {
+			return false, fmt.Errorf("CRD %s with misconfigured Spec.Conversion.Webhook.ClientConfig", nn)
 		}
 	}
 
