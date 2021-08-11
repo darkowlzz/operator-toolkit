@@ -1,6 +1,11 @@
 # operator-toolkit
 
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/darkowlzz/operator-toolkit)](https://pkg.go.dev/github.com/darkowlzz/operator-toolkit)
+[![Go Report Card](https://goreportcard.com/badge/github.com/darkowlzz/operator-toolkit)](https://goreportcard.com/report/github.com/darkowlzz/operator-toolkit)
+[![Lint and test](https://github.com/darkowlzz/operator-toolkit/actions/workflows/test.yml/badge.svg)](https://github.com/darkowlzz/operator-toolkit/actions/workflows/test.yml)
+[![Active](http://img.shields.io/badge/Status-Active-green.svg)](https://github.com/darkowlzz/operator-toolkit)
+[![PR's Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat)](https://github.com/darkowlzz/operator-toolkit/pulls)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 operator-toolkit provides framework and tools to help implement kubernetes
 operators.
