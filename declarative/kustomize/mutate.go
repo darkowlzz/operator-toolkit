@@ -75,9 +75,9 @@ func AddImages(images []apitypes.Image) MutateFunc {
 		sequence := []string{}
 		for _, i := range images {
 			if _, exists := imageMap[i.Name]; !exists {
+				imageMap[i.Name] = i
 				sequence = append(sequence, i.Name)
 			}
-			imageMap[i.Name] = i
 		}
 		// Populate the unique images in the recorded sequence.
 		for _, iName := range sequence {

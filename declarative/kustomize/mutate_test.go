@@ -187,8 +187,8 @@ images:
   newName: fooapp/appA
   newTag: "33"
 - name: someAppA
-  newName: barexample/AppZ
-  newTag: v20
+  newName: fooexample/AppY
+  newTag: v10
 kind: Kustomization
 `,
 		},
