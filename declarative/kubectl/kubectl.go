@@ -6,6 +6,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	"github.com/darkowlzz/operator-toolkit/declarative/applier"
+	"github.com/darkowlzz/operator-toolkit/declarative/creator"
 	"github.com/darkowlzz/operator-toolkit/declarative/deleter"
 )
 
@@ -14,6 +15,7 @@ import (
 type KubectlClient interface {
 	Apply(ctx context.Context, namespace string, manifest string, validate bool, extraArgs ...string) error
 	Delete(ctx context.Context, namespace string, manifest string, validate bool, extraArgs ...string) error
+	Create(ctx context.Context, manifest string, validate bool) error
 }
 
 // DefaultKubectl is the default implementation of the KubectlClient using
@@ -21,6 +23,7 @@ type KubectlClient interface {
 type DefaultKubectl struct {
 	*applier.DirectApplier
 	*deleter.DirectDeleter
+	*creator.DirectCreator
 }
 
 // New returns a new KubectlClient based on direct applier and deleter.
@@ -28,6 +31,7 @@ func New() *DefaultKubectl {
 	return &DefaultKubectl{
 		DirectApplier: applier.NewDirectApplier(),
 		DirectDeleter: deleter.NewDirectDeleter(),
+		DirectCreator: creator.NewDirectCreator(),
 	}
 }
 
@@ -35,5 +39,6 @@ func New() *DefaultKubectl {
 func (d *DefaultKubectl) IOStreams(ioStreams genericclioptions.IOStreams) *DefaultKubectl {
 	d.DirectApplier = d.DirectApplier.IOStreams(ioStreams)
 	d.DirectDeleter = d.DirectDeleter.IOStreams(ioStreams)
+	d.DirectCreator = d.DirectCreator.IOStreams(ioStreams)
 	return d
 }
