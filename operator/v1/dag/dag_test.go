@@ -87,4 +87,8 @@ func TestDAG(t *testing.T) {
 	if reverseOrder.String() != expectedReverseResult {
 		t.Errorf("unexpected reverse results:\n\t(WNT) %q\n\t(GOT) %q", expectedReverseResult, reverseOrder)
 	}
+
+	if ordered.String() != expectedResult {
+		t.Errorf("unexpected results after reverse:\n\t(WNT) %q\n\t(GOT) %q", expectedResult, ordered)
+	}
 }
