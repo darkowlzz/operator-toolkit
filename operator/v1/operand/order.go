@@ -41,10 +41,11 @@ func (o OperandOrder) String() string {
 // Reverse returns the OperandOrder in reverse order.
 func (o OperandOrder) Reverse() OperandOrder {
 	// Refer: https://github.com/golang/go/wiki/SliceTricks#reversing
+	r := make(OperandOrder, len(o))
 	for left, right := 0, len(o)-1; left < right; left, right = left+1, right-1 {
-		o[left], o[right] = o[right], o[left]
+		r[left], r[right] = o[right], o[left]
 	}
-	return o
+	return r
 }
 
 // StepRequeueStrategy returns the requeue strategy of a step. By default, the
